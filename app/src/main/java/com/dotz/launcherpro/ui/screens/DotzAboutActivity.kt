@@ -98,7 +98,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Version 3.0",
+                    text = "Version 4.0.0",
                     fontSize = 14.sp,
                     color = DotzColors.White.copy(alpha = 0.5f)
                 )
