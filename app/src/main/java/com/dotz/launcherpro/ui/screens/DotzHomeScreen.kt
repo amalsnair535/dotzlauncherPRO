@@ -35,7 +35,8 @@ fun DotzHomeScreen(
 ) {
     val pages = listOfNotNull(
         uiState.page0Tiles.takeIf { it.isNotEmpty() },
-        uiState.page1Tiles.takeIf { it.isNotEmpty() }
+        uiState.page1Tiles.takeIf { it.isNotEmpty() },
+        uiState.page2Tiles.takeIf { it.isNotEmpty() }
     )
     val pagerState = rememberPagerState(pageCount = { pages.size })
 

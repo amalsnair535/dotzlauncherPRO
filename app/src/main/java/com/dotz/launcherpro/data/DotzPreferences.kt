@@ -51,11 +51,11 @@ class DotzPreferencesRepository(private val context: Context) {
             if (exception is IOException) emit(emptyPreferences()) else throw exception
         }
         .map { prefs ->
-            val overrides = (0..11).mapNotNull { id ->
+            val overrides = (0..17).mapNotNull { id ->
                 prefs[PrefsKeys.tileOverride(id)]?.let { id to it }
             }.toMap()
 
-            val labels = (0..11).mapNotNull { id ->
+            val labels = (0..17).mapNotNull { id ->
                 prefs[PrefsKeys.tileLabel(id)]?.let { id to it }
             }.toMap()
 
@@ -120,7 +120,7 @@ class DotzPreferencesRepository(private val context: Context) {
     }
 
     suspend fun setVisibleTileCount(value: Int) {
-        context.dataStore.edit { it[PrefsKeys.VISIBLE_TILE_COUNT] = value.coerceIn(1, 12) }
+        context.dataStore.edit { it[PrefsKeys.VISIBLE_TILE_COUNT] = value.coerceIn(1, 18) }
     }
 
     suspend fun setTileOverride(tileId: Int, packageName: String, label: String) {
@@ -159,7 +159,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.VISIBLE_TILE_COUNT] = settings.visibleTileCount
 
                 // Clear and re-apply overrides
-                (0..11).forEach { id ->
+                (0..17).forEach { id ->
                     prefs.remove(PrefsKeys.tileOverride(id))
                     prefs.remove(PrefsKeys.tileLabel(id))
                 }

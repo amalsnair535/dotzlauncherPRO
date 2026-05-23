@@ -47,10 +47,20 @@ object DefaultApps {
         AppTile(8,  "com.google.android.deskclock",     "CLOCK",     Icons.Default.AccessTime),
         AppTile(9,  "com.google.android.calendar",      "CALENDAR",  Icons.Default.CalendarMonth),
         AppTile(10, "com.google.android.keep",          "NOTES",     Icons.Default.Lightbulb),
-        AppTile(11, "com.dotz.launcherpro",                "SETTINGS",  Icons.Default.Settings)
+        AppTile(11, "com.dotz.launcherpro",             "SETTINGS",  Icons.Default.Settings)
     )
 
-    val allDefaults = page0Defaults + page1Defaults
+    /** Page 2 — Extra */
+    val page2Defaults = listOf(
+        AppTile(12, "", "APP 13", Icons.Default.Apps),
+        AppTile(13, "", "APP 14", Icons.Default.Apps),
+        AppTile(14, "", "APP 15", Icons.Default.Apps),
+        AppTile(15, "", "APP 16", Icons.Default.Apps),
+        AppTile(16, "", "APP 17", Icons.Default.Apps),
+        AppTile(17, "", "APP 18", Icons.Default.Apps)
+    )
+
+    val allDefaults = page0Defaults + page1Defaults + page2Defaults
 
     /** Packages that should show numeric badge (calls & SMS) */
     val numericBadgePackages = setOf(

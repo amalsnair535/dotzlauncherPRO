@@ -40,6 +40,7 @@ class AppSelectionListActivity : ComponentActivity() {
                 AppSelectionListScreen(
                     page0 = uiState.page0Tiles,
                     page1 = uiState.page1Tiles,
+                    page2 = uiState.page2Tiles,
                     onBack = { finish() },
                 ) { tile ->
                     startActivity(
@@ -58,10 +59,11 @@ class AppSelectionListActivity : ComponentActivity() {
 private fun AppSelectionListScreen(
     page0: List<com.dotz.launcherpro.data.AppTile>,
     page1: List<com.dotz.launcherpro.data.AppTile>,
+    page2: List<com.dotz.launcherpro.data.AppTile>,
     onBack: () -> Unit,
     onRemapTile: (com.dotz.launcherpro.data.AppTile) -> Unit,
 ) {
-    val allTiles = page0 + page1
+    val allTiles = page0 + page1 + page2
 
     Scaffold(
         topBar = {

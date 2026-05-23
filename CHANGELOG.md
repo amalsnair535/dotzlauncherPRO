@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.1] - 2024-05-24
+
+### Added
+- **Expanded Tile Capacity**: Increased the maximum number of visible tiles from 12 to 18.
+- **Third Page Support**: Enabling 13-18 tiles automatically creates a third screen for app organization.
+
 ## [4.0.0] - 2024-05-24
 
 ### Added

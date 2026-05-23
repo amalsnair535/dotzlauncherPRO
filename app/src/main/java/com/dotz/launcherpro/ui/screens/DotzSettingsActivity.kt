@@ -256,8 +256,8 @@ private fun DotzSettingsScreen(
                     Slider(
                         value         = settings.visibleTileCount.toFloat(),
                         onValueChange = { onVisibleTileCountChange(it.toInt()) },
-                        valueRange    = 1f..12f,
-                        steps         = 10,
+                        valueRange    = 1f..18f,
+                        steps         = 16,
                         colors        = SliderDefaults.colors(
                             thumbColor       = DotzColors.White,
                             activeTrackColor = DotzColors.White,

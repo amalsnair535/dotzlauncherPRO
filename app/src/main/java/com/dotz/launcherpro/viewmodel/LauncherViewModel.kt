@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
     val page1Tiles: List<AppTile> = DefaultApps.page1Defaults,
+    val page2Tiles: List<AppTile> = DefaultApps.page2Defaults,
     val settings: DotzSettings = DotzSettings(),
     val notificationCounts: Map<String, Int> = emptyMap(),
     val batteryLevel: Int = -1,
@@ -192,11 +193,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val visibleTiles = allTiles.take(settings.visibleTileCount)
 
                 val p0 = visibleTiles.take(6)
-                val p1 = if (visibleTiles.size > 6) visibleTiles.drop(6) else emptyList()
+                val p1 = if (visibleTiles.size > 6) visibleTiles.drop(6).take(6) else emptyList()
+                val p2 = if (visibleTiles.size > 12) visibleTiles.drop(12).take(6) else emptyList()
                 
                 LauncherUiState(
                     page0Tiles = p0,
                     page1Tiles = p1,
+                    page2Tiles = p2,
                     settings = settings,
                     notificationCounts = notifCounts,
                     batteryLevel = battery,
