@@ -22,6 +22,7 @@ data class DotzSettings(
     val dynamicBackgroundEnabled: Boolean = false,
     val verticalScrolling: Boolean = false,
     val enableExtraPage: Boolean = false,
+    val extraTileCount: Int = 6,
     /** JSON-serialized map of tileId -> packageName overrides */
     val tileOverrides: Map<Int, String> = emptyMap(),
     val tileLabels: Map<Int, String> = emptyMap(),
@@ -39,6 +40,7 @@ object PrefsKeys {
     val DYNAMIC_BACKGROUND_ENABLED = booleanPreferencesKey("dynamic_background_enabled")
     val VERTICAL_SCROLLING      = booleanPreferencesKey("vertical_scrolling")
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
+    val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
     // Tile overrides stored as individual keys: tile_override_0, tile_override_1, …
     fun tileOverride(id: Int) = stringPreferencesKey("tile_override_$id")
     fun tileLabel(id: Int)    = stringPreferencesKey("tile_label_$id")
@@ -71,6 +73,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 dynamicBackgroundEnabled = prefs[PrefsKeys.DYNAMIC_BACKGROUND_ENABLED] ?: false,
                 verticalScrolling    = prefs[PrefsKeys.VERTICAL_SCROLLING]      ?: false,
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
+                extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
                 tileOverrides        = overrides,
                 tileLabels           = labels
             )
@@ -123,6 +126,10 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.ENABLE_EXTRA_PAGE] = value }
     }
 
+    suspend fun setExtraTileCount(value: Int) {
+        context.dataStore.edit { it[PrefsKeys.EXTRA_TILE_COUNT] = value.coerceIn(1, 6) }
+    }
+
     suspend fun setTileOverride(tileId: Int, packageName: String, label: String) {
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.tileOverride(tileId)] = packageName
@@ -157,6 +164,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = settings.notificationFilterEnabled
                 prefs[PrefsKeys.VERTICAL_SCROLLING] = settings.verticalScrolling
                 prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = settings.enableExtraPage
+                prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

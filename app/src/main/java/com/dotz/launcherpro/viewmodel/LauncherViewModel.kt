@@ -193,7 +193,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
                 val p0 = allTiles.take(6)
                 val p1 = allTiles.drop(6).take(6)
-                val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(6) else emptyList()
+                val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(settings.extraTileCount) else emptyList()
                 
                 LauncherUiState(
                     page0Tiles = p0,
@@ -434,6 +434,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setEnableExtraPage(value: Boolean) = viewModelScope.launch {
         prefs.setEnableExtraPage(value)
+    }
+
+    fun setExtraTileCount(value: Int) = viewModelScope.launch {
+        prefs.setExtraTileCount(value)
     }
 
     fun setIconPackPackage(value: String?) = viewModelScope.launch {

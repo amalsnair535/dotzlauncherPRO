@@ -89,6 +89,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onGrayscaleToggle = viewModel::setGrayscaleMode,
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
+                    onExtraTileCountChange = viewModel::setExtraTileCount,
                     onDynamicBgToggle = viewModel::setDynamicBackgroundEnabled,
                     onIconPackChange  = viewModel::setIconPackPackage,
                     iconPacks         = remember { viewModel.getInstalledIconPacks() },
@@ -119,6 +120,7 @@ private fun DotzSettingsScreen(
     onGrayscaleToggle: (Boolean) -> Unit,
     onVerticalScrollToggle: (Boolean) -> Unit,
     onEnableExtraPageToggle: (Boolean) -> Unit,
+    onExtraTileCountChange: (Int) -> Unit,
     onDynamicBgToggle: (Boolean) -> Unit,
     onIconPackChange: (String?) -> Unit,
     iconPacks: List<Pair<String, String>>,
@@ -242,6 +244,39 @@ private fun DotzSettingsScreen(
                     checked = settings.enableExtraPage,
                     onToggle = onEnableExtraPageToggle
                 )
+            }
+
+            if (settings.enableExtraPage) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Extra Tiles Count", color = DotzColors.White, fontSize = 14.sp)
+                            Text(
+                                "${settings.extraTileCount}",
+                                color = DotzColors.White.copy(alpha = 0.5f), fontSize = 14.sp
+                            )
+                        }
+                        Slider(
+                            value         = settings.extraTileCount.toFloat(),
+                            onValueChange = { onExtraTileCountChange(it.toInt()) },
+                            valueRange    = 1f..6f,
+                            steps         = 4,
+                            colors        = SliderDefaults.colors(
+                                thumbColor       = DotzColors.White,
+                                activeTrackColor = DotzColors.White,
+                                inactiveTrackColor = DotzColors.White.copy(alpha = 0.2f)
+                            )
+                        )
+                    }
+                }
             }
             item {
                 SettingsToggleRow(
