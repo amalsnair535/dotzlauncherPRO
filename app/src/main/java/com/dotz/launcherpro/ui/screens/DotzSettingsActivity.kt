@@ -88,7 +88,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onOpacityChange   = viewModel::setTileOpacity,
                     onGrayscaleToggle = viewModel::setGrayscaleMode,
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
-                    onVisibleTileCountChange = viewModel::setVisibleTileCount,
+                    onEnableExtraPageToggle = viewModel::setEnableExtraPage,
                     onDynamicBgToggle = viewModel::setDynamicBackgroundEnabled,
                     onIconPackChange  = viewModel::setIconPackPackage,
                     iconPacks         = remember { viewModel.getInstalledIconPacks() },
@@ -118,7 +118,7 @@ private fun DotzSettingsScreen(
     onOpacityChange: (Float) -> Unit,
     onGrayscaleToggle: (Boolean) -> Unit,
     onVerticalScrollToggle: (Boolean) -> Unit,
-    onVisibleTileCountChange: (Int) -> Unit,
+    onEnableExtraPageToggle: (Boolean) -> Unit,
     onDynamicBgToggle: (Boolean) -> Unit,
     onIconPackChange: (String?) -> Unit,
     iconPacks: List<Pair<String, String>>,
@@ -237,34 +237,11 @@ private fun DotzSettingsScreen(
                 }
             }
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DotzColors.Tile, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Visible Tiles", color = DotzColors.White, fontSize = 14.sp)
-                        Text(
-                            "${settings.visibleTileCount}",
-                            color = DotzColors.White.copy(alpha = 0.5f), fontSize = 14.sp
-                        )
-                    }
-                    Slider(
-                        value         = settings.visibleTileCount.toFloat(),
-                        onValueChange = { onVisibleTileCountChange(it.toInt()) },
-                        valueRange    = 1f..18f,
-                        steps         = 16,
-                        colors        = SliderDefaults.colors(
-                            thumbColor       = DotzColors.White,
-                            activeTrackColor = DotzColors.White,
-                            inactiveTrackColor = DotzColors.White.copy(alpha = 0.2f)
-                        )
-                    )
-                }
+                SettingsToggleRow(
+                    label   = "Enable Extra Tiles (Page 3)",
+                    checked = settings.enableExtraPage,
+                    onToggle = onEnableExtraPageToggle
+                )
             }
             item {
                 SettingsToggleRow(

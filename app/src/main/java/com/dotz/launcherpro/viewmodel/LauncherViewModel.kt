@@ -190,11 +190,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val isDefault = isDefaultLauncher()
 
                 val allTiles = buildTiles(DefaultApps.allDefaults, settings, notifCounts)
-                val visibleTiles = allTiles.take(settings.visibleTileCount)
 
-                val p0 = visibleTiles.take(6)
-                val p1 = if (visibleTiles.size > 6) visibleTiles.drop(6).take(6) else emptyList()
-                val p2 = if (visibleTiles.size > 12) visibleTiles.drop(12).take(6) else emptyList()
+                val p0 = allTiles.take(6)
+                val p1 = allTiles.drop(6).take(6)
+                val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(6) else emptyList()
                 
                 LauncherUiState(
                     page0Tiles = p0,
@@ -433,8 +432,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setVerticalScrolling(value)
     }
 
-    fun setVisibleTileCount(value: Int) = viewModelScope.launch {
-        prefs.setVisibleTileCount(value)
+    fun setEnableExtraPage(value: Boolean) = viewModelScope.launch {
+        prefs.setEnableExtraPage(value)
     }
 
     fun setIconPackPackage(value: String?) = viewModelScope.launch {

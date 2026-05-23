@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - 2024-05-24
+
+### Added
+- **Permanent Dual-Page Layout**: Tiles 1-12 are now always available as the core launcher experience.
+- **Optional Page 3**: Added a toggle in Settings to enable an additional 6 tiles (Total 18).
+- **Refined Appearance Settings**: Replaced the tile slider with a dedicated "Enable Extra Tiles" toggle for better clarity.
+
 ## [4.0.1] - 2024-05-24
 
 ### Added
