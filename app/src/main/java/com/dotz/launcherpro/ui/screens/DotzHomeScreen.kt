@@ -31,7 +31,8 @@ fun DotzHomeScreen(
     onTorchToggle: () -> Unit,
     onAirplaneToggle: () -> Unit,
     onDarkModeToggle: () -> Unit,
-    onDataClick: () -> Unit
+    onDataClick: () -> Unit,
+    onWeatherClick: () -> Unit
 ) {
     val pages = listOfNotNull(
         uiState.page0Tiles,
@@ -53,6 +54,8 @@ fun DotzHomeScreen(
                 StaticHeader(
                     batteryLevel  = uiState.batteryLevel,
                     networkStatus = uiState.networkStatus,
+                    weatherTemp   = uiState.weatherTemp,
+                    weatherCondition = uiState.weatherCondition,
                     isWifiEnabled = uiState.isWifiEnabled,
                     isBluetoothEnabled = uiState.isBluetoothEnabled,
                     isSilentMode = uiState.isSilentMode,
@@ -67,6 +70,7 @@ fun DotzHomeScreen(
                     onAirplaneToggle = onAirplaneToggle,
                     onDarkModeToggle = onDarkModeToggle,
                     onDataClick = onDataClick,
+                    onWeatherClick = onWeatherClick,
                     modifier      = Modifier
                         .fillMaxWidth()
                         .weight(0.40f)
