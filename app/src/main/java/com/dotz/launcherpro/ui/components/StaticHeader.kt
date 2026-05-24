@@ -1,13 +1,16 @@
 package com.dotz.launcherpro.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzType
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -17,6 +20,8 @@ import java.util.*
 fun StaticHeader(
     batteryLevel: Int,
     networkStatus: String,
+    weatherTemp: String?,
+    weatherCondition: String?,
     isWifiEnabled: Boolean,
     isBluetoothEnabled: Boolean,
     isSilentMode: Boolean,
@@ -31,6 +36,7 @@ fun StaticHeader(
     onAirplaneToggle: () -> Unit,
     onDarkModeToggle: () -> Unit,
     onDataClick: () -> Unit,
+    onWeatherClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var timeText by remember { mutableStateOf(currentTime()) }
@@ -49,6 +55,27 @@ fun StaticHeader(
             .fillMaxWidth()
             .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 0.dp),
     ) {
+        // Weather Info (Top Right)
+        if (weatherTemp != null) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .clickable { onWeatherClick() },
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(
+                    text = weatherTemp,
+                    style = DotzType.DateStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                    color = DotzColors.White
+                )
+                Text(
+                    text = weatherCondition ?: "",
+                    style = DotzType.DateStyle.copy(fontSize = 11.sp),
+                    color = DotzColors.White.copy(alpha = 0.6f)
+                )
+            }
+        }
+
         // Main Content (Centered)
         Column(
             modifier = Modifier.align(Alignment.Center),

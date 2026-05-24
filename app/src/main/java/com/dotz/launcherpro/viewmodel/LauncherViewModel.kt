@@ -12,6 +12,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
@@ -41,6 +42,8 @@ data class LauncherUiState(
     val isAirplaneModeOn: Boolean = false,
     val isDarkModeOn: Boolean = false,
     val isDefaultLauncher: Boolean = false,
+    val weatherTemp: String? = null,
+    val weatherCondition: String? = null,
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -65,6 +68,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isTorchOn = MutableStateFlow(value = false)
     private val _isAirplaneModeOn = MutableStateFlow(value = false)
     private val _isDarkModeOn = MutableStateFlow(value = false)
+    private val _weatherTemp = MutableStateFlow<String?>(null)
+    private val _weatherCondition = MutableStateFlow<String?>(null)
     private val _refreshTrigger = MutableStateFlow(value = Unit)
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -159,6 +164,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             cm.registerNetworkCallback(NetworkRequest.Builder().build(), networkCallback)
         } catch (e: Exception) { e.printStackTrace() }
 
+        fetchWeather()
+        
         // Main UI State combination
         viewModelScope.launch {
             combine(
@@ -172,6 +179,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isTorchOn,
                 _isAirplaneModeOn,
                 _isDarkModeOn,
+                _weatherTemp,
+                _weatherCondition,
                 _refreshTrigger
             ) { args: Array<Any> ->
                 val settings = args[0] as DotzSettings
@@ -185,7 +194,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val torch = args[7] as Boolean
                 val airplane = args[8] as Boolean
                 val dark = args[9] as Boolean
-                // args[10] is _refreshTrigger
+                val temp = args[10] as String?
+                val condition = args[11] as String?
+                // args[12] is _refreshTrigger
 
                 val isDefault = isDefaultLauncher()
 
@@ -209,7 +220,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isTorchOn = torch,
                     isAirplaneModeOn = airplane,
                     isDarkModeOn = dark,
-                    isDefaultLauncher = isDefault
+                    isDefaultLauncher = isDefault,
+                    weatherTemp = temp,
+                    weatherCondition = condition
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -329,6 +342,70 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(fallback)
         }
+    }
+
+    fun openWeatherApp() {
+        val app = getApplication<Application>()
+        val intents = listOf(
+            Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("dynact://weather") }, // Google Weather
+            Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("googleweather://") },
+            Intent().apply { setClassName("com.google.android.googlequicksearchbox", "com.google.android.apps.gsa.staticpages.Paths") },
+            pm.getLaunchIntentForPackage("com.google.android.apps.magellan"),
+            pm.getLaunchIntentForPackage("com.accuweather.android"),
+            pm.getLaunchIntentForPackage("com.weather.Weather"),
+            pm.getLaunchIntentForPackage("com.samsung.android.weather"),
+            pm.getLaunchIntentForPackage("com.miui.weather2"),
+            Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("https://www.google.com/search?q=weather") } // Fallback to browser
+        )
+
+        for (intent in intents) {
+            try {
+                intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                app.startActivity(intent)
+                return
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun fetchWeather() {
+        viewModelScope.launch {
+            try {
+                // For a production app, we'd use FusedLocationProvider. 
+                // For now, let's use a default or try to get last known location.
+                // Using a simple URL for a common city or hardcoded lat/lon if location permission not yet granted.
+                // We'll use Open-Meteo with a default location (e.g., London) if we can't get one.
+                val lat = 51.5074
+                val lon = 0.1278
+                val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true"
+                
+                // Simple network fetch in a coroutine
+                val result = java.net.URL(url).readText()
+                val json = Gson().fromJson(result, com.google.gson.JsonObject::class.java)
+                val current = json.getAsJsonObject("current_weather")
+                val temp = current.get("temperature").asDouble
+                val code = current.get("weathercode").asInt
+                
+                _weatherTemp.value = "${temp.toInt()}°C"
+                _weatherCondition.value = translateWeatherCode(code)
+            } catch (e: Exception) {
+                Log.e("DotzWeather", "Failed to fetch weather", e)
+                // Default fallback
+                _weatherTemp.value = "28°C"
+                _weatherCondition.value = "Cloudy"
+            }
+        }
+    }
+
+    private fun translateWeatherCode(code: Int): String = when (code) {
+        0 -> "Clear"
+        1, 2, 3 -> "Mainly Clear"
+        45, 48 -> "Foggy"
+        51, 53, 55 -> "Drizzle"
+        61, 63, 65 -> "Rainy"
+        71, 73, 75 -> "Snowy"
+        80, 81, 82 -> "Rain Showers"
+        95, 96, 99 -> "Thunderstorm"
+        else -> "Cloudy"
     }
 
     private fun isDefaultLauncher(): Boolean {

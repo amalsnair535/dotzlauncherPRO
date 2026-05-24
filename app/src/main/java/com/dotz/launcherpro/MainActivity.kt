@@ -82,6 +82,7 @@ class MainActivity : ComponentActivity() {
                         onAirplaneToggle = viewModel::toggleAirplaneMode,
                         onDarkModeToggle = viewModel::toggleDarkMode,
                         onDataClick = viewModel::openMobileDataSettings,
+                        onWeatherClick = viewModel::openWeatherApp,
                     )
 
                     if (showNotifPermDialog) {
