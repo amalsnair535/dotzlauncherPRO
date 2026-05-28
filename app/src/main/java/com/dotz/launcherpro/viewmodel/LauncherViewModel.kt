@@ -24,6 +24,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -435,6 +436,65 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isCheckingUpdate.value = false
             }
         }
+    }
+
+    fun downloadUpdate(url: String) {
+        val app = getApplication<Application>()
+        try {
+            // Remove existing file if it exists to avoid conflicts
+            val destinationFile = java.io.File(app.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS), "dotz_update.apk")
+            if (destinationFile.exists()) destinationFile.delete()
+
+            val request = android.app.DownloadManager.Request(Uri.parse(url))
+                .setTitle("Dotz Launcher Update")
+                .setDescription("Downloading version 5.2.0...")
+                .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationUri(Uri.fromFile(destinationFile))
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+
+            val dm = app.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+            val downloadId = dm.enqueue(request)
+
+            // Register receiver to open installer when finished
+            val onComplete = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    val id = intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                    if (id == downloadId) {
+                        installApk(destinationFile)
+                        app.unregisterReceiver(this)
+                    }
+                }
+            }
+            app.registerReceiver(
+                onComplete, 
+                IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
+            )
+
+            Toast.makeText(app, "Update download started...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to browser
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(intent)
+        }
+    }
+
+    private fun installApk(file: java.io.File) {
+        val app = getApplication<Application>()
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            app,
+            "${app.packageName}.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        app.startActivity(intent)
     }
 
     private fun updateSessionTime() {

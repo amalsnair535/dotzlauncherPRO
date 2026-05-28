@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -63,20 +64,43 @@ class DashboardFragment : Fragment() {
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
-            // Top Status Bar Area
+            // Top Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, bottom = 32.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(bottom = 32.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
+                    text = "DASHBOARD",
                     color = Color.White,
-                    fontSize = 15.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    letterSpacing = 2.sp
                 )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "PRO",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
             }
 
             // Grid Layout for Cards - Use IntrinsicSize.Min to match heights dynamically

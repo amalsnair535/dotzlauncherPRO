@@ -99,6 +99,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onImport          = { importLauncher.launch("application/json") },
                     isDefaultLauncher = uiState.isDefaultLauncher,
                     onSetDefault      = viewModel::openDefaultLauncherSettings,
+                    isUpdateAvailable = uiState.isUpdateAvailable,
                     onAboutClick      = {
                         startActivity(Intent(this, DotzAboutActivity::class.java))
                     }
@@ -132,6 +133,7 @@ private fun DotzSettingsScreen(
     onImport: () -> Unit,
     isDefaultLauncher: Boolean,
     onSetDefault: () -> Unit,
+    isUpdateAvailable: Boolean,
     onAboutClick: () -> Unit,
     onAppSelectionClick: () -> Unit,
 ) {
@@ -360,7 +362,7 @@ private fun DotzSettingsScreen(
             item { Spacer(Modifier.height(8.dp)); SectionHeader("INFO") }
             item {
                 SettingsActionRow(
-                    label = "About Dotz",
+                    label = if (isUpdateAvailable) "Update Available!" else "About Dotz",
                     onClick = onAboutClick
                 )
             }

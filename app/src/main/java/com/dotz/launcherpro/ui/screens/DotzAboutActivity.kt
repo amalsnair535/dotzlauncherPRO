@@ -19,7 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,7 +53,8 @@ class DotzAboutActivity : ComponentActivity() {
                 AboutScreen(
                     uiState = uiState,
                     onBack = { finish() },
-                    onCheckUpdate = { viewModel.checkForUpdates() }
+                    onCheckUpdate = { viewModel.checkForUpdates() },
+                    onDownloadUpdate = { url -> viewModel.downloadUpdate(url) }
                 )
             }
         }
@@ -63,7 +66,8 @@ class DotzAboutActivity : ComponentActivity() {
 private fun AboutScreen(
     uiState: com.dotz.launcherpro.viewmodel.LauncherUiState,
     onBack: () -> Unit,
-    onCheckUpdate: () -> Unit
+    onCheckUpdate: () -> Unit,
+    onDownloadUpdate: (String) -> Unit
 ) {
     val context = LocalContext.current
     val versionName = remember {
@@ -97,6 +101,9 @@ private fun AboutScreen(
         },
         containerColor = Color.Black,
     ) { innerPadding ->
+        LaunchedEffect(Unit) {
+            onCheckUpdate()
+        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,29 +128,24 @@ private fun AboutScreen(
             }
 
             item {
-                if (uiState.isUpdateAvailable) {
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uiState.updateApkUrl))
-                            context.startActivity(intent)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = DotzColors.White),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("UPDATE TO ${uiState.latestVersionName}", color = Color.Black, fontWeight = FontWeight.Bold)
-                    }
-                } else if (uiState.isCheckingForUpdate) {
-                    CircularProgressIndicator(color = DotzColors.White, modifier = Modifier.size(24.dp))
-                } else {
-                    OutlinedButton(
-                        onClick = onCheckUpdate,
-                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 0.5.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("CHECK FOR UPDATES", color = DotzColors.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                    }
+                val updateLabel = when {
+                    uiState.isUpdateAvailable -> "Update to ${uiState.latestVersionName} available"
+                    uiState.isCheckingForUpdate -> "Checking for updates..."
+                    else -> "You are on the latest version"
                 }
-                Spacer(Modifier.height(8.dp))
+
+                AboutActionRow(
+                    label = "Updates",
+                    subLabel = updateLabel,
+                    icon = if (uiState.isUpdateAvailable) Icons.Default.Download else Icons.Default.Refresh,
+                    onClick = {
+                        if (uiState.isUpdateAvailable) {
+                            uiState.updateApkUrl?.let { onDownloadUpdate(it) }
+                        } else {
+                            onCheckUpdate()
+                        }
+                    }
+                )
             }
 
             item {
