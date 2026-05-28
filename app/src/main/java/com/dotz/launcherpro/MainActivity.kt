@@ -53,11 +53,4 @@ class MainActivity : AppCompatActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
         }
     }
-
-    /** Disable back button — this IS the home screen */
-    @Deprecated("Deprecated in API 33")
-    override fun onBackPressed() {
-        // Do nothing or call super if you want default behavior
-        // super.onBackPressed()
-    }
 }
