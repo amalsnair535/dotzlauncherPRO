@@ -58,6 +58,14 @@ class DotzAboutActivity : ComponentActivity() {
 @Composable
 private fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    val versionName = remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: "4.2.0"
+        } catch (e: Exception) {
+            "4.2.0"
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -98,7 +106,7 @@ private fun AboutScreen(onBack: () -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Version 4.0.0",
+                    text = "Version $versionName",
                     fontSize = 14.sp,
                     color = DotzColors.White.copy(alpha = 0.5f)
                 )

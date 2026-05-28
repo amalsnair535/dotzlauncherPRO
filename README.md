@@ -1,6 +1,7 @@
-Dotz Launcher PRO
+ Dotz Launcher PRO
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
 Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, Dotz Launcher PRO transforms your device into a tool rather than a distraction. It retains instant access to core daily workflows—like payments, music, and communication—while eliminating the visual noise that triggers mindless scrolling.
+
 📱 Screenshots
 
 <img width="1080" height="2372" alt="WhatsApp Image 2026-05-23 at 10 18 44 PM (1)" src="https://github.com/user-attachments/assets/74656ee7-8c73-4e23-ac48-8d18859e89ec" />
@@ -13,65 +14,50 @@ Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, D
 
 🧠 Core Philosophy
 Dotz Launcher PRO is a minimalist, high-intentionality dashboard designed to reduce digital clutter. It transforms your phone into a tool for productivity rather than a source of distraction by neutralizing eye-catching branding and introducing intentional friction.
+
 ✨ Key Features
-1. Dynamic Tile System (Expandable)
-•
-Permanent Grid: 12 tiles (2 pages) are permanently available for your essential daily workflows.
-•
-Extra Capacity: Support for an optional 3rd page.
-•
-Precise Control: Use the "Extra Tiles Count" slider to choose exactly how many additional tiles (1-6) you want on the third screen.
-•
-Universal Remapping: Every single slot can be assigned to any app installed on your device.
-•
-Intelligent Suggestions: The app picker suggests relevant apps (e.g., Phone apps for the "CALL" tile) but allows you to scroll and pick anything else.
-2. The "Detox" Control Panel
-A fixed header on the home screen that provides quick access to system utilities without opening the settings menu:
-•
-Time & Date: Large, minimalist digital clock and date display.
-•
-Live Status: Real-time Battery percentage and Network status (WiFi/LTE/Eth).
-•
-One-Tap Toggles: Quick buttons for WiFi, Bluetooth, Silent Mode, Torch (Flashlight), Airplane Mode, and Dark Mode.
-•
-Quick Data: Direct access to Mobile Data and Roaming settings.
-3. Visual & Aesthetic Customization
-•
-Monochrome UI: A grayscale-first interface that eliminates colorful app badges.
-•
-Tile Opacity: Adjustable slider (60% to 100%) to blend tiles with your background.
-•
-Grayscale Mode: Toggle to force all app icons into beautiful black-and-white.
-•
-Dynamic Backgrounds: Support for subtle, focus-driven background animations.
-•
-Icon Pack Support: Full compatibility with professional third-party icon packs (e.g., Viral, Linebit).
-•
-Scroll Orientation: Choose between Horizontal (classic) or Vertical (modern) page scrolling.
-4. Mindful Notification Management
-•
-Notification Dots: Toggleable visual indicators for pending alerts.
-•
-Numerical Counts: Specific counts for communication essentials like Phone and SMS.
-•
-Distraction Filter: A smart setting that automatically hides notification dots for social media apps (Facebook, Instagram, TikTok, etc.) while keeping utility notifications visible.
-5. Advanced Utility
-•
-Immersive Mode: Uses modern Android APIs to hide system bars for a true full-screen experience.
-•
-Data Portability: Full Backup & Restore via JSON files. Export your layout and settings to a file and import them on any device.
-•
-Haptic Integration: Gentle haptic pulses on long-press events for a tactile feel.
-•
-Lightweight & Private: No data collection. All settings and configurations are stored locally on your device.
+
+1. The "Detox" Control Panel & Live Weather
+A fixed header on the home screen that provides quick access to system utilities and environment awareness:
+• **Time & Date:** Large, minimalist digital clock and date display.
+• **Live Weather:** Real-time temperature and condition display. One-tap to open your preferred weather app.
+• **Live Status:** Real-time Battery percentage and Network status (WiFi/LTE/Eth).
+• **One-Tap Toggles:** Quick buttons for WiFi, Bluetooth, Silent Mode, Torch (Flashlight), Airplane Mode, and Dark Mode.
+• **Quick Data:** Direct access to Mobile Data and Roaming settings.
+
+2. Swipe-Right Dashboard (New)
+A dedicated minimalist workspace accessible by swiping right from the home screen:
+• **Top-Centered Focus:** Large minimalist clock and date for instant time-checks.
+• **Notification Feed:** A distraction-free, text-only list of incoming notifications. No icons, no noise—just information.
+• **Clear All Utility:** One-tap to dismiss all active notifications.
+• **Upcoming Events:** Minimalist integration with your system calendar to show your next appointments.
+• **Mini Monthly Calendar:** A compact, interactive monthly grid at the bottom of the screen to help you keep track of your month.
+
+3. Dynamic Tile System (Expandable)
+• **Permanent Grid:** 12 tiles (2 pages) are permanently available for your essential daily workflows.
+• **Extra Capacity:** Support for an optional 3rd page.
+• **Precise Control:** Use the "Extra Tiles Count" slider to choose exactly how many additional tiles (1-6) you want on the third screen.
+• **Universal Remapping:** Every single slot can be assigned to any app installed on your device.
+• **Intelligent Suggestions:** The app picker suggests relevant apps (e.g., Phone apps for the "CALL" tile) but allows you to scroll and pick anything else.
+
+4. Visual & Aesthetic Customization
+• **Monochrome UI:** A grayscale-first interface that eliminates colorful app badges.
+• **Tile Opacity:** Adjustable slider (60% to 100%) to blend tiles with your background.
+• **Grayscale Mode:** Toggle to force all app icons into beautiful black-and-white.
+• **Dynamic Backgrounds:** Support for subtle, focus-driven background animations.
+• **Icon Pack Support:** Full compatibility with professional third-party icon packs.
+• **Scroll Orientation:** Choose between Horizontal (classic) or Vertical (modern) page scrolling for tiles.
+
+5. Mindful Management & Privacy
+• **Notification Management:** Toggle notification dots, numerical counts, and a smart "Distraction Filter" for social apps.
+• **Dashboard Toggle:** Completely enable or disable the swipe-right dashboard from settings.
+• **Weather Toggle:** Show or hide live weather info on the home screen.
+• **Data Portability:** Full Backup & Restore via JSON files.
+• **Privacy Focused:** No data collection. All settings are stored locally.
+
 🛠️ Technical Identity
-•
-Package Name: com.dotz.launcherpro
-•
-Version: 4.1.0
-•
-Architecture: Jetpack Compose (Modern Android Toolkit)
-•
-Minimum Android: API 26 (Android 8.0)
-•
-Target Android: API 35 (Android 15)
+• **Package Name:** com.dotz.launcherpro
+• **Version:** 4.2.0
+• **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
+• **Minimum Android:** API 26 (Android 8.0)
+• **Target Android:** API 35 (Android 15)

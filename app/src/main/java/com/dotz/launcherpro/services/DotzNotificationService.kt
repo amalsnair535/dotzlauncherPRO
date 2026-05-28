@@ -14,6 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+data class NotificationItem(
+    val key: String,
+    val packageName: String,
+    val title: String?,
+    val text: String?,
+    val postTime: Long
+)
+
 /**
  * Tracks active notifications and exposes them as a StateFlow.
  * The companion object acts as a singleton store accessible from
@@ -29,6 +37,14 @@ class DotzNotificationService : NotificationListenerService() {
         /** Map of packageName → notification count (0 means "dot only") */
         private val _notificationCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
         val notificationCounts: StateFlow<Map<String, Int>> = _notificationCounts.asStateFlow()
+
+        /** List of active notification items for Dashboard */
+        private val _notifications = MutableStateFlow<List<NotificationItem>>(emptyList())
+        val notifications: StateFlow<List<NotificationItem>> = _notifications.asStateFlow()
+
+        /** Count of distracting notifications blocked today */
+        private val _blockedCount = MutableStateFlow(0)
+        val blockedCount: StateFlow<Int> = _blockedCount.asStateFlow()
 
         /** Call this from the launcher to clear badge when tile is tapped */
         fun clearBadge(packageName: String) {
@@ -49,6 +65,12 @@ class DotzNotificationService : NotificationListenerService() {
                         instance?.cancelNotification(sbn.key)
                     } catch (_: Exception) {}
                 }
+        }
+
+        fun clearAllNotifications() {
+            instance?.cancelAllNotifications()
+            _notifications.value = emptyList()
+            _notificationCounts.value = emptyMap()
         }
     }
 
@@ -86,17 +108,34 @@ class DotzNotificationService : NotificationListenerService() {
     private fun rebuildCounts() {
         try {
             val counts = mutableMapOf<String, Int>()
+            val items = mutableListOf<NotificationItem>()
+            var blocked = 0
+
             activeNotifications?.forEach { sbn ->
                 if (!sbn.isOngoing) {
                     val pkg = sbn.packageName
                     if (isFilterEnabled && DefaultApps.distractingPackages.contains(pkg)) {
-                        // Skip distracting apps if filter is on
+                        blocked++
                         return@forEach
                     }
                     counts[pkg] = (counts[pkg] ?: 0) + 1
+
+                    val extras = sbn.notification.extras
+                    val title = extras.getCharSequence("android.title")?.toString()
+                    val text = extras.getCharSequence("android.text")?.toString()
+                    
+                    items.add(NotificationItem(
+                        key = sbn.key,
+                        packageName = pkg,
+                        title = title,
+                        text = text,
+                        postTime = sbn.postTime
+                    ))
                 }
             }
             _notificationCounts.value = counts
+            _notifications.value = items.sortedByDescending { it.postTime }
+            _blockedCount.value = blocked
         } catch (_: Exception) {
             // Service not fully connected yet
         }

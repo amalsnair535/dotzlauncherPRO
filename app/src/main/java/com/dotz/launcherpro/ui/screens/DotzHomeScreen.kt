@@ -56,6 +56,7 @@ fun DotzHomeScreen(
                     networkStatus = uiState.networkStatus,
                     weatherTemp   = uiState.weatherTemp,
                     weatherCondition = uiState.weatherCondition,
+                    showWeatherInfo = uiState.settings.showWeatherInfo,
                     isWifiEnabled = uiState.isWifiEnabled,
                     isBluetoothEnabled = uiState.isBluetoothEnabled,
                     isSilentMode = uiState.isSilentMode,

@@ -87,4 +87,18 @@
     <path android:fillColor="#FFFFFF" android:pathData="M73,81m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
     <path android:fillColor="#1A1A1A" android:pathData="M81,81m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
 
+    <!-- PRO Badge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M78,82 h18 v10 h-18 z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M80,84 h3 a1.5,1.5 0 0 1 0,3 h-3 v2 h-1 v-5 h1 z M80,85 v1 h2 a0.5,0.5 0 0 0 0,-1 h-2 z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M86,84 h3 a1.5,1.5 0 0 1 1,2.5 l1,2.5 h-1.2 l-1,-2.5 h-1.8 v2.5 h-1 v-5 z M87,85 v1 h2 a0.5,0.5 0 0 0 0,-1 h-2 z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M92,84 h3 a2,2 0 0 1 2,2 v1 a2,2 0 0 1 -2,2 h-3 a2,2 0 0 1 -2,-2 v-1 a2,2 0 0 1 2,-2 z M92,85 v3 h3 v-3 h-3 z" />
+
 </vector>

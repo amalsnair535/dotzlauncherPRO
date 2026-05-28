@@ -23,6 +23,8 @@ data class DotzSettings(
     val verticalScrolling: Boolean = false,
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
+    val showWeatherInfo: Boolean = true,
+    val enableDashboard: Boolean = true,
     /** JSON-serialized map of tileId -> packageName overrides */
     val tileOverrides: Map<Int, String> = emptyMap(),
     val tileLabels: Map<Int, String> = emptyMap(),
@@ -41,6 +43,8 @@ object PrefsKeys {
     val VERTICAL_SCROLLING      = booleanPreferencesKey("vertical_scrolling")
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
+    val SHOW_WEATHER_INFO       = booleanPreferencesKey("show_weather_info")
+    val ENABLE_DASHBOARD        = booleanPreferencesKey("enable_dashboard")
     // Tile overrides stored as individual keys: tile_override_0, tile_override_1, …
     fun tileOverride(id: Int) = stringPreferencesKey("tile_override_$id")
     fun tileLabel(id: Int)    = stringPreferencesKey("tile_label_$id")
@@ -74,6 +78,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 verticalScrolling    = prefs[PrefsKeys.VERTICAL_SCROLLING]      ?: false,
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
+                showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: true,
+                enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: true,
                 tileOverrides        = overrides,
                 tileLabels           = labels
             )
@@ -130,6 +136,14 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.EXTRA_TILE_COUNT] = value.coerceIn(1, 6) }
     }
 
+    suspend fun setShowWeatherInfo(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.SHOW_WEATHER_INFO] = value }
+    }
+
+    suspend fun setEnableDashboard(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.ENABLE_DASHBOARD] = value }
+    }
+
     suspend fun setTileOverride(tileId: Int, packageName: String, label: String) {
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.tileOverride(tileId)] = packageName
@@ -165,6 +179,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.VERTICAL_SCROLLING] = settings.verticalScrolling
                 prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = settings.enableExtraPage
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount
+                prefs[PrefsKeys.SHOW_WEATHER_INFO] = settings.showWeatherInfo
+                prefs[PrefsKeys.ENABLE_DASHBOARD] = settings.enableDashboard
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

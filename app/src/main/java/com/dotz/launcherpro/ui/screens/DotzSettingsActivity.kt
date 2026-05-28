@@ -91,6 +91,8 @@ class DotzSettingsActivity : ComponentActivity() {
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
                     onExtraTileCountChange = viewModel::setExtraTileCount,
                     onDynamicBgToggle = viewModel::setDynamicBackgroundEnabled,
+                    onShowWeatherToggle = viewModel::setShowWeatherInfo,
+                    onEnableDashboardToggle = viewModel::setEnableDashboard,
                     onIconPackChange  = viewModel::setIconPackPackage,
                     iconPacks         = remember { viewModel.getInstalledIconPacks() },
                     onExport          = { exportLauncher.launch("dotz_backup.json") },
@@ -122,6 +124,8 @@ private fun DotzSettingsScreen(
     onEnableExtraPageToggle: (Boolean) -> Unit,
     onExtraTileCountChange: (Int) -> Unit,
     onDynamicBgToggle: (Boolean) -> Unit,
+    onShowWeatherToggle: (Boolean) -> Unit,
+    onEnableDashboardToggle: (Boolean) -> Unit,
     onIconPackChange: (String?) -> Unit,
     iconPacks: List<Pair<String, String>>,
     onExport: () -> Unit,
@@ -299,6 +303,22 @@ private fun DotzSettingsScreen(
                     label   = "Dynamic Background",
                     checked = settings.dynamicBackgroundEnabled,
                     onToggle = onDynamicBgToggle
+                )
+            }
+
+            item {
+                SettingsToggleRow(
+                    label   = "Show Weather Info",
+                    checked = settings.showWeatherInfo,
+                    onToggle = onShowWeatherToggle
+                )
+            }
+
+            item {
+                SettingsToggleRow(
+                    label   = "Enable Swipe-Left Dashboard",
+                    checked = settings.enableDashboard,
+                    onToggle = onEnableDashboardToggle
                 )
             }
 

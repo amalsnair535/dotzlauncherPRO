@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "584729761566",
+    "project_id": "dotzlauncher-10439",
+    "storage_bucket": "dotzlauncher-10439.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584729761566:android:fb9bb6d6bccaf4b5765b0f",
+        "android_client_info": {
+          "package_name": "com.dotz.launcherpro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAC7WJsjPNP3Hfc9-8A-uHjTrggGUuISRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

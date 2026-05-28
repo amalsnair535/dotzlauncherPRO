@@ -3,11 +3,16 @@ package com.dotz.launcherpro.viewmodel
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.ComponentName
 import android.content.*
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.hardware.camera2.CameraManager
 import android.media.AudioManager
+import android.media.MediaMetadata
+import android.media.session.MediaController
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -24,8 +29,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dotz.launcherpro.data.*
 import com.dotz.launcherpro.services.DotzNotificationService
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -44,6 +57,16 @@ data class LauncherUiState(
     val isDefaultLauncher: Boolean = false,
     val weatherTemp: String? = null,
     val weatherCondition: String? = null,
+    val activeNotifications: List<com.dotz.launcherpro.services.NotificationItem> = emptyList(),
+    val blockedNotificationsCount: Int = 0,
+    val nowPlayingTitle: String = "Not Playing",
+    val nowPlayingArtist: String = "",
+    val nowPlayingAlbum: String = "",
+    val isPlaying: Boolean = false,
+    val playbackPosition: Long = 0,
+    val playbackDuration: Long = 0,
+    val aiResponse: String? = null,
+    val isAiLoading: Boolean = false,
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -56,6 +79,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val wifiManager = application.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val bluetoothManager = application.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
+    private val mediaSessionManager = application.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+    private var activeController: MediaController? = null
+
+    private val mediaCallback = object : MediaController.Callback() {
+        override fun onMetadataChanged(metadata: MediaMetadata?) {
+            updateMediaInfo(metadata, activeController?.playbackState)
+        }
+        override fun onPlaybackStateChanged(state: PlaybackState?) {
+            updateMediaInfo(activeController?.metadata, state)
+        }
+    }
+
+    private val sessionListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
+        updateActiveController(controllers)
+    }
 
     private val _uiState = MutableStateFlow(LauncherUiState())
     val uiState: StateFlow<LauncherUiState> = _uiState.asStateFlow()
@@ -70,6 +108,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isDarkModeOn = MutableStateFlow(value = false)
     private val _weatherTemp = MutableStateFlow<String?>(null)
     private val _weatherCondition = MutableStateFlow<String?>(null)
+    private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
+    private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
+    private val _aiResponse = MutableStateFlow<String?>(null)
+    private val _isAiLoading = MutableStateFlow(false)
     private val _refreshTrigger = MutableStateFlow(value = Unit)
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -166,6 +208,32 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         fetchWeather()
         
+        // Register Media Session Listener
+        val componentName = ComponentName(app, DotzNotificationService::class.java)
+        try {
+            mediaSessionManager.addOnActiveSessionsChangedListener(sessionListener, componentName)
+            updateActiveController(mediaSessionManager.getActiveSessions(componentName))
+        } catch (e: Exception) { e.printStackTrace() }
+
+        // Periodic playback position update
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(1000)
+                val current = _playbackState.value
+                if (current.first) {
+                    val newPos = activeController?.playbackState?.position ?: current.second
+                    _playbackState.value = Triple(current.first, newPos, current.third)
+                }
+            }
+        }
+
+        // Listen to notifications
+        viewModelScope.launch {
+            DotzNotificationService.notifications.collect {
+                refreshState()
+            }
+        }
+
         // Main UI State combination
         viewModelScope.launch {
             combine(
@@ -181,8 +249,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isDarkModeOn,
                 _weatherTemp,
                 _weatherCondition,
+                DotzNotificationService.notifications,
+                DotzNotificationService.blockedCount,
+                _nowPlaying,
+                _playbackState,
+                _aiResponse,
+                _isAiLoading,
                 _refreshTrigger
-            ) { args: Array<Any> ->
+            ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
                 val notifCounts = args[1] as Map<String, Int>
@@ -196,7 +270,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val dark = args[9] as Boolean
                 val temp = args[10] as String?
                 val condition = args[11] as String?
-                // args[12] is _refreshTrigger
+                @Suppress("UNCHECKED_CAST")
+                val notifications = args[12] as List<com.dotz.launcherpro.services.NotificationItem>
+                val blocked = args[13] as Int
+                @Suppress("UNCHECKED_CAST")
+                val nowPlaying = args[14] as Triple<String, String, String>
+                @Suppress("UNCHECKED_CAST")
+                val playback = args[15] as Triple<Boolean, Long, Long>
+                val aiResp = args[16] as String?
+                val aiLoading = args[17] as Boolean
+                // args[18] is _refreshTrigger
 
                 val isDefault = isDefaultLauncher()
 
@@ -222,12 +305,43 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isDarkModeOn = dark,
                     isDefaultLauncher = isDefault,
                     weatherTemp = temp,
-                    weatherCondition = condition
+                    weatherCondition = condition,
+                    activeNotifications = notifications,
+                    blockedNotificationsCount = blocked,
+                    nowPlayingTitle = nowPlaying.first,
+                    nowPlayingArtist = nowPlaying.second,
+                    nowPlayingAlbum = nowPlaying.third,
+                    isPlaying = playback.first,
+                    playbackPosition = playback.second,
+                    playbackDuration = playback.third,
+                    aiResponse = aiResp,
+                    isAiLoading = aiLoading
                 )
             }.collect { state ->
                 _uiState.value = state
             }
         }
+    }
+
+    private fun updateActiveController(controllers: List<MediaController>?) {
+        activeController?.unregisterCallback(mediaCallback)
+        activeController = controllers?.firstOrNull()
+        activeController?.registerCallback(mediaCallback)
+        updateMediaInfo(activeController?.metadata, activeController?.playbackState)
+    }
+
+    private fun updateMediaInfo(metadata: MediaMetadata?, state: PlaybackState?) {
+        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "Not Playing"
+        val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: ""
+        val album = metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
+        
+        _nowPlaying.value = Triple(title, artist, album)
+        
+        val isPlaying = state?.state == PlaybackState.STATE_PLAYING
+        val position = state?.position ?: 0L
+        val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+        
+        _playbackState.value = Triple(isPlaying, position, duration)
     }
 
     override fun onCleared() {
@@ -237,6 +351,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             app.unregisterReceiver(batteryReceiver)
             app.unregisterReceiver(systemReceiver)
             cameraManager.unregisterTorchCallback(torchCallback)
+            mediaSessionManager.removeOnActiveSessionsChangedListener(sessionListener)
+            activeController?.unregisterCallback(mediaCallback)
         } catch (e: Exception) { e.printStackTrace() }
 
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -299,6 +415,62 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val intent = Intent(Settings.ACTION_DISPLAY_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         getApplication<Application>().startActivity(intent)
+    }
+
+    // ── Media Controls ────────────────────────────────────────────────────────
+
+    fun mediaPlayPause() {
+        if (_playbackState.value.first) activeController?.transportControls?.pause()
+        else activeController?.transportControls?.play()
+    }
+
+    fun mediaSkipNext() {
+        activeController?.transportControls?.skipToNext()
+    }
+
+    fun mediaSkipPrevious() {
+        activeController?.transportControls?.skipToPrevious()
+    }
+
+    // ── DOTZ AI (Cloud Powered) ──────────────────────────────────────────
+
+    private val client = OkHttpClient()
+    private val CLOUDFLARE_WORKER_URL = "https://dotzlauncher.amalsnair535.workers.dev"
+
+    fun askAi(prompt: String) {
+        if (prompt.isBlank()) return
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = "Thinking..."
+            try {
+                val responseText = withContext(Dispatchers.IO) {
+                    val requestBody = Gson().toJson(mapOf("prompt" to prompt))
+                        .toRequestBody("application/json".toMediaType())
+
+                    val request = Request.Builder()
+                        .url(CLOUDFLARE_WORKER_URL)
+                        .post(requestBody)
+                        .build()
+
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) throw Exception("Unexpected code $response")
+                        val body = response.body?.string() ?: throw Exception("Empty body")
+                        val json = Gson().fromJson(body, JsonObject::class.java)
+                        json.get("text").asString
+                    }
+                }
+                _aiResponse.value = responseText
+            } catch (e: Exception) {
+                _aiResponse.value = "Error: ${e.localizedMessage}"
+                e.printStackTrace()
+            } finally {
+                _isAiLoading.value = false
+            }
+        }
+    }
+
+    fun clearAi() {
+        _aiResponse.value = null
     }
 
     fun openMobileDataSettings() {
@@ -380,10 +552,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 
                 // Simple network fetch in a coroutine
                 val result = java.net.URL(url).readText()
-                val json = Gson().fromJson(result, com.google.gson.JsonObject::class.java)
+                val json = Gson().fromJson(result, JsonObject::class.java)
                 val current = json.getAsJsonObject("current_weather")
-                val temp = current.get("temperature").asDouble
-                val code = current.get("weathercode").asInt
+                val temp = current.get("temperature").getAsDouble()
+                val code = current.get("weathercode").getAsInt()
                 
                 _weatherTemp.value = "${temp.toInt()}°C"
                 _weatherCondition.value = translateWeatherCode(code)
@@ -517,6 +689,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setExtraTileCount(value)
     }
 
+    fun setShowWeatherInfo(value: Boolean) = viewModelScope.launch {
+        prefs.setShowWeatherInfo(value)
+    }
+
+    fun setEnableDashboard(value: Boolean) = viewModelScope.launch {
+        prefs.setEnableDashboard(value)
+    }
+
     fun setIconPackPackage(value: String?) = viewModelScope.launch {
         prefs.setIconPackPackage(value)
         iconCache.clearCache()
@@ -544,35 +724,34 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun getInstalledAppsForTile(tileId: Int): List<Pair<String, String>> {
         val allApps = getInstalledApps()
         
-        val suggested = when (tileId) {
+        val filtered = when (tileId) {
             0 -> filterByIntent(allApps, Intent(Intent.ACTION_DIAL)) + 
                  filterByIntent(allApps, Intent(Intent.ACTION_VIEW).apply { data = "tel:".toUri() }) +
                  filterByKeywords(allApps, listOf("phone", "dialer", "call", "contact"))
-            1 -> filterByKeywords(allApps, listOf("chat", "whatsapp", "telegram", "signal", "discord", "viber", "messenger", "social", "facebook", "insta"))
+            1 -> filterByKeywords(allApps, listOf("chat", "whatsapp", "telegram", "signal", "discord", "viber", "messenger", "social", "facebook", "insta", "whatsapp"))
             2 -> filterByIntent(allApps, Intent(Intent.ACTION_SENDTO).apply { data = "smsto:".toUri() }) +
                  filterByKeywords(allApps, listOf("messag", "sms", "mms", "text"))
             3 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MAPS) }) +
-                 filterByKeywords(allApps, listOf("map", "navig", "gps", "waze", "uber", "lyft"))
+                 filterByKeywords(allApps, listOf("map", "navig", "gps", "waze", "uber", "lyft", "traffic", "location"))
             4 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MUSIC) }) +
                  filterByIntent(allApps, Intent("android.intent.action.MUSIC_PLAYER")) +
-                 filterByKeywords(allApps, listOf("music", "audio", "player", "spotify", "sound", "radio", "podcast", "yt music", "youtube music"))
-            5 -> filterByKeywords(allApps, listOf("pay", "wallet", "bank", "finance", "cash", "money", "card", "crypto", "binance", "paypal"))
+                 filterByKeywords(allApps, listOf("music", "audio", "player", "spotify", "sound", "radio", "podcast", "yt music", "youtube music", "wynk", "jio saavn", "gaana"))
+            5 -> filterByKeywords(allApps, listOf("pay", "wallet", "bank", "finance", "cash", "money", "card", "crypto", "binance", "paypal", "gpay", "phonepe", "phonepay", "paytm", "bhim", "yono", "hdfc", "icici", "sbi", "axis", "kotak", "pnb", "bob", "canara"))
             6 -> filterByIntent(allApps, Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)) +
-                 filterByKeywords(allApps, listOf("camera", "cam", "lens"))
+                 filterByKeywords(allApps, listOf("camera", "cam", "lens", "gallery", "photo"))
             7 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CALCULATOR) }) +
                  filterByKeywords(allApps, listOf("calc"))
             8 -> filterByKeywords(allApps, listOf("clock", "alarm", "timer", "watch"))
             9 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CALENDAR) }) +
                  filterByKeywords(allApps, listOf("calen"))
             10 -> filterByKeywords(allApps, listOf("note", "keep", "memo", "todo", "sticky", "journal", "list", "writ"))
-            else -> emptyList()
+            11 -> filterByKeywords(allApps, listOf("settings", "config", "manage", "setup", "launcher", "dotz"))
+            else -> return allApps // Tiles 12+ (Extra Page) can select any app
         }.asSequence().distinctBy { it.first }.sortedBy { it.second }.toList()
 
-        // Combine suggested with all others
-        val suggestedPackages = suggested.map { it.first }.toSet()
-        val others = allApps.filter { it.first !in suggestedPackages }
-        
-        return suggested + others
+        // If for some reason the filtered list is empty (e.g., no matching app), 
+        // allow all apps so the user isn't stuck with an unassignable tile.
+        return if (filtered.isEmpty()) allApps else filtered
     }
 
     private fun filterByIntent(apps: List<Pair<String, String>>, intent: Intent): List<Pair<String, String>> {

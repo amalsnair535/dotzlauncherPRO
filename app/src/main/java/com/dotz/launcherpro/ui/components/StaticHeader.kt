@@ -22,6 +22,7 @@ fun StaticHeader(
     networkStatus: String,
     weatherTemp: String?,
     weatherCondition: String?,
+    showWeatherInfo: Boolean,
     isWifiEnabled: Boolean,
     isBluetoothEnabled: Boolean,
     isSilentMode: Boolean,
@@ -56,7 +57,7 @@ fun StaticHeader(
             .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 0.dp),
     ) {
         // Weather Info (Top Right)
-        if (weatherTemp != null) {
+        if (showWeatherInfo && weatherTemp != null) {
             Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -65,13 +66,20 @@ fun StaticHeader(
             ) {
                 Text(
                     text = weatherTemp,
-                    style = DotzType.DateStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                    style = DotzType.DateStyle.copy(
+                        fontSize = 20.sp, 
+                        fontWeight = FontWeight.Normal,
+                        letterSpacing = 0.sp
+                    ),
                     color = DotzColors.White
                 )
                 Text(
                     text = weatherCondition ?: "",
-                    style = DotzType.DateStyle.copy(fontSize = 11.sp),
-                    color = DotzColors.White.copy(alpha = 0.6f)
+                    style = DotzType.DateStyle.copy(
+                        fontSize = 12.sp,
+                        letterSpacing = 0.sp
+                    ),
+                    color = DotzColors.White.copy(alpha = 0.5f)
                 )
             }
         }
