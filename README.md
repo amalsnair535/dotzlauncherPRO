@@ -5,13 +5,12 @@ Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, D
 
 ## 📱 Screenshots
 
-<img width="1080" height="2372" alt="Main Dashboard" src="https://github.com/user-attachments/assets/74656ee7-8c73-4e23-ac48-8d18859e89ec" />
-<img width="1080" height="2372" alt="Quick Toggles" src="https://github.com/user-attachments/assets/e52de853-7a3e-4368-94c9-1046546ed036" />
-<img width="728" height="1600" alt="Focus Mode" src="https://github.com/user-attachments/assets/741b1392-539a-4f76-aa47-fc2d702def17" />
-<img width="728" height="1600" alt="Minimalist App Drawer" src="https://github.com/user-attachments/assets/403fc837-dc8a-4d53-8bbd-d556d355a4bf" />
-<img width="1080" height="2372" alt="Settings" src="https://github.com/user-attachments/assets/7d1bb837-dd35-4662-a037-f26988589003" />
-<img width="1080" height="2372" alt="Tile Customization" src="https://github.com/user-attachments/assets/47aa5dad-1bfd-487a-bd04-2f08bb5e7bb3" />
-<img width="1080" height="2372" alt="AI Features" src="https://github.com/user-attachments/assets/2b17ff89-0bd4-4557-aec0-ace72652c0e4" />
+<img width="1216" height="2640" alt="Screenshot_20260528_185227" src="https://github.com/user-attachments/assets/8e61b238-2c68-4a21-b280-aaad62f926ed" />
+<img width="1216" height="2640" alt="Screenshot_20260528_185236" src="https://github.com/user-attachments/assets/bf43ca8a-c1d8-4e97-995f-bf335f333160" />
+<img width="1216" height="2640" alt="Screenshot_20260528_185243" src="https://github.com/user-attachments/assets/1232f336-f964-4065-a45f-49854bf40dd2" />
+<img width="1216" height="2640" alt="Screenshot_20260528_185213" src="https://github.com/user-attachments/assets/bfe07841-ba61-481f-a305-6eeed14253e8" />
+<img width="1216" height="2640" alt="Screenshot_20260528_185221" src="https://github.com/user-attachments/assets/f0bd87dd-f994-4395-a28c-e122092e1b0f" />
+
 
 ## 🧠 Core Philosophy
 Dotz Launcher PRO is a minimalist, high-intentionality dashboard designed to reduce digital clutter. It transforms your phone into a tool for productivity rather than a source of distraction by neutralizing eye-catching branding and introducing intentional friction.
