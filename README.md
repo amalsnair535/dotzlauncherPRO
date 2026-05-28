@@ -1,5 +1,8 @@
 # Dotz Launcher PRO
 
+<img width="512" height="512" alt="icon new" src="https://github.com/user-attachments/assets/199ff152-9b09-4db5-b2e8-008f41867aa1" />
+
+
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
 Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, Dotz Launcher PRO transforms your device into a tool rather than a distraction. It retains instant access to core daily workflows—like payments, music, and communication—while eliminating the visual noise that triggers mindless scrolling.
 
