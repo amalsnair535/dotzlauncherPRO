@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -165,23 +166,6 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
-                    label = "Buy Me a Coffee",
-                    subLabel = "amalsnair535-1@okhdfcbank",
-                    icon = Icons.Default.Coffee,
-                    trailingIcon = Icons.Default.ContentCopy,
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Dotz UPI", "amalsnair535-1@okhdfcbank")
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "UPI ID copied to clipboard", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-
-            item { MatteDivider() }
-
-            item {
-                AboutActionRow(
                     label = "GitHub",
                     subLabel = "amalsnair535/DotzLauncherPRO",
                     icon = Icons.Default.Code,
@@ -211,15 +195,24 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
-                    label = "Buy Me a Coffee",
-                    subLabel = "amalsnair535-1@okhdfcbank",
+                    label = "Support the Project",
+                    subLabel = "Buy Me a Coffee (UPI)",
                     icon = Icons.Default.Coffee,
-                    trailingIcon = Icons.Default.ContentCopy,
-                    onClick = {
+                    onLongClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("Dotz UPI", "amalsnair535-1@okhdfcbank")
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "UPI ID copied to clipboard", Toast.LENGTH_SHORT).show()
+                    },
+                    onClick = {
+                        val upiUri = "upi://pay?pa=amalsnair535-1@okhdfcbank&pn=Amal%20Nair&mc=0000&mode=02&purpose=00"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(upiUri))
+                        val chooser = Intent.createChooser(intent, "Pay with...")
+                        try {
+                            context.startActivity(chooser)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "No UPI apps found", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 )
             }
@@ -266,13 +259,17 @@ private fun AboutActionRow(
     subLabel: String,
     icon: ImageVector,
     trailingIcon: ImageVector? = null,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(DotzColors.Tile, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
