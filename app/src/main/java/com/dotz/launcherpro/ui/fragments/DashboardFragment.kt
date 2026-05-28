@@ -79,11 +79,11 @@ class DashboardFragment : Fragment() {
                 )
             }
 
-            // Grid Layout for Cards - Improved height consistency
+            // Grid Layout for Cards - Use IntrinsicSize.Min to match heights dynamically
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp)
+                    .height(IntrinsicSize.Min)
             ) {
                 FocusStatsCard(uiState = uiState, modifier = Modifier.weight(1f).fillMaxHeight())
                 Spacer(Modifier.width(16.dp))

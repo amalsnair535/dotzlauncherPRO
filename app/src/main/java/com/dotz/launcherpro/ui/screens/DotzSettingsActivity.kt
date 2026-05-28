@@ -136,6 +136,7 @@ private fun DotzSettingsScreen(
     onAppSelectionClick: () -> Unit,
 ) {
     var showIconPackDialog by remember { mutableStateOf(value = false) }
+    var showExperimentalDashboardDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -316,9 +317,12 @@ private fun DotzSettingsScreen(
 
             item {
                 SettingsToggleRow(
-                    label   = "Enable Swipe-Left Dashboard",
+                    label   = "Dashboard",
                     checked = settings.enableDashboard,
-                    onToggle = onEnableDashboardToggle
+                    onToggle = { enabled ->
+                        if (enabled) showExperimentalDashboardDialog = true
+                        onEnableDashboardToggle(enabled)
+                    }
                 )
             }
 
@@ -372,6 +376,20 @@ private fun DotzSettingsScreen(
                 showIconPackDialog = false
             },
             onDismiss = { showIconPackDialog = false },
+        )
+    }
+
+    if (showExperimentalDashboardDialog) {
+        AlertDialog(
+            onDismissRequest = { showExperimentalDashboardDialog = false },
+            containerColor = DotzColors.Tile,
+            title = { Text("Experimental Feature", color = DotzColors.White, fontSize = 16.sp) },
+            text = { Text("The Dashboard is currently an experimental feature and may contain bugs.", color = DotzColors.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(onClick = { showExperimentalDashboardDialog = false }) {
+                    Text("GOT IT", color = DotzColors.White)
+                }
+            }
         )
     }
 }

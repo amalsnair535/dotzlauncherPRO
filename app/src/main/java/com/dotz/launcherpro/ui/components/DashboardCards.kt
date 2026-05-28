@@ -93,15 +93,18 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
         icon = Icons.Default.FilterCenterFocus,
         modifier = modifier
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                androidx.compose.foundation.Canvas(modifier = Modifier.size(90.dp)) {
-                    val stroke = 10.dp.toPx()
+                androidx.compose.foundation.Canvas(modifier = Modifier.size(80.dp)) {
+                    val stroke = 8.dp.toPx()
                     drawArc(
                         color = Color.White.copy(alpha = 0.05f),
                         startAngle = 0f,
@@ -109,23 +112,27 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
                         useCenter = false,
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
+                    
+                    // Simple logic for the arc based on blocked notifications (max 20)
+                    val progress = (uiState.blockedNotificationsCount.toFloat() / 20f).coerceIn(0.1f, 1f)
                     drawArc(
                         color = Color.White,
                         startAngle = -90f,
-                        sweepAngle = 260f,
+                        sweepAngle = 360f * progress,
                         useCenter = false,
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val blocked = uiState.blockedNotificationsCount
                     Text(
-                        text = "4h 12m",
+                        text = "${blocked * 2}m", 
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "FOCUS TIME",
+                        text = "SAVED",
                         color = Color.White.copy(alpha = 0.3f),
                         fontSize = 8.sp,
                         fontWeight = FontWeight.Bold
@@ -133,12 +140,12 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
                 }
             }
             
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             
             val blockedCount = uiState.blockedNotificationsCount
-            StatRow(blockedCount.toString(), "Notifications Blocked")
-            StatRow("7 Days", "Focus Streak")
-            StatRow("32m", "Time Saved Today")
+            StatRow(blockedCount.toString(), "Notifications Filtered")
+            StatRow("High", "Intentionality")
+            StatRow("Active", "Monochrome")
         }
     }
 }
@@ -174,15 +181,19 @@ fun AiSummaryCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
         val messageCount = uiState.activeNotifications.count { it.packageName.contains("message") || it.packageName.contains("whatsapp") }
         val missedCalls = uiState.activeNotifications.count { it.packageName.contains("dialer") || it.packageName.contains("telecom") }
         
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
             SummaryItem(messageCount.toString(), "Important messages")
-            SummaryItem(missedCalls.toString(), "Missed call")
-            SummaryItem("0", "Urgent reminders")
+            SummaryItem(missedCalls.toString(), "Missed calls")
+            SummaryItem(uiState.activeNotifications.size.toString(), "Total updates")
         }
         
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -331,12 +342,11 @@ fun AiAssistantCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 300.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color.White.copy(alpha = 0.03f))
                         .padding(12.dp)
                 ) {
-                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Column {
                         Text(
                             text = uiState.aiResponse,
                             color = Color.White.copy(alpha = 0.8f),

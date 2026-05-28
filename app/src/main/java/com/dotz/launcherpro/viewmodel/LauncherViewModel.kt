@@ -325,7 +325,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private fun updateActiveController(controllers: List<MediaController>?) {
         activeController?.unregisterCallback(mediaCallback)
-        activeController = controllers?.firstOrNull()
+        // Prefer the one that is currently playing
+        activeController = controllers?.find { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+            ?: controllers?.firstOrNull()
         activeController?.registerCallback(mediaCallback)
         updateMediaInfo(activeController?.metadata, activeController?.playbackState)
     }

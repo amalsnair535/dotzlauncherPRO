@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.0] - 2026-05-25
+
+### Added
+- **Cloud-Powered Dotz AI:** Integrated an AI assistant on the dashboard for intelligent queries, including an "AI Summary" card.
+- **Extended Tile Support:** Added an optional third page with 1-6 customizable extra app tiles.
+- **Vertical Navigation:** Introduced a "Vertical Scrolling" mode as an alternative to horizontal paging.
+- **Interactive Media Control:** New dashboard card with real-time metadata and transport controls (Play/Pause, Skip) for active media sessions.
+- **Smart App Remapping:** Categorized app selection that suggests relevant apps based on the tile's purpose (e.g., suggesting dialers for the "CALL" tile).
+- **Consolidated App Selection:** Added a centralized "App Selection" menu in settings to manage all tile overrides in one place.
+- **Focus Statistics:** New dashboard widget to track launcher usage and notification metrics.
+- **Refined System Shortcuts:** Added direct shortcuts for Mobile Data settings, Weather apps, and Default Launcher configuration.
+
+### Fixed
+- **Build & Lint Cleanup:** Resolved critical build errors related to manifest permissions, deprecated `onBackPressed` usage, and API 27+ theme attributes.
+- **Immersive Mode Stability:** Fixed issues with status bar behavior across different activities.
+
+---
+
 ## [4.2.0] - 2026-05-24
 
 ### Added
