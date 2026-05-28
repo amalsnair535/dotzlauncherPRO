@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Email
@@ -164,6 +165,23 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
+                    label = "Buy Me a Coffee",
+                    subLabel = "amalsnair535-1@okhdfcbank",
+                    icon = Icons.Default.Coffee,
+                    trailingIcon = Icons.Default.ContentCopy,
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("Dotz UPI", "amalsnair535-1@okhdfcbank")
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "UPI ID copied to clipboard", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            item { MatteDivider() }
+
+            item {
+                AboutActionRow(
                     label = "GitHub",
                     subLabel = "amalsnair535/DotzLauncherPRO",
                     icon = Icons.Default.Code,
@@ -185,6 +203,23 @@ private fun AboutScreen(
                         val clip = ClipData.newPlainText("Dotz Contact", "dotzlauncher@gmail.com")
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "Email copied to clipboard", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            item { MatteDivider() }
+
+            item {
+                AboutActionRow(
+                    label = "Buy Me a Coffee",
+                    subLabel = "amalsnair535-1@okhdfcbank",
+                    icon = Icons.Default.Coffee,
+                    trailingIcon = Icons.Default.ContentCopy,
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("Dotz UPI", "amalsnair535-1@okhdfcbank")
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "UPI ID copied to clipboard", Toast.LENGTH_SHORT).show()
                     }
                 )
             }
