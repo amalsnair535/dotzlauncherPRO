@@ -215,7 +215,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             updateActiveController(mediaSessionManager.getActiveSessions(componentName))
         } catch (e: Exception) { e.printStackTrace() }
 
-        // Periodic playback position update
+        // Periodic playback position and session check
         viewModelScope.launch {
             while (true) {
                 kotlinx.coroutines.delay(1000)
@@ -223,6 +223,23 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 if (current.first) {
                     val newPos = activeController?.playbackState?.position ?: current.second
                     _playbackState.value = Triple(current.first, newPos, current.third)
+                }
+
+                // If no active controller, or current one is not playing, check for other playing sessions
+                if (activeController == null || !current.first) {
+                    val app = getApplication<Application>()
+                    val componentName = ComponentName(app, DotzNotificationService::class.java)
+                    try {
+                        val sessions = mediaSessionManager.getActiveSessions(componentName)
+                        if (sessions.isNotEmpty()) {
+                            val playingSession = sessions.find { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+                            if (playingSession != null && playingSession != activeController) {
+                                updateActiveController(sessions)
+                            } else if (activeController == null) {
+                                updateActiveController(sessions)
+                            }
+                        }
+                    } catch (_: Exception) {}
                 }
             }
         }
@@ -333,8 +350,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun updateMediaInfo(metadata: MediaMetadata?, state: PlaybackState?) {
-        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE) ?: "Not Playing"
-        val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: ""
+        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
+            ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
+            ?: metadata?.getText(MediaMetadata.METADATA_KEY_TITLE)?.toString()
+            ?: if (activeController != null) {
+                activeController?.packageName?.substringAfterLast('.')?.uppercase() ?: "ACTIVE SESSION"
+            } else "Not Playing"
+            
+        val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
+            ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
+            ?: if (activeController != null) "Ready to play" else "Play something to see info"
+
         val album = metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
         
         _nowPlaying.value = Triple(title, artist, album)
@@ -601,6 +627,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun refreshState() {
         _refreshTrigger.value = Unit
+        val app = getApplication<Application>()
+        val componentName = ComponentName(app, DotzNotificationService::class.java)
+        try {
+            updateActiveController(mediaSessionManager.getActiveSessions(componentName))
+        } catch (_: Exception) {}
     }
 
     // ── App Logic ─────────────────────────────────────────────────────────────
