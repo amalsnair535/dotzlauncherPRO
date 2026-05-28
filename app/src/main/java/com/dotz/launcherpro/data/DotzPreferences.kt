@@ -28,6 +28,9 @@ data class DotzSettings(
     /** JSON-serialized map of tileId -> packageName overrides */
     val tileOverrides: Map<Int, String> = emptyMap(),
     val tileLabels: Map<Int, String> = emptyMap(),
+    val focusStreak: Int = 0,
+    val lastUsedDate: Long = 0,
+    val focusTimeToday: Long = 0, // in milliseconds
 )
 
 object PrefsKeys {
@@ -48,6 +51,10 @@ object PrefsKeys {
     // Tile overrides stored as individual keys: tile_override_0, tile_override_1, …
     fun tileOverride(id: Int) = stringPreferencesKey("tile_override_$id")
     fun tileLabel(id: Int)    = stringPreferencesKey("tile_label_$id")
+
+    val FOCUS_STREAK = intPreferencesKey("focus_streak")
+    val LAST_USED_DATE = longPreferencesKey("last_used_date")
+    val FOCUS_TIME_TODAY = longPreferencesKey("focus_time_today")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -81,7 +88,10 @@ class DotzPreferencesRepository(private val context: Context) {
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: true,
                 enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: true,
                 tileOverrides        = overrides,
-                tileLabels           = labels
+                tileLabels           = labels,
+                focusStreak          = prefs[PrefsKeys.FOCUS_STREAK] ?: 0,
+                lastUsedDate         = prefs[PrefsKeys.LAST_USED_DATE] ?: 0,
+                focusTimeToday       = prefs[PrefsKeys.FOCUS_TIME_TODAY] ?: 0
             )
         }
 
@@ -148,6 +158,14 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.tileOverride(tileId)] = packageName
             prefs[PrefsKeys.tileLabel(tileId)]    = label
+        }
+    }
+
+    suspend fun updateFocusStats(streak: Int, lastDate: Long, timeToday: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[PrefsKeys.FOCUS_STREAK] = streak
+            prefs[PrefsKeys.LAST_USED_DATE] = lastDate
+            prefs[PrefsKeys.FOCUS_TIME_TODAY] = timeToday
         }
     }
 

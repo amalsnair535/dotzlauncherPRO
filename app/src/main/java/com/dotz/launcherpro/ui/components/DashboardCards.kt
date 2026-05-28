@@ -94,17 +94,17 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .height(140.dp),
                 contentAlignment = Alignment.Center
             ) {
-                androidx.compose.foundation.Canvas(modifier = Modifier.size(80.dp)) {
-                    val stroke = 8.dp.toPx()
+                androidx.compose.foundation.Canvas(modifier = Modifier.size(110.dp)) {
+                    val stroke = 10.dp.toPx()
                     drawArc(
                         color = Color.White.copy(alpha = 0.05f),
                         startAngle = 0f,
@@ -113,39 +113,42 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
                     
-                    // Simple logic for the arc based on blocked notifications (max 20)
-                    val progress = (uiState.blockedNotificationsCount.toFloat() / 20f).coerceIn(0.1f, 1f)
+                    // 6 hours (21,600,000 ms) is 100% of the circle
+                    val goalMillis = 6 * 60 * 60 * 1000L
+                    val sweepAngle = (uiState.focusTimeMillis.toFloat() / goalMillis * 360f).coerceIn(5f, 360f)
+                    
                     drawArc(
                         color = Color.White,
                         startAngle = -90f,
-                        sweepAngle = 360f * progress,
+                        sweepAngle = sweepAngle,
                         useCenter = false,
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val blocked = uiState.blockedNotificationsCount
                     Text(
-                        text = "${blocked * 2}m", 
+                        text = uiState.focusTimeToday, 
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "SAVED",
+                        text = "FOCUS TIME",
                         color = Color.White.copy(alpha = 0.3f),
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
                     )
                 }
             }
             
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
             
-            val blockedCount = uiState.blockedNotificationsCount
-            StatRow(blockedCount.toString(), "Notifications Filtered")
-            StatRow("High", "Intentionality")
-            StatRow("Active", "Monochrome")
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatRow(uiState.blockedNotificationsCount.toString(), "Notifications Blocked")
+                StatRow("${uiState.focusStreak} Days", "Focus Streak")
+                StatRow("${uiState.blockedNotificationsCount * 2}m", "Time Saved Today")
+            }
         }
     }
 }
@@ -246,43 +249,61 @@ fun NowPlayingCard(
     DashboardCard(
         title = "NOW PLAYING",
         icon = Icons.Default.MusicNote,
-        modifier = modifier.height(180.dp)
+        modifier = modifier.heightIn(min = 180.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        if (uiState.nowPlayingTitle == "Not Playing" || uiState.nowPlayingTitle.isBlank()) {
             Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.MusicNote, null, tint = Color.White.copy(alpha = 0.2f), modifier = Modifier.size(32.dp))
+                Text(
+                    text = "No music playing",
+                    color = Color.White.copy(alpha = 0.2f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
-            
-            Spacer(Modifier.width(20.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = uiState.nowPlayingTitle,
-                    color = Color.White,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = uiState.nowPlayingArtist,
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.05f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.MusicNote, null, tint = Color.White.copy(alpha = 0.2f), modifier = Modifier.size(24.dp))
+                    }
+                    
+                    Spacer(Modifier.width(16.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = uiState.nowPlayingTitle,
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 20.sp
+                        )
+                        Text(
+                            text = uiState.nowPlayingArtist,
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
                 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 
+                // Progress Bar
                 val progress = if (uiState.playbackDuration > 0) uiState.playbackPosition.toFloat() / uiState.playbackDuration else 0f
                 LinearProgressIndicator(
                     progress = { progress },
@@ -291,30 +312,38 @@ fun NowPlayingCard(
                     trackColor = Color.White.copy(alpha = 0.1f),
                     strokeCap = StrokeCap.Round
                 )
-            }
 
-            Spacer(Modifier.width(20.dp))
+                Spacer(Modifier.height(12.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconButton(onClick = onSkipPrevious) { Icon(Icons.Default.SkipPrevious, null, tint = Color.White, modifier = Modifier.size(28.dp)) }
-                IconButton(
-                    onClick = onPlayPause,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.05f))
-                ) { 
-                    Icon(
-                        imageVector = if (uiState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    ) 
+                // Controls
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(onClick = onSkipPrevious) { 
+                        Icon(Icons.Default.SkipPrevious, null, tint = Color.White, modifier = Modifier.size(32.dp)) 
+                    }
+                    Spacer(Modifier.width(24.dp))
+                    IconButton(
+                        onClick = onPlayPause,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.05f))
+                    ) { 
+                        Icon(
+                            imageVector = if (uiState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        ) 
+                    }
+                    Spacer(Modifier.width(24.dp))
+                    IconButton(onClick = onSkipNext) { 
+                        Icon(Icons.Default.SkipNext, null, tint = Color.White, modifier = Modifier.size(32.dp)) 
+                    }
                 }
-                IconButton(onClick = onSkipNext) { Icon(Icons.Default.SkipNext, null, tint = Color.White, modifier = Modifier.size(28.dp)) }
             }
         }
     }

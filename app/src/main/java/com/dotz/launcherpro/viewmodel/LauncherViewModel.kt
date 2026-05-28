@@ -67,6 +67,9 @@ data class LauncherUiState(
     val playbackDuration: Long = 0,
     val aiResponse: String? = null,
     val isAiLoading: Boolean = false,
+    val focusTimeToday: String = "0h 0m",
+    val focusTimeMillis: Long = 0,
+    val focusStreak: Int = 0,
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -168,8 +171,38 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private var sessionStartTime = System.currentTimeMillis()
+
     init {
         val app = getApplication<Application>()
+        
+        // Update streak and reset focus time if it's a new day
+        viewModelScope.launch {
+            val settings = prefs.settingsFlow.first()
+            val now = System.currentTimeMillis()
+            val lastDate = settings.lastUsedDate
+            
+            val calendarNow = java.util.Calendar.getInstance().apply { timeInMillis = now }
+            val calendarLast = java.util.Calendar.getInstance().apply { timeInMillis = lastDate }
+            
+            val isSameDay = calendarNow.get(java.util.Calendar.DAY_OF_YEAR) == calendarLast.get(java.util.Calendar.DAY_OF_YEAR) &&
+                           calendarNow.get(java.util.Calendar.YEAR) == calendarLast.get(java.util.Calendar.YEAR)
+            
+            val isNextDay = !isSameDay && (now - lastDate < 48 * 60 * 60 * 1000) // roughly next day check
+            
+            val newStreak = if (isNextDay) settings.focusStreak + 1 else if (isSameDay) settings.focusStreak else 1
+            val newFocusTime = if (isSameDay) settings.focusTimeToday else 0L
+            
+            prefs.updateFocusStats(newStreak, now, newFocusTime)
+        }
+
+        // Periodic update of focus time
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(60000) // Update every minute
+                updateSessionTime()
+            }
+        }
         
         // Register Battery Receiver
         val batteryFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
@@ -332,12 +365,32 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     playbackPosition = playback.second,
                     playbackDuration = playback.third,
                     aiResponse = aiResp,
-                    isAiLoading = aiLoading
+                    isAiLoading = aiLoading,
+                    focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
+                    focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
+                    focusStreak = settings.focusStreak
                 )
             }.collect { state ->
                 _uiState.value = state
             }
         }
+    }
+
+    private fun updateSessionTime() {
+        val now = System.currentTimeMillis()
+        val duration = now - sessionStartTime
+        sessionStartTime = now
+        viewModelScope.launch {
+            val settings = prefs.settingsFlow.first()
+            prefs.updateFocusStats(settings.focusStreak, now, settings.focusTimeToday + duration)
+        }
+    }
+
+    private fun formatDuration(millis: Long): String {
+        val totalMinutes = millis / 60000
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        return "${hours}h ${minutes}m"
     }
 
     private fun updateActiveController(controllers: List<MediaController>?) {
