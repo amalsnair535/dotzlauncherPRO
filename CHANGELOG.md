@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.0] - 2026-05-26
+
+### Fixed
+- **Build & Resource Stability:** Resolved critical XML parse errors in launcher icons and resource files by correcting processing instruction placement.
+- **Documentation Update:** Comprehensive update to README with full PRO feature list.
+
+## [5.1.0] - 2026-05-25
+
+### Fixed
+- Internal build stabilization and repository cleanup.
+
 ## [5.0.0] - 2026-05-25
 
 ### Added

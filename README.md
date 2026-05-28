@@ -57,7 +57,7 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `4.2.0`
+* **Version:** `5.2.0`
 * **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)
