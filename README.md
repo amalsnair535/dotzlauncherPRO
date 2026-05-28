@@ -62,3 +62,11 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)
 * **Target Android:** API 35 (Android 15)
+
+## ☕ Support the Project
+If Dotz Launcher PRO has helped you reclaim your focus, consider supporting its development!
+
+**Buy Me a Coffee via UPI:**
+`amalsnair535-1@okhdfcbank`
+
+---
