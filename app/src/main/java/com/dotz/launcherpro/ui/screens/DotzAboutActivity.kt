@@ -48,7 +48,11 @@ class DotzAboutActivity : ComponentActivity() {
         setContent {
             val uiState by viewModel.uiState.collectAsState()
             DotzTheme(settings = uiState.settings) {
-                AboutScreen(onBack = { finish() })
+                AboutScreen(
+                    uiState = uiState,
+                    onBack = { finish() },
+                    onCheckUpdate = { viewModel.checkForUpdates() }
+                )
             }
         }
     }
@@ -56,14 +60,18 @@ class DotzAboutActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AboutScreen(onBack: () -> Unit) {
+private fun AboutScreen(
+    uiState: com.dotz.launcherpro.viewmodel.LauncherUiState,
+    onBack: () -> Unit,
+    onCheckUpdate: () -> Unit
+) {
     val context = LocalContext.current
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "4.2.0"
+            packageInfo.versionName ?: "5.0.0"
         } catch (e: Exception) {
-            "4.2.0"
+            "5.0.0"
         }
     }
 
@@ -110,6 +118,32 @@ private fun AboutScreen(onBack: () -> Unit) {
                     fontSize = 14.sp,
                     color = DotzColors.White.copy(alpha = 0.5f)
                 )
+            }
+
+            item {
+                if (uiState.isUpdateAvailable) {
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uiState.updateApkUrl))
+                            context.startActivity(intent)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = DotzColors.White),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("UPDATE TO ${uiState.latestVersionName}", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                } else if (uiState.isCheckingForUpdate) {
+                    CircularProgressIndicator(color = DotzColors.White, modifier = Modifier.size(24.dp))
+                } else {
+                    OutlinedButton(
+                        onClick = onCheckUpdate,
+                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 0.5.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("CHECK FOR UPDATES", color = DotzColors.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
             }
 
             item {

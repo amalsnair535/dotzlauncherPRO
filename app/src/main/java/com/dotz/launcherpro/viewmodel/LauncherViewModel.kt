@@ -70,6 +70,10 @@ data class LauncherUiState(
     val focusTimeToday: String = "0h 0m",
     val focusTimeMillis: Long = 0,
     val focusStreak: Int = 0,
+    val isUpdateAvailable: Boolean = false,
+    val latestVersionName: String? = null,
+    val updateApkUrl: String? = null,
+    val isCheckingForUpdate: Boolean = false,
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -115,6 +119,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _aiResponse = MutableStateFlow<String?>(null)
     private val _isAiLoading = MutableStateFlow(false)
+    private val _isCheckingUpdate = MutableStateFlow(false)
+    private val _updateAvailable = MutableStateFlow(false)
+    private val _latestVersion = MutableStateFlow<String?>(null)
+    private val _updateUrl = MutableStateFlow<String?>(null)
     private val _refreshTrigger = MutableStateFlow(value = Unit)
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -305,6 +313,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _playbackState,
                 _aiResponse,
                 _isAiLoading,
+                _isCheckingUpdate,
+                _updateAvailable,
+                _latestVersion,
+                _updateUrl,
                 _refreshTrigger
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
@@ -329,7 +341,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val playback = args[15] as Triple<Boolean, Long, Long>
                 val aiResp = args[16] as String?
                 val aiLoading = args[17] as Boolean
-                // args[18] is _refreshTrigger
+                val checkingUpdate = args[18] as Boolean
+                val updateAvail = args[19] as Boolean
+                val latestVer = args[20] as String?
+                val updateUrl = args[21] as String?
+                // args[22] is _refreshTrigger
 
                 val isDefault = isDefaultLauncher()
 
@@ -368,10 +384,55 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isAiLoading = aiLoading,
                     focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
                     focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
-                    focusStreak = settings.focusStreak
+                    focusStreak = settings.focusStreak,
+                    isCheckingForUpdate = checkingUpdate,
+                    isUpdateAvailable = updateAvail,
+                    latestVersionName = latestVer,
+                    updateApkUrl = updateUrl
                 )
             }.collect { state ->
                 _uiState.value = state
+            }
+        }
+    }
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            _isCheckingUpdate.value = true
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    val request = Request.Builder()
+                        .url("https://raw.githubusercontent.com/amalsnair535/dotzlauncherPRO/main/version.json")
+                        .build()
+                    client.newCall(request).execute().use { it.body?.string() }
+                }
+
+                if (response != null) {
+                    val json = Gson().fromJson(response, JsonObject::class.java)
+                    val remoteVersionCode = json.get("versionCode").asInt
+                    val remoteVersionName = json.get("versionName").asString
+                    val apkUrl = json.get("apkUrl").asString
+
+                    val packageInfo = getApplication<Application>().packageManager.getPackageInfo(getApplication<Application>().packageName, 0)
+                    val currentVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        packageInfo.longVersionCode
+                    } else {
+                        @Suppress("DEPRECATION")
+                        packageInfo.versionCode.toLong()
+                    }
+
+                    if (remoteVersionCode > currentVersionCode) {
+                        _updateAvailable.value = true
+                        _latestVersion.value = remoteVersionName
+                        _updateUrl.value = apkUrl
+                    } else {
+                        _updateAvailable.value = false
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isCheckingUpdate.value = false
             }
         }
     }
