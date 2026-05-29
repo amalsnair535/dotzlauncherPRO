@@ -4,14 +4,13 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -75,9 +74,9 @@ private fun AboutScreen(
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "5.0.0"
-        } catch (e: Exception) {
-            "5.0.0"
+            packageInfo.versionName ?: "5.2.1"
+        } catch (_: Exception) {
+            "5.2.1"
         }
     }
 
@@ -206,11 +205,11 @@ private fun AboutScreen(
                     },
                     onClick = {
                         val upiUri = "upi://pay?pa=amalsnair535-1@okhdfcbank&pn=Amal%20Nair&mc=0000&mode=02&purpose=00"
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(upiUri))
+                        val intent = Intent(Intent.ACTION_VIEW, upiUri.toUri())
                         val chooser = Intent.createChooser(intent, "Pay with...")
                         try {
                             context.startActivity(chooser)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Toast.makeText(context, "No UPI apps found", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -253,6 +252,7 @@ private fun AboutScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AboutActionRow(
     label: String,

@@ -53,11 +53,11 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 * **Notification Management:** Toggle notification dots, numerical counts, and a smart "Distraction Filter" for social apps.
 * **Weather Toggle:** Show or hide live weather info on the home screen.
 * **Data Portability:** Full Backup & Restore via JSON files.
-* **Privacy Focused:** No data collection. All settings are stored locally.
+* **Privacy Focused:** No data collection. All settings are stored locally. [Read our full Privacy Policy](PRIVACY_POLICY.md).
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `5.2.0`
+* **Version:** `5.2.1`
 * **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)

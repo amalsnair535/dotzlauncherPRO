@@ -447,7 +447,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
             val request = android.app.DownloadManager.Request(Uri.parse(url))
                 .setTitle("Dotz Launcher Update")
-                .setDescription("Downloading version 5.2.0...")
+                .setDescription("Downloading version 5.2.1...")
                 .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationUri(Uri.fromFile(destinationFile))
                 .setAllowedOverMetered(true)

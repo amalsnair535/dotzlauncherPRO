@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.1] - 2026-05-27
+
+### Fixed
+- **Experimental API Warning:** Resolved a compiler warning related to the experimental `combinedClickable` API in `DotzAboutActivity`.
+- **Code Cleanup:** Removed unused imports and optimized `Uri.parse` usage.
+
 ## [5.2.0] - 2026-05-26
 
 ### Fixed

@@ -7,11 +7,13 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.viewpager2.widget.ViewPager2
+import android.view.View
 import com.dotz.launcherpro.ui.LauncherPagerAdapter
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,6 +33,10 @@ class MainActivity : AppCompatActivity() {
         val viewPager = findViewById<ViewPager2>(R.id.viewPager)
         viewPager.adapter = LauncherPagerAdapter(this)
         
+        // Fluid Page Transformer
+        viewPager.setPageTransformer(FluidPageTransformer())
+        viewPager.offscreenPageLimit = 2
+
         // Start on Home Screen (index 1)
         viewPager.setCurrentItem(1, false)
 
@@ -51,6 +57,31 @@ class MainActivity : AppCompatActivity() {
         // Re-apply immersive mode
         WindowCompat.getInsetsController(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    /**
+     * Custom PageTransformer for fluid transitions between Dashboard and Home.
+     */
+    class FluidPageTransformer : ViewPager2.PageTransformer {
+        override fun transformPage(view: View, position: Float) {
+            val absPos = abs(position)
+            
+            view.apply {
+                // Parallax effect
+                translationX = -position * width / 2f
+                
+                // Fade effect
+                alpha = (1f - absPos).coerceIn(0.6f, 1f)
+                
+                // Subtle scale effect
+                val scale = 0.9f + (1f - absPos) * 0.1f
+                scaleX = scale
+                scaleY = scale
+                
+                // Elevation/Shadow effect for depth
+                elevation = if (absPos < 1) (1 - absPos) * 10 else 0f
+            }
         }
     }
 }

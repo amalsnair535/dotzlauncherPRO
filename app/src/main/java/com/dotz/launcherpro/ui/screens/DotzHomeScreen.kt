@@ -7,8 +7,7 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
@@ -84,8 +83,7 @@ fun DotzHomeScreen(
                         modifier = Modifier.weight(0.60f)
                     ) { pageIndex ->
                         val pageOffset = (pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction
-                        val scaleFactor = lerp(0.95f, 1.0f, 1f - abs(pageOffset).coerceIn(0f, 1f))
-
+                        
                         AppGrid(
                             tiles         = pages[pageIndex],
                             iconCache     = iconCache,
@@ -97,7 +95,16 @@ fun DotzHomeScreen(
                             onTileLongPress = onTileLongPress,
                             modifier      = Modifier
                                 .fillMaxSize()
-                                .scale(scaleFactor)
+                                .graphicsLayer {
+                                    val absOffset = abs(pageOffset)
+                                    // Scale down and fade
+                                    scaleX = 0.9f + (1f - absOffset.coerceIn(0f, 1f)) * 0.1f
+                                    scaleY = scaleX
+                                    alpha = 0.5f + (1f - absOffset.coerceIn(0f, 1f)) * 0.5f
+                                    
+                                    // Rotation effect for vertical
+                                    rotationX = pageOffset * -15f
+                                }
                         )
                     }
                 } else {
@@ -106,8 +113,7 @@ fun DotzHomeScreen(
                         modifier = Modifier.weight(0.60f)
                     ) { pageIndex ->
                         val pageOffset = (pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction
-                        val scaleFactor = lerp(0.95f, 1.0f, 1f - abs(pageOffset).coerceIn(0f, 1f))
-
+                        
                         AppGrid(
                             tiles         = pages[pageIndex],
                             iconCache     = iconCache,
@@ -119,7 +125,16 @@ fun DotzHomeScreen(
                             onTileLongPress = onTileLongPress,
                             modifier      = Modifier
                                 .fillMaxSize()
-                                .scale(scaleFactor)
+                                .graphicsLayer {
+                                    val absOffset = abs(pageOffset)
+                                    // Scale down and fade
+                                    scaleX = 0.85f + (1f - absOffset.coerceIn(0f, 1f)) * 0.15f
+                                    scaleY = scaleX
+                                    alpha = 0.5f + (1f - absOffset.coerceIn(0f, 1f)) * 0.5f
+                                    
+                                    // Parallax/Slide effect
+                                    translationX = pageOffset * size.width * 0.2f
+                                }
                         )
                     }
                 }
@@ -127,6 +142,3 @@ fun DotzHomeScreen(
         }
     }
 }
-
-private fun lerp(start: Float, stop: Float, fraction: Float): Float =
-    start + fraction * (stop - start)
