@@ -1,0 +1,10 @@
+{
+"$schema": "node_modules/wrangler/config-schema.json",
+"name": "dotzlauncher",
+"compatibility_date": "2026-05-29",
+
+"assets": {
+"directory": ".",
+"not_found_handling": "single-page-application"
+}
+}
