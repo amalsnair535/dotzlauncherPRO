@@ -637,7 +637,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ── DOTZ AI (Cloud Powered) ──────────────────────────────────────────
 
     private val client = OkHttpClient()
-    private val CLOUDFLARE_WORKER_URL = "https://dotzlauncherpro.amalsnair535.workers.dev/"
+    private val CLOUDFLARE_WORKER_URL = "https://dotzlauncher.amalsnair535.workers.dev/"
 
     fun askAi(prompt: String) {
         if (prompt.isBlank()) return
