@@ -38,6 +38,7 @@ import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
+import com.dotz.launcherpro.viewmodel.LauncherUiState
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 
 class DotzAboutActivity : ComponentActivity() {
@@ -65,7 +66,7 @@ class DotzAboutActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AboutScreen(
-    uiState: com.dotz.launcherpro.viewmodel.LauncherUiState,
+    uiState: LauncherUiState,
     onBack: () -> Unit,
     onCheckUpdate: () -> Unit,
     onDownloadUpdate: (String) -> Unit

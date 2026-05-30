@@ -194,8 +194,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val calendarNow = java.util.Calendar.getInstance().apply { timeInMillis = now }
             val calendarLast = java.util.Calendar.getInstance().apply { timeInMillis = lastDate }
             
-            val isSameDay = calendarNow.get(java.util.Calendar.DAY_OF_YEAR) == calendarLast.get(java.util.Calendar.DAY_OF_YEAR) &&
-                           calendarNow.get(java.util.Calendar.YEAR) == calendarLast.get(java.util.Calendar.YEAR)
+            val isSameDay = calendarNow[java.util.Calendar.DAY_OF_YEAR] == calendarLast[java.util.Calendar.DAY_OF_YEAR] &&
+                           calendarNow[java.util.Calendar.YEAR] == calendarLast[java.util.Calendar.YEAR]
             
             val isNextDay = !isSameDay && (now - lastDate < 48 * 60 * 60 * 1000) // roughly next day check
             
@@ -445,9 +445,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val destinationFile = java.io.File(app.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS), "dotz_update.apk")
             if (destinationFile.exists()) destinationFile.delete()
 
-            val request = android.app.DownloadManager.Request(Uri.parse(url))
+            val request = android.app.DownloadManager.Request(url.toUri())
                 .setTitle("Dotz Launcher Update")
-                .setDescription("Downloading version 5.2.1...")
+                .setDescription("Downloading version ${_latestVersion.value ?: "latest"}...")
                 .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationUri(Uri.fromFile(destinationFile))
                 .setAllowedOverMetered(true)
@@ -637,7 +637,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ── DOTZ AI (Cloud Powered) ──────────────────────────────────────────
 
     private val client = OkHttpClient()
-    private val CLOUDFLARE_WORKER_URL = "https://dotzlauncher.amalsnair535.workers.dev"
+    private val CLOUDFLARE_WORKER_URL = "https://dotzlauncherpro.amalsnair535.workers.dev/"
 
     fun askAi(prompt: String) {
         if (prompt.isBlank()) return
@@ -652,6 +652,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     val request = Request.Builder()
                         .url(CLOUDFLARE_WORKER_URL)
                         .post(requestBody)
+                        .header("User-Agent", "DotzLauncher/1.0")
                         .build()
 
                     client.newCall(request).execute().use { response ->
