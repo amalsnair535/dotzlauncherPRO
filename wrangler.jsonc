@@ -1,6 +1,6 @@
 {
 "$schema": "node_modules/wrangler/config-schema.json",
-"name": "dotzlauncher",
+"name": "dotzlauncherpro",
 "main": "worker.js",
 "compatibility_date": "2026-05-29",
 
