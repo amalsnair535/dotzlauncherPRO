@@ -5,7 +5,7 @@
 "compatibility_date": "2026-05-29",
 
 "assets": {
-"directory": ".",
+"directory": "docs",
 "not_found_handling": "single-page-application"
 }
 }
