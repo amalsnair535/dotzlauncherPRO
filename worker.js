@@ -8,7 +8,7 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, User-Agent",
+          "Access-Control-Allow-Headers": "Content-Type, User-Agent, Authorization",
         },
       });
     }
@@ -25,31 +25,41 @@ export default {
           });
         }
 
-        // --- GOOGLE GEMINI INTEGRATION ---
-        // Ensure you have added your API key via: npx wrangler secret put GEMINI_API_KEY
-        const apiKey = env.GEMINI_API_KEY;
+        // --- GROQ API INTEGRATION ---
+        // Ensure you have added your API key via: npx wrangler secret put GROQ_API_KEY
+        const apiKey = env.GROQ_API_KEY;
         if (!apiKey) {
-          return new Response(JSON.stringify({ text: "AI Error: GEMINI_API_KEY is not configured in the worker." }), {
+          return new Response(JSON.stringify({ text: "AI Error: GROQ_API_KEY is not configured in the worker." }), {
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
           });
         }
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const groqUrl = "https://api.groq.com/openai/v1/chat/completions";
 
-        const response = await fetch(geminiUrl, {
+        const response = await fetch(groqUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 500,
-            }
+            model: "llama3-8b-8192", // High performance, low latency default
+            messages: [
+              { role: "system", content: "You are Dotz AI, a minimalist and helpful assistant for Dotz Launcher PRO." },
+              { role: "user", content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 1024,
           })
         });
 
         const data = await response.json();
-        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response.";
+
+        if (data.error) {
+          throw new Error(data.error.message || "Unknown Groq API error");
+        }
+
+        const aiText = data.choices?.[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
 
         return new Response(JSON.stringify({ text: aiText }), {
           headers: {
