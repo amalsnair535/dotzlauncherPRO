@@ -12,7 +12,6 @@ fragmentKtx = "1.8.1"
 gson = "2.11.0"
 appcompat = "1.7.1"
 media3 = "1.10.1"
-generativeai = "0.9.0"
 okhttp = "4.12.0"
 firebaseFunctions = "21.1.0"
 
@@ -35,7 +34,6 @@ androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", ve
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
-generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 firebase-functions = { group = "com.google.firebase", name = "firebase-functions", version.ref = "firebaseFunctions" }
