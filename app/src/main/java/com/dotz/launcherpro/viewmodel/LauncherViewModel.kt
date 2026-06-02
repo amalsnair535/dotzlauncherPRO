@@ -656,9 +656,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         .build()
 
                     client.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) throw Exception("Unexpected code $response")
                         val body = response.body?.string() ?: throw Exception("Empty body")
                         val json = Gson().fromJson(body, JsonObject::class.java)
+                        
+                        if (!response.isSuccessful) {
+                            val errorMsg = json.get("text")?.asString ?: "Unknown server error (Code ${response.code})"
+                            throw Exception(errorMsg)
+                        }
+
                         json.get("text").asString
                     }
                 }
