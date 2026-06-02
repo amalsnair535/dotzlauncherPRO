@@ -66,21 +66,9 @@ class MainActivity : AppCompatActivity() {
     class FluidPageTransformer : ViewPager2.PageTransformer {
         override fun transformPage(view: View, position: Float) {
             val absPos = abs(position)
-            
             view.apply {
-                // Parallax effect
-                translationX = -position * width / 2f
-                
-                // Fade effect
-                alpha = (1f - absPos).coerceIn(0.6f, 1f)
-                
-                // Subtle scale effect
-                val scale = 0.9f + (1f - absPos) * 0.1f
-                scaleX = scale
-                scaleY = scale
-                
-                // Elevation/Shadow effect for depth
-                elevation = if (absPos < 1) (1 - absPos) * 10 else 0f
+                translationX = 0f
+                alpha = if (absPos >= 1f) 0f else 1f - absPos
             }
         }
     }

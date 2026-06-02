@@ -877,14 +877,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setNotificationFilterEnabled(value)
     }
 
-    fun setDynamicBackgroundEnabled(value: Boolean) = viewModelScope.launch {
-        prefs.setDynamicBackgroundEnabled(value)
-    }
-
-    fun setTileOpacity(value: Float) = viewModelScope.launch {
-        prefs.setTileOpacity(value)
-    }
-
     fun setGrayscaleMode(value: Boolean) = viewModelScope.launch {
         prefs.setGrayscaleMode(value)
         iconCache.clearCache()

@@ -16,7 +16,6 @@ import com.dotz.launcherpro.data.IconCacheManager
 fun AppGrid(
     tiles: List<AppTile>,
     iconCache: IconCacheManager,
-    tileOpacity: Float,
     grayscale: Boolean,
     iconPackPackage: String?,
     showBadges: Boolean,
@@ -46,7 +45,6 @@ fun AppGrid(
                         AppTileCard(
                             tile         = tile,
                             iconCache    = iconCache,
-                            tileOpacity  = tileOpacity,
                             grayscale    = grayscale,
                             iconPackPackage = iconPackPackage,
                             showBadge    = showBadges,

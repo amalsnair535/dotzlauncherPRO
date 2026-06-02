@@ -35,7 +35,6 @@ import com.dotz.launcherpro.ui.theme.DotzType
 fun AppTileCard(
     tile: AppTile,
     iconCache: IconCacheManager,
-    tileOpacity: Float,
     grayscale: Boolean,
     iconPackPackage: String?,
     showBadge: Boolean,
@@ -48,7 +47,7 @@ fun AppTileCard(
     // Press animation
     val pressScale = remember { Animatable(1f) }
 
-    val baseOpacity = if (tile.isInstalled) tileOpacity else (tileOpacity * 0.4f)
+    val baseOpacity = if (tile.isInstalled) 1.0f else 0.4f
     val tileBackground = DotzColors.Tile.copy(alpha = baseOpacity)
     
     // Check cache first, then load if needed

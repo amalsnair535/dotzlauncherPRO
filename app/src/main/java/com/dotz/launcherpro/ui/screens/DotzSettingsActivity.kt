@@ -85,12 +85,10 @@ class DotzSettingsActivity : ComponentActivity() {
                     onShowDots        = viewModel::setShowNotificationDots,
                     onShowCounts      = viewModel::setShowNumericalCounts,
                     onNotificationFilterToggle = viewModel::setNotificationFilterEnabled,
-                    onOpacityChange   = viewModel::setTileOpacity,
                     onGrayscaleToggle = viewModel::setGrayscaleMode,
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
                     onExtraTileCountChange = viewModel::setExtraTileCount,
-                    onDynamicBgToggle = viewModel::setDynamicBackgroundEnabled,
                     onShowWeatherToggle = viewModel::setShowWeatherInfo,
                     onEnableDashboardToggle = viewModel::setEnableDashboard,
                     onIconPackChange  = viewModel::setIconPackPackage,
@@ -119,12 +117,10 @@ private fun DotzSettingsScreen(
     onShowDots: (Boolean) -> Unit,
     onShowCounts: (Boolean) -> Unit,
     onNotificationFilterToggle: (Boolean) -> Unit,
-    onOpacityChange: (Float) -> Unit,
     onGrayscaleToggle: (Boolean) -> Unit,
     onVerticalScrollToggle: (Boolean) -> Unit,
     onEnableExtraPageToggle: (Boolean) -> Unit,
     onExtraTileCountChange: (Int) -> Unit,
-    onDynamicBgToggle: (Boolean) -> Unit,
     onShowWeatherToggle: (Boolean) -> Unit,
     onEnableDashboardToggle: (Boolean) -> Unit,
     onIconPackChange: (String?) -> Unit,
@@ -217,35 +213,6 @@ private fun DotzSettingsScreen(
             // ── Section: Appearance ───────────────────────────────────────
             item { Spacer(Modifier.height(8.dp)); SectionHeader("APPEARANCE") }
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DotzColors.Tile, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Tile Opacity", color = DotzColors.White, fontSize = 14.sp)
-                        Text(
-                            "${(settings.tileOpacity * 100).toInt()}%",
-                            color = DotzColors.White.copy(alpha = 0.5f), fontSize = 14.sp
-                        )
-                    }
-                    Slider(
-                        value         = settings.tileOpacity,
-                        onValueChange = onOpacityChange,
-                        valueRange    = 0.6f..1.0f,
-                        colors        = SliderDefaults.colors(
-                            thumbColor       = DotzColors.White,
-                            activeTrackColor = DotzColors.White,
-                            inactiveTrackColor = DotzColors.White.copy(alpha = 0.2f)
-                        )
-                    )
-                }
-            }
-            item {
                 SettingsToggleRow(
                     label   = "Enable Extra Tiles (Page 3)",
                     checked = settings.enableExtraPage,
@@ -298,14 +265,6 @@ private fun DotzSettingsScreen(
                     label   = "Vertical Scrolling",
                     checked = settings.verticalScrolling,
                     onToggle = onVerticalScrollToggle
-                )
-            }
-
-            item {
-                SettingsToggleRow(
-                    label   = "Dynamic Background",
-                    checked = settings.dynamicBackgroundEnabled,
-                    onToggle = onDynamicBgToggle
                 )
             }
 

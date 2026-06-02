@@ -47,9 +47,7 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 
 ### 4. Visual & Aesthetic Customization
 * **Monochrome UI:** A grayscale-first interface that eliminates colorful app badges.
-* **Tile Opacity:** Adjustable slider (60% to 100%) to blend tiles with your background.
 * **Grayscale Mode:** Toggle to force all app icons into beautiful black-and-white.
-* **Dynamic Backgrounds:** Support for subtle, focus-driven background animations.
 * **Icon Pack Support:** Full compatibility with professional third-party icon packs.
 * **Scroll Orientation:** Choose between Horizontal (classic) or Vertical (modern) page scrolling for tiles.
 

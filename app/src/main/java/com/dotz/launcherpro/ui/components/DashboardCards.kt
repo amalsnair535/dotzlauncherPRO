@@ -74,12 +74,6 @@ fun DashboardCard(
                         letterSpacing = 1.sp
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(14.dp)
-                )
             }
             Spacer(Modifier.height(12.dp))
             content()

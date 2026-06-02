@@ -13,13 +13,11 @@ import java.io.IOException
 data class DotzSettings(
     val showNotificationDots: Boolean = true,
     val showNumericalCounts: Boolean = true,
-    val tileOpacity: Float = 1.0f,
     val grayscaleMode: Boolean = false,
     val iconPackPackage: String? = null,
     val themeId: String = "default",
     val useAdaptiveTheme: Boolean = false,
     val notificationFilterEnabled: Boolean = false,
-    val dynamicBackgroundEnabled: Boolean = false,
     val verticalScrolling: Boolean = false,
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
@@ -36,13 +34,11 @@ data class DotzSettings(
 object PrefsKeys {
     val SHOW_NOTIFICATION_DOTS  = booleanPreferencesKey("show_notification_dots")
     val SHOW_NUMERICAL_COUNTS   = booleanPreferencesKey("show_numerical_counts")
-    val TILE_OPACITY            = floatPreferencesKey("tile_opacity")
     val GRAYSCALE_MODE          = booleanPreferencesKey("grayscale_mode")
     val ICON_PACK_PACKAGE       = stringPreferencesKey("icon_pack_package")
     val THEME_ID                = stringPreferencesKey("theme_id")
     val USE_ADAPTIVE_THEME      = booleanPreferencesKey("use_adaptive_theme")
     val NOTIFICATION_FILTER_ENABLED = booleanPreferencesKey("notification_filter_enabled")
-    val DYNAMIC_BACKGROUND_ENABLED = booleanPreferencesKey("dynamic_background_enabled")
     val VERTICAL_SCROLLING      = booleanPreferencesKey("vertical_scrolling")
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
@@ -75,13 +71,11 @@ class DotzPreferencesRepository(private val context: Context) {
             DotzSettings(
                 showNotificationDots = prefs[PrefsKeys.SHOW_NOTIFICATION_DOTS] ?: true,
                 showNumericalCounts  = prefs[PrefsKeys.SHOW_NUMERICAL_COUNTS]  ?: true,
-                tileOpacity          = prefs[PrefsKeys.TILE_OPACITY]            ?: 1.0f,
                 grayscaleMode        = prefs[PrefsKeys.GRAYSCALE_MODE]          ?: false,
                 iconPackPackage      = prefs[PrefsKeys.ICON_PACK_PACKAGE],
                 themeId              = prefs[PrefsKeys.THEME_ID]                ?: "default",
                 useAdaptiveTheme     = prefs[PrefsKeys.USE_ADAPTIVE_THEME]      ?: false,
                 notificationFilterEnabled = prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] ?: false,
-                dynamicBackgroundEnabled = prefs[PrefsKeys.DYNAMIC_BACKGROUND_ENABLED] ?: false,
                 verticalScrolling    = prefs[PrefsKeys.VERTICAL_SCROLLING]      ?: false,
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
@@ -101,10 +95,6 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setShowNumericalCounts(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.SHOW_NUMERICAL_COUNTS] = value }
-    }
-
-    suspend fun setTileOpacity(value: Float) {
-        context.dataStore.edit { it[PrefsKeys.TILE_OPACITY] = value.coerceIn(0.6f, 1.0f) }
     }
 
     suspend fun setGrayscaleMode(value: Boolean) {
@@ -128,10 +118,6 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setNotificationFilterEnabled(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = value }
-    }
-
-    suspend fun setDynamicBackgroundEnabled(value: Boolean) {
-        context.dataStore.edit { it[PrefsKeys.DYNAMIC_BACKGROUND_ENABLED] = value }
     }
 
     suspend fun setVerticalScrolling(value: Boolean) {
@@ -184,7 +170,6 @@ class DotzPreferencesRepository(private val context: Context) {
             context.dataStore.edit { prefs ->
                 prefs[PrefsKeys.SHOW_NOTIFICATION_DOTS] = settings.showNotificationDots
                 prefs[PrefsKeys.SHOW_NUMERICAL_COUNTS] = settings.showNumericalCounts
-                prefs[PrefsKeys.TILE_OPACITY] = settings.tileOpacity
                 prefs[PrefsKeys.GRAYSCALE_MODE] = settings.grayscaleMode
                 if (settings.iconPackPackage != null) {
                     prefs[PrefsKeys.ICON_PACK_PACKAGE] = settings.iconPackPackage
