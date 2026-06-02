@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.3.0] - 2026-05-29
+
+### Added
+- **Restored AI Features:** Re-implemented Dotz AI Assistant and AI Summary card on the dashboard.
+- **Improved AI Logic:** Backend logic now uses a dedicated Cloudflare Worker for faster and more reliable responses.
+- **Model Update:** Upgraded AI model to `llama-3.1-8b-instant` for improved reasoning and accuracy.
+
+### Fixed
+- **AI Backend Stability:** Resolved model deprecation issues and infrastructure conflicts between website assets and API endpoints.
+- **Enhanced Error Reporting:** The dashboard now displays specific server-side errors to help troubleshoot AI connection issues.
+
 ## [5.2.1] - 2026-05-27
 
 ### Fixed
