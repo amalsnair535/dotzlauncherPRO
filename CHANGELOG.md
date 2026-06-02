@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.3.0] - 2026-05-29
+## [5.3.0] - 2026-06-02
 
 ### Added
 - **Restored AI Features:** Re-implemented Dotz AI Assistant and AI Summary card on the dashboard.
@@ -79,4 +79,3 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial PRO features: Tile remapping, Notification Filter, and JSON Backup/Restore.
 - Grayscale mode and Icon Pack support.
-- Dynamic background system.
