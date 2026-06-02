@@ -13,7 +13,7 @@ export default {
       });
     }
 
-    // 2. Handle AI requests (POST)
+    // 2. Pure API Logic (Accepts root domain or /api)
     if (request.method === "POST") {
       try {
         let prompt = "";
@@ -21,7 +21,7 @@ export default {
           const body = await request.json();
           prompt = body.prompt || "";
         } catch (e) {
-          return new Response(JSON.stringify({ text: "Error: Invalid JSON payload in request." }), {
+          return new Response(JSON.stringify({ text: "Error: Invalid JSON payload." }), {
             status: 400,
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
           });
@@ -36,7 +36,7 @@ export default {
         // --- GROQ API INTEGRATION ---
         const apiKey = env.GROQ_API_KEY;
         if (!apiKey) {
-          return new Response(JSON.stringify({ text: "AI Error: GROQ_API_KEY is not configured in the worker secrets. Please run 'npx wrangler secret put GROQ_API_KEY'." }), {
+          return new Response(JSON.stringify({ text: "AI Error: GROQ_API_KEY is not configured in worker secrets." }), {
             status: 500,
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
           });
@@ -53,7 +53,7 @@ export default {
           body: JSON.stringify({
             model: "llama3-8b-8192",
             messages: [
-              { role: "system", content: "You are Dotz AI, a minimalist and helpful assistant for Dotz Launcher PRO." },
+              { role: "system", content: "You are Dotz AI, a minimalist assistant." },
               { role: "user", content: prompt }
             ],
             temperature: 0.7,
@@ -64,13 +64,13 @@ export default {
         const data = await response.json();
 
         if (data.error) {
-          return new Response(JSON.stringify({ text: `Groq API Error: ${data.error.message || "Unknown error"}` }), {
+          return new Response(JSON.stringify({ text: `Groq API Error: ${data.error.message}` }), {
             status: 500,
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
           });
         }
 
-        const aiText = data.choices?.[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+        const aiText = data.choices?.[0]?.message?.content || "No response generated.";
 
         return new Response(JSON.stringify({ text: aiText }), {
           headers: {
@@ -80,14 +80,16 @@ export default {
         });
 
       } catch (e) {
-        return new Response(JSON.stringify({ text: `AI Worker Exception: ${e.message}` }), {
+        return new Response(JSON.stringify({ text: `Worker Exception: ${e.message}` }), {
           status: 500,
-          headers: { "Access-Control-Allow-Origin": "*" }
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
         });
       }
     }
 
-    // 3. Fallback to static assets
-    return env.ASSETS.fetch(request);
+    // Default response for GET/Browser visits
+    return new Response(JSON.stringify({ status: "Dotz AI API is running.", version: "1.0.0" }), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
   },
 };
