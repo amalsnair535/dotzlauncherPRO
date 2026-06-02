@@ -166,6 +166,18 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
+                    label = "Website",
+                    subLabel = "amalsnair535.github.io/dotzlauncherPRO",
+                    icon = Icons.Default.Refresh,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://amalsnair535.github.io/dotzlauncherPRO/".toUri())
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
                     label = "GitHub",
                     subLabel = "amalsnair535/DotzLauncherPRO",
                     icon = Icons.Default.Code,

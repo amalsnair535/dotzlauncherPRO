@@ -34,4 +34,5 @@ We may update our Privacy Policy from time to time. You are advised to review th
 If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at:
 
 **Email:** dotzlauncher@gmail.com
+**Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
 **GitHub:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)

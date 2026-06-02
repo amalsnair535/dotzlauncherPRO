@@ -20,6 +20,10 @@ Dotz Launcher PRO is a minimalist, high-intentionality dashboard designed to red
 
 ## ✨ Key Features
 
+### 0. Website & Community
+* **Official Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
+* **GitHub Repository:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
+
 ### 1. The "Detox" Control Panel & Live Weather
 A fixed header on the home screen that provides quick access to system utilities and environment awareness:
 * **Time & Date:** Large, minimalist digital clock and date display.
