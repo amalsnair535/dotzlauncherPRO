@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dotzai",
+  "main": "worker.js",
+  "compatibility_date": "2026-05-29",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "docs"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
