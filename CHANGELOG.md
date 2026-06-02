@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 ## [5.0.0] - 2026-05-25
 
 ### Added
+- **Cloud-Powered Dotz AI:** Integrated an AI assistant on the dashboard for intelligent queries, including an "AI Summary" card.
 - **Extended Tile Support:** Added an optional third page with 1-6 customizable extra app tiles.
 - **Vertical Navigation:** Introduced a "Vertical Scrolling" mode as an alternative to horizontal paging.
 - **Interactive Media Control:** New dashboard card with real-time metadata and transport controls (Play/Pause, Skip) for active media sessions.

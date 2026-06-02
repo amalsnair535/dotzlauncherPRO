@@ -49,6 +49,13 @@ class DashboardFragment : Fragment() {
     fun DashboardScreen(uiState: com.dotz.launcherpro.viewmodel.LauncherUiState) {
         val scrollState = rememberScrollState()
 
+        // Auto-scroll to bottom when AI response arrives
+        LaunchedEffect(uiState.aiResponse) {
+            if (uiState.aiResponse != null) {
+                scrollState.animateScrollTo(scrollState.maxValue)
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -96,7 +103,16 @@ class DashboardFragment : Fragment() {
                 }
             }
 
-            FocusStatsCard(uiState = uiState, modifier = Modifier.fillMaxWidth())
+            // Grid Layout for Cards - Use IntrinsicSize.Min to match heights dynamically
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+            ) {
+                FocusStatsCard(uiState = uiState, modifier = Modifier.weight(1f).fillMaxHeight())
+                Spacer(Modifier.width(16.dp))
+                AiSummaryCard(uiState = uiState, modifier = Modifier.weight(1f).fillMaxHeight())
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -105,6 +121,15 @@ class DashboardFragment : Fragment() {
                 onPlayPause = { viewModel.mediaPlayPause() },
                 onSkipNext = { viewModel.mediaSkipNext() },
                 onSkipPrevious = { viewModel.mediaSkipPrevious() },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            AiAssistantCard(
+                uiState = uiState,
+                onAsk = { viewModel.askAi(it) },
+                onClear = { viewModel.clearAi() },
                 modifier = Modifier.fillMaxWidth()
             )
             

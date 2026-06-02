@@ -35,7 +35,9 @@ A fixed header on the home screen that provides quick access to system utilities
 ### 2. Pro Dashboard (Swipe Right)
 A dedicated minimalist workspace accessible by swiping right from the home screen, featuring essential info cards:
 * **Focus Stats:** Visualize your digital wellbeing with a circular progress gauge. Tracks focus time, notification blocks, and streaks.
+* **AI Summary:** Intelligent categorization of incoming notifications. See at a glance if you have important messages or missed calls without entering the notification shade.
 * **Now Playing:** Full media controls with progress tracking and metadata display for whatever you're listening to.
+* **Dotz AI Assistant:** Integrated generative AI support. Ask questions, get help, or copy responses directly from your dashboard.
 
 ### 3. Dynamic Tile System (Expandable)
 * **Permanent Grid:** 12 tiles (2 pages) are permanently available for your essential daily workflows.

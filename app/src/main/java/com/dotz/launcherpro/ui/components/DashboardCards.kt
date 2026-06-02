@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -175,6 +176,70 @@ fun StatRow(value: String, label: String) {
 }
 
 @Composable
+fun AiSummaryCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
+    DashboardCard(
+        title = "AI SUMMARY",
+        icon = Icons.Default.AutoAwesome,
+        modifier = modifier
+    ) {
+        val messageCount = uiState.activeNotifications.count { it.packageName.contains("message") || it.packageName.contains("whatsapp") }
+        val missedCalls = uiState.activeNotifications.count { it.packageName.contains("dialer") || it.packageName.contains("telecom") }
+        
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            SummaryItem(messageCount.toString(), "Important messages")
+            SummaryItem(missedCalls.toString(), "Missed calls")
+            SummaryItem(uiState.activeNotifications.size.toString(), "Total updates")
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+        Spacer(Modifier.height(8.dp))
+        
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Timeline,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = if (uiState.activeNotifications.isEmpty()) "Everything looks calm." else "Stay focused.",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (uiState.activeNotifications.isEmpty()) "You're all good." else "Check later.",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 10.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryItem(count: String, label: String) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(text = count, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = label, 
+            color = Color.White.copy(alpha = 0.3f), 
+            fontSize = 10.sp, 
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
 fun NowPlayingCard(
     uiState: LauncherUiState,
     onPlayPause: () -> Unit,
@@ -281,6 +346,104 @@ fun NowPlayingCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AiAssistantCard(
+    uiState: LauncherUiState,
+    onAsk: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var inputText by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+
+    DashboardCard(
+        title = "DOTZ AI",
+        icon = Icons.Default.AutoAwesome,
+        modifier = modifier.heightIn(min = 120.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (uiState.aiResponse != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.03f))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = uiState.aiResponse,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                        
+                        if (!uiState.isAiLoading) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(onClick = {
+                                    clipboardManager.setText(AnnotatedString(uiState.aiResponse))
+                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                }) {
+                                    Icon(Icons.Default.ContentCopy, null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
+                                }
+                                TextButton(onClick = onClear) {
+                                    Text("CLEAR", color = Color.White.copy(alpha = 0.3f), fontSize = 10.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Ask anything...", color = Color.White.copy(alpha = 0.2f), fontSize = 14.sp) },
+                trailingIcon = {
+                    if (uiState.isAiLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
+                    } else {
+                        IconButton(onClick = {
+                            if (inputText.isNotBlank()) {
+                                onAsk(inputText)
+                                inputText = ""
+                                focusManager.clearFocus()
+                            }
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White)
+                        }
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
+                    focusedBorderColor = Color.White.copy(alpha = 0.3f),
+                    cursorColor = Color.White,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp),
+                maxLines = 3,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = {
+                    if (inputText.isNotBlank()) {
+                        onAsk(inputText)
+                        inputText = ""
+                        focusManager.clearFocus()
+                    }
+                })
+            )
         }
     }
 }

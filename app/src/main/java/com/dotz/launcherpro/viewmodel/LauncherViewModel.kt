@@ -66,6 +66,8 @@ data class LauncherUiState(
     val isPlaying: Boolean = false,
     val playbackPosition: Long = 0,
     val playbackDuration: Long = 0,
+    val aiResponse: String? = null,
+    val isAiLoading: Boolean = false,
     val focusTimeToday: String = "0h 0m",
     val focusTimeMillis: Long = 0,
     val focusStreak: Int = 0,
@@ -116,6 +118,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _weatherCondition = MutableStateFlow<String?>(null)
     private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
+    private val _aiResponse = MutableStateFlow<String?>(null)
+    private val _isAiLoading = MutableStateFlow(false)
     private val _isCheckingUpdate = MutableStateFlow(false)
     private val _updateAvailable = MutableStateFlow(false)
     private val _latestVersion = MutableStateFlow<String?>(null)
@@ -308,6 +312,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 DotzNotificationService.blockedCount,
                 _nowPlaying,
                 _playbackState,
+                _aiResponse,
+                _isAiLoading,
                 _isCheckingUpdate,
                 _updateAvailable,
                 _latestVersion,
@@ -334,11 +340,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val nowPlaying = args[14] as Triple<String, String, String>
                 @Suppress("UNCHECKED_CAST")
                 val playback = args[15] as Triple<Boolean, Long, Long>
-                val checkingUpdate = args[16] as Boolean
-                val updateAvail = args[17] as Boolean
-                val latestVer = args[18] as String?
-                val updateUrl = args[19] as String?
-                // args[20] is _refreshTrigger
+                val aiResp = args[16] as String?
+                val aiLoading = args[17] as Boolean
+                val checkingUpdate = args[18] as Boolean
+                val updateAvail = args[19] as Boolean
+                val latestVer = args[20] as String?
+                val updateUrl = args[21] as String?
+                // args[22] is _refreshTrigger
 
                 val isDefault = isDefaultLauncher()
 
@@ -373,6 +381,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isPlaying = playback.first,
                     playbackPosition = playback.second,
                     playbackDuration = playback.third,
+                    aiResponse = aiResp,
+                    isAiLoading = aiLoading,
                     focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
                     focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
                     focusStreak = settings.focusStreak,
@@ -624,9 +634,47 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         activeController?.transportControls?.skipToPrevious()
     }
 
-    // ── DOTZ AI REMOVED ──────────────────────────────────────────
+    // ── DOTZ AI (Cloud Powered) ──────────────────────────────────────────
 
     private val client = OkHttpClient()
+    private val CLOUDFLARE_WORKER_URL = "https://dotzai.amalsnair535.workers.dev/"
+
+    fun askAi(prompt: String) {
+        if (prompt.isBlank()) return
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = "Thinking..."
+            try {
+                val responseText = withContext(Dispatchers.IO) {
+                    val requestBody = Gson().toJson(mapOf("prompt" to prompt))
+                        .toRequestBody("application/json".toMediaType())
+
+                    val request = Request.Builder()
+                        .url(CLOUDFLARE_WORKER_URL)
+                        .post(requestBody)
+                        .header("User-Agent", "DotzLauncher/1.0")
+                        .build()
+
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) throw Exception("Unexpected code $response")
+                        val body = response.body?.string() ?: throw Exception("Empty body")
+                        val json = Gson().fromJson(body, JsonObject::class.java)
+                        json.get("text").asString
+                    }
+                }
+                _aiResponse.value = responseText
+            } catch (e: Exception) {
+                _aiResponse.value = "Error: ${e.localizedMessage}"
+                e.printStackTrace()
+            } finally {
+                _isAiLoading.value = false
+            }
+        }
+    }
+
+    fun clearAi() {
+        _aiResponse.value = null
+    }
 
     fun openMobileDataSettings() {
         val app = getApplication<Application>()

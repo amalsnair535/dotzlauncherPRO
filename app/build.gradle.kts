@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.session)
     implementation(libs.gson)
+    implementation(libs.generativeai)
     implementation(libs.okhttp)
     debugImplementation(libs.androidx.ui.tooling)
 }
