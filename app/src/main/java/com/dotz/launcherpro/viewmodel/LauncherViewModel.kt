@@ -410,7 +410,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
 
                 if (response != null) {
-                    Log.d("OTA", "Remote version JSON: $response")
                     val json = Gson().fromJson(response, JsonObject::class.java)
                     val remoteVersionCode = json.get("versionCode").asInt
                     val remoteVersionName = json.get("versionName").asString
@@ -423,16 +422,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         @Suppress("DEPRECATION")
                         packageInfo.versionCode.toLong()
                     }
-                    
-                    Log.d("OTA", "Remote: $remoteVersionCode, Local: $currentVersionCode")
 
                     if (remoteVersionCode > currentVersionCode) {
-                        Log.d("OTA", "Update available!")
                         _updateAvailable.value = true
                         _latestVersion.value = remoteVersionName
                         _updateUrl.value = apkUrl
                     } else {
-                        Log.d("OTA", "App is up to date.")
                         _updateAvailable.value = false
                     }
                 }
