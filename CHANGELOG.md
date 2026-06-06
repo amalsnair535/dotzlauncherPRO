@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.0] - 2026-06-02
+
+### Added
+- **Light Mode Support:** Added a new "Dotz Light" theme with a clean, high-contrast palette. Toggle it in settings.
+- **Dynamic Theming:** All UI components now dynamically adapt to Light/Dark mode settings.
+
+### Fixed
+- **UI Overlapping:** Resolved layout issues where dashboard elements could overlap with the home screen during navigation.
+- **Improved Spacing:** Optimized bottom padding on the home screen and dashboard for better balance on modern devices.
+- **Enhanced Transitions:** Refined the fluid page transformer for smoother, ghosting-free swipes.
+
+### Changed
+- **Simplified UI:** Removed redundant "Dynamic Background" and "Tile Opacity" features to focus on minimalist performance.
+- **Cleaned Dashboard:** Removed unnecessary "More" icons from dashboard cards for a cleaner look.
+
 ## [5.3.0] - 2026-06-02
 
 ### Added

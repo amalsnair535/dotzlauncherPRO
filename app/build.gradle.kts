@@ -11,8 +11,8 @@ android {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "5.3.0"
+        versionCode = 11
+        versionName = "5.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
