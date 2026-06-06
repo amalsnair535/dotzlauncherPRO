@@ -116,7 +116,7 @@ private fun AboutScreen(
         ) {
             item {
                 Text(
-                    text = "Dotz Launcher PRO ⚫",
+                    text = "Dotz Launcher PRO",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = DotzTheme.colors.text
