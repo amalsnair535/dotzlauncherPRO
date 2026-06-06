@@ -11,6 +11,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.ui.theme.DotzColors
+import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -71,7 +72,7 @@ fun StaticHeader(
                         fontWeight = FontWeight.Normal,
                         letterSpacing = 0.sp
                     ),
-                    color = DotzColors.White
+                    color = DotzTheme.colors.text
                 )
                 Text(
                     text = weatherCondition ?: "",
@@ -79,7 +80,7 @@ fun StaticHeader(
                         fontSize = 12.sp,
                         letterSpacing = 0.sp
                     ),
-                    color = DotzColors.White.copy(alpha = 0.5f)
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f)
                 )
             }
         }
@@ -94,6 +95,7 @@ fun StaticHeader(
                 Text(
                     text = networkStatus,
                     style = DotzType.DateStyle.copy(fontSize = 11.sp),
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
                     modifier = Modifier.width(50.dp),
                     textAlign = TextAlign.End
                 )
@@ -106,6 +108,7 @@ fun StaticHeader(
                     Text(
                         text      = timeText,
                         style     = DotzType.TimeStyle,
+                        color     = DotzTheme.colors.text,
                         textAlign = TextAlign.Center
                     )
 
@@ -113,6 +116,7 @@ fun StaticHeader(
                     Text(
                         text      = dateText,
                         style     = DotzType.DateStyle,
+                        color     = DotzTheme.colors.text.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -123,6 +127,7 @@ fun StaticHeader(
                 Text(
                     text = if (batteryLevel >= 0) "$batteryLevel%" else "--%",
                     style = DotzType.DateStyle.copy(fontSize = 11.sp),
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
                     modifier = Modifier.width(50.dp),
                     textAlign = TextAlign.Start
                 )

@@ -18,6 +18,7 @@ data class DotzSettings(
     val themeId: String = "default",
     val useAdaptiveTheme: Boolean = false,
     val notificationFilterEnabled: Boolean = false,
+    val isLightMode: Boolean = false,
     val verticalScrolling: Boolean = false,
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
@@ -39,6 +40,7 @@ object PrefsKeys {
     val THEME_ID                = stringPreferencesKey("theme_id")
     val USE_ADAPTIVE_THEME      = booleanPreferencesKey("use_adaptive_theme")
     val NOTIFICATION_FILTER_ENABLED = booleanPreferencesKey("notification_filter_enabled")
+    val IS_LIGHT_MODE           = booleanPreferencesKey("is_light_mode")
     val VERTICAL_SCROLLING      = booleanPreferencesKey("vertical_scrolling")
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
@@ -76,6 +78,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 themeId              = prefs[PrefsKeys.THEME_ID]                ?: "default",
                 useAdaptiveTheme     = prefs[PrefsKeys.USE_ADAPTIVE_THEME]      ?: false,
                 notificationFilterEnabled = prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] ?: false,
+                isLightMode          = prefs[PrefsKeys.IS_LIGHT_MODE]          ?: false,
                 verticalScrolling    = prefs[PrefsKeys.VERTICAL_SCROLLING]      ?: false,
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
@@ -118,6 +121,10 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setNotificationFilterEnabled(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = value }
+    }
+
+    suspend fun setIsLightMode(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.IS_LIGHT_MODE] = value }
     }
 
     suspend fun setVerticalScrolling(value: Boolean) {
@@ -179,6 +186,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.THEME_ID] = settings.themeId
                 prefs[PrefsKeys.USE_ADAPTIVE_THEME] = settings.useAdaptiveTheme
                 prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = settings.notificationFilterEnabled
+                prefs[PrefsKeys.IS_LIGHT_MODE] = settings.isLightMode
                 prefs[PrefsKeys.VERTICAL_SCROLLING] = settings.verticalScrolling
                 prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = settings.enableExtraPage
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount

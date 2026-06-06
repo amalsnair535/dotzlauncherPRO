@@ -154,14 +154,14 @@ class HomeFragment : Fragment() {
 private fun NotificationPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DotzColors.Tile,
-        title = { Text("Enable Notifications", color = DotzColors.White, fontSize = 16.sp) },
-        text = { Text("Allow Dotz to read notifications for badges.", color = DotzColors.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        containerColor = DotzTheme.colors.tile,
+        title = { Text("Enable Notifications", color = DotzTheme.colors.text, fontSize = 16.sp) },
+        text = { Text("Allow Dotz to read notifications for badges.", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
         confirmButton = {
-            TextButton(onClick = onGoToSettings) { Text("ENABLE", color = DotzColors.White) }
+            TextButton(onClick = onGoToSettings) { Text("ENABLE", color = DotzTheme.colors.text) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("SKIP", color = DotzColors.White.copy(alpha = 0.4f)) }
+            TextButton(onClick = onDismiss) { Text("SKIP", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
         }
     )
 }
@@ -170,14 +170,14 @@ private fun NotificationPermissionDialog(onDismiss: () -> Unit, onGoToSettings: 
 private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DotzColors.Tile,
-        title = { Text("Set as Default Launcher", color = DotzColors.White, fontSize = 16.sp) },
-        text = { Text("Use Dotz as your main home screen.", color = DotzColors.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        containerColor = DotzTheme.colors.tile,
+        title = { Text("Set as Default Launcher", color = DotzTheme.colors.text, fontSize = 16.sp) },
+        text = { Text("Use Dotz as your main home screen.", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
         confirmButton = {
-            TextButton(onClick = onGoToSettings) { Text("SET DEFAULT", color = DotzColors.White) }
+            TextButton(onClick = onGoToSettings) { Text("SET DEFAULT", color = DotzTheme.colors.text) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("SKIP", color = DotzColors.White.copy(alpha = 0.4f)) }
+            TextButton(onClick = onDismiss) { Text("SKIP", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
         }
     )
 }
@@ -186,14 +186,14 @@ private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> U
 private fun UnassignedTileDialog(tileLabel: String, onDismiss: () -> Unit, onSelectApp: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DotzColors.Tile,
-        title = { Text("Unassigned Tile", color = DotzColors.White, fontSize = 16.sp) },
-        text = { Text("Assign an app to $tileLabel?", color = DotzColors.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+        containerColor = DotzTheme.colors.tile,
+        title = { Text("Unassigned Tile", color = DotzTheme.colors.text, fontSize = 16.sp) },
+        text = { Text("Assign an app to $tileLabel?", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
         confirmButton = {
-            TextButton(onClick = onSelectApp) { Text("SELECT APP", color = DotzColors.White) }
+            TextButton(onClick = onSelectApp) { Text("SELECT APP", color = DotzTheme.colors.text) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("CANCEL", color = DotzColors.White.copy(alpha = 0.4f)) }
+            TextButton(onClick = onDismiss) { Text("CANCEL", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
         }
     )
 }

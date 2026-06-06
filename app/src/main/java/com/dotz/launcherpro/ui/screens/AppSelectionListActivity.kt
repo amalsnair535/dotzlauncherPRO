@@ -74,18 +74,18 @@ private fun AppSelectionListScreen(
                         fontSize = 14.sp,
                         letterSpacing = 2.sp,
                         fontWeight = FontWeight.Normal,
-                        color = DotzColors.White,
+                        color = DotzTheme.colors.text,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzColors.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzTheme.colors.text)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DotzTheme.colors.background),
             )
         },
-        containerColor = Color.Black,
+        containerColor = DotzTheme.colors.background,
     ) { innerPadding ->
         LazyColumn(
             modifier            = Modifier.fillMaxSize().padding(innerPadding),
@@ -109,17 +109,17 @@ private fun TileRemapRow(label: String, pkg: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, color = DotzColors.White, fontSize = 14.sp)
+            Text(label, color = DotzTheme.colors.text, fontSize = 14.sp)
             Text(
                 pkg,
-                color    = DotzColors.White.copy(alpha = 0.35f),
+                color    = DotzTheme.colors.text.copy(alpha = 0.35f),
                 fontSize = 11.sp,
                 maxLines = 1
             )
@@ -127,7 +127,7 @@ private fun TileRemapRow(label: String, pkg: String, onClick: () -> Unit) {
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = DotzColors.White.copy(alpha = 0.4f)
+            tint = DotzTheme.colors.text.copy(alpha = 0.4f)
         )
     }
 }

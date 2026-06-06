@@ -90,18 +90,18 @@ private fun AboutScreen(
                         fontSize = 14.sp,
                         letterSpacing = 2.sp,
                         fontWeight = FontWeight.Normal,
-                        color = DotzColors.White,
+                        color = DotzTheme.colors.text,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzColors.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzTheme.colors.text)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DotzTheme.colors.background),
             )
         },
-        containerColor = Color.Black,
+        containerColor = DotzTheme.colors.background,
     ) { innerPadding ->
         LaunchedEffect(Unit) {
             onCheckUpdate()
@@ -119,13 +119,13 @@ private fun AboutScreen(
                     text = "Dotz Launcher PRO ⚫",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = DotzColors.White
+                    color = DotzTheme.colors.text
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "Version $versionName",
                     fontSize = 14.sp,
-                    color = DotzColors.White.copy(alpha = 0.5f)
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f)
                 )
             }
 
@@ -156,7 +156,7 @@ private fun AboutScreen(
                     text = "Minimal Android launcher focused on calm and intentional phone usage.",
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
-                    color = DotzColors.White.copy(alpha = 0.8f),
+                    color = DotzTheme.colors.text.copy(alpha = 0.8f),
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 Spacer(Modifier.height(16.dp))
@@ -241,14 +241,14 @@ private fun AboutScreen(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 1.5.sp,
-                        color = DotzColors.White.copy(alpha = 0.4f)
+                        color = DotzTheme.colors.text.copy(alpha = 0.4f)
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = "Dotz Launcher PRO does not collect or store any personal data. All settings and configurations are kept locally on your device.",
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
-                        color = DotzColors.White.copy(alpha = 0.6f)
+                        color = DotzTheme.colors.text.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -258,7 +258,7 @@ private fun AboutScreen(
                 Text(
                     text = "Built with ❤️",
                     fontSize = 12.sp,
-                    color = DotzColors.White.copy(alpha = 0.3f)
+                    color = DotzTheme.colors.text.copy(alpha = 0.3f)
                 )
             }
         }
@@ -278,7 +278,7 @@ private fun AboutActionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -289,19 +289,19 @@ private fun AboutActionRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = DotzColors.White.copy(alpha = 0.6f),
+            tint = DotzTheme.colors.text.copy(alpha = 0.6f),
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, color = DotzColors.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(subLabel, color = DotzColors.White.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text(label, color = DotzTheme.colors.text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(subLabel, color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 12.sp)
         }
         if (trailingIcon != null) {
             Icon(
                 imageVector = trailingIcon,
                 contentDescription = null,
-                tint = DotzColors.White.copy(alpha = 0.3f),
+                tint = DotzTheme.colors.text.copy(alpha = 0.3f),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -313,6 +313,6 @@ private fun MatteDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(vertical = 8.dp),
         thickness = 0.5.dp,
-        color = DotzColors.White.copy(alpha = 0.1f)
+        color = DotzTheme.colors.text.copy(alpha = 0.1f)
     )
 }

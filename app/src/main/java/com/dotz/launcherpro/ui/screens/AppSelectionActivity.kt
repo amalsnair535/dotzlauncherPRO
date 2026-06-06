@@ -86,18 +86,18 @@ private fun AppSelectionScreen(
                         fontSize = 14.sp,
                         letterSpacing = 2.sp,
                         fontWeight = FontWeight.Normal,
-                        color = DotzColors.White,
+                        color = DotzTheme.colors.text,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzColors.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzTheme.colors.text)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DotzTheme.colors.background),
             )
         },
-        containerColor = Color.Black,
+        containerColor = DotzTheme.colors.background,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -110,15 +110,15 @@ private fun AppSelectionScreen(
                 value         = query,
                 onValueChange = { query = it },
                 modifier      = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                placeholder   = { Text("Search apps…", color = DotzColors.White.copy(alpha = 0.3f)) },
-                leadingIcon   = { Icon(Icons.Default.Search, null, tint = DotzColors.White.copy(alpha = 0.5f)) },
+                placeholder   = { Text("Search apps…", color = DotzTheme.colors.text.copy(alpha = 0.3f)) },
+                leadingIcon   = { Icon(Icons.Default.Search, null, tint = DotzTheme.colors.text.copy(alpha = 0.5f)) },
                 singleLine    = true,
                 colors        = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor   = DotzColors.White.copy(alpha = 0.4f),
-                    unfocusedBorderColor = DotzColors.White.copy(alpha = 0.15f),
-                    focusedTextColor     = DotzColors.White,
-                    unfocusedTextColor   = DotzColors.White,
-                    cursorColor          = DotzColors.White
+                    focusedBorderColor   = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    unfocusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.15f),
+                    focusedTextColor     = DotzTheme.colors.text,
+                    unfocusedTextColor   = DotzTheme.colors.text,
+                    cursorColor          = DotzTheme.colors.text
                 )
             )
 
@@ -146,7 +146,7 @@ private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(DotzColors.Tile)
+            .background(DotzTheme.colors.tile)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -163,8 +163,8 @@ private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(16.dp))
         Column {
-            Text(label, color = DotzColors.White, fontSize = 14.sp)
-            Text(pkg, color = DotzColors.White.copy(alpha = 0.35f), fontSize = 10.sp)
+            Text(label, color = DotzTheme.colors.text, fontSize = 14.sp)
+            Text(pkg, color = DotzTheme.colors.text.copy(alpha = 0.35f), fontSize = 10.sp)
         }
     }
 }

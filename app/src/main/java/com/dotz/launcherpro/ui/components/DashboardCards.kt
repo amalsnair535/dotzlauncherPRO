@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.ui.theme.DotzColors
+import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 
 @Composable
@@ -45,7 +46,7 @@ fun DashboardCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = DotzColors.Tile),
+        colors = CardDefaults.cardColors(containerColor = DotzTheme.colors.tile),
         shape = RoundedCornerShape(24.dp)
     ) {
         Column(
@@ -62,13 +63,13 @@ fun DashboardCard(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = DotzTheme.colors.text,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = title,
-                        color = Color.White,
+                        color = DotzTheme.colors.text,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -98,10 +99,13 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
                     .height(140.dp),
                 contentAlignment = Alignment.Center
             ) {
+                val arcColor = DotzTheme.colors.text.copy(alpha = 0.05f)
+                val accentColor = DotzTheme.colors.accent
+                
                 androidx.compose.foundation.Canvas(modifier = Modifier.size(110.dp)) {
                     val stroke = 10.dp.toPx()
                     drawArc(
-                        color = Color.White.copy(alpha = 0.05f),
+                        color = arcColor,
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -113,7 +117,7 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
                     val sweepAngle = (uiState.focusTimeMillis.toFloat() / goalMillis * 360f).coerceIn(5f, 360f)
                     
                     drawArc(
-                        color = Color.White,
+                        color = accentColor,
                         startAngle = -90f,
                         sweepAngle = sweepAngle,
                         useCenter = false,
@@ -123,13 +127,13 @@ fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = uiState.focusTimeToday, 
-                        color = Color.White,
+                        color = DotzTheme.colors.text,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "FOCUS TIME",
-                        color = Color.White.copy(alpha = 0.3f),
+                        color = DotzTheme.colors.text.copy(alpha = 0.3f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -157,10 +161,10 @@ fun StatRow(value: String, label: String) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = value, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(text = value, color = DotzTheme.colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Text(
             text = label, 
-            color = Color.White.copy(alpha = 0.3f), 
+            color = DotzTheme.colors.text.copy(alpha = 0.3f), 
             fontSize = 10.sp, 
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -190,27 +194,27 @@ fun AiSummaryCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
         }
         
         Spacer(Modifier.height(8.dp))
-        HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 1.dp)
+        HorizontalDivider(color = DotzTheme.colors.text.copy(alpha = 0.05f), thickness = 1.dp)
         Spacer(Modifier.height(8.dp))
         
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.Timeline,
                 contentDescription = null,
-                tint = Color.White,
+                tint = DotzTheme.colors.text,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(
                     text = if (uiState.activeNotifications.isEmpty()) "Everything looks calm." else "Stay focused.",
-                    color = Color.White,
+                    color = DotzTheme.colors.text,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (uiState.activeNotifications.isEmpty()) "You're all good." else "Check later.",
-                    color = Color.White.copy(alpha = 0.4f),
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
                     fontSize = 10.sp
                 )
             }
@@ -221,10 +225,10 @@ fun AiSummaryCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
 @Composable
 private fun SummaryItem(count: String, label: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text(text = count, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(text = count, color = DotzTheme.colors.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Text(
             text = label, 
-            color = Color.White.copy(alpha = 0.3f), 
+            color = DotzTheme.colors.text.copy(alpha = 0.3f), 
             fontSize = 10.sp, 
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -253,7 +257,7 @@ fun NowPlayingCard(
             ) {
                 Text(
                     text = "No music playing",
-                    color = Color.White.copy(alpha = 0.2f),
+                    color = DotzTheme.colors.text.copy(alpha = 0.2f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -268,10 +272,10 @@ fun NowPlayingCard(
                         modifier = Modifier
                             .size(64.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.05f)),
+                            .background(DotzTheme.colors.text.copy(alpha = 0.05f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.MusicNote, null, tint = Color.White.copy(alpha = 0.2f), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.MusicNote, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(24.dp))
                     }
                     
                     Spacer(Modifier.width(16.dp))
@@ -279,7 +283,7 @@ fun NowPlayingCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = uiState.nowPlayingTitle,
-                            color = Color.White,
+                            color = DotzTheme.colors.text,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
@@ -288,7 +292,7 @@ fun NowPlayingCard(
                         )
                         Text(
                             text = uiState.nowPlayingArtist,
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = DotzTheme.colors.text.copy(alpha = 0.4f),
                             fontSize = 13.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -303,8 +307,8 @@ fun NowPlayingCard(
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.1f),
+                    color = DotzTheme.colors.accent,
+                    trackColor = DotzTheme.colors.text.copy(alpha = 0.1f),
                     strokeCap = StrokeCap.Round
                 )
 
@@ -317,7 +321,7 @@ fun NowPlayingCard(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     IconButton(onClick = onSkipPrevious) { 
-                        Icon(Icons.Default.SkipPrevious, null, tint = Color.White, modifier = Modifier.size(32.dp)) 
+                        Icon(Icons.Default.SkipPrevious, null, tint = DotzTheme.colors.text, modifier = Modifier.size(32.dp)) 
                     }
                     Spacer(Modifier.width(24.dp))
                     IconButton(
@@ -325,18 +329,18 @@ fun NowPlayingCard(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.05f))
+                            .background(DotzTheme.colors.text.copy(alpha = 0.05f))
                     ) { 
                         Icon(
                             imageVector = if (uiState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = DotzTheme.colors.text,
                             modifier = Modifier.size(36.dp)
                         ) 
                     }
                     Spacer(Modifier.width(24.dp))
                     IconButton(onClick = onSkipNext) { 
-                        Icon(Icons.Default.SkipNext, null, tint = Color.White, modifier = Modifier.size(32.dp)) 
+                        Icon(Icons.Default.SkipNext, null, tint = DotzTheme.colors.text, modifier = Modifier.size(32.dp)) 
                     }
                 }
             }
@@ -367,13 +371,13 @@ fun AiAssistantCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.03f))
+                        .background(DotzTheme.colors.text.copy(alpha = 0.03f))
                         .padding(12.dp)
                 ) {
                     Column {
                         Text(
                             text = uiState.aiResponse,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = DotzTheme.colors.text.copy(alpha = 0.8f),
                             fontSize = 14.sp,
                             lineHeight = 20.sp
                         )
@@ -388,10 +392,10 @@ fun AiAssistantCard(
                                     clipboardManager.setText(AnnotatedString(uiState.aiResponse))
                                     Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                                 }) {
-                                    Icon(Icons.Default.ContentCopy, null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.ContentCopy, null, tint = DotzTheme.colors.text.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
                                 }
                                 TextButton(onClick = onClear) {
-                                    Text("CLEAR", color = Color.White.copy(alpha = 0.3f), fontSize = 10.sp)
+                                    Text("CLEAR", color = DotzTheme.colors.text.copy(alpha = 0.3f), fontSize = 10.sp)
                                 }
                             }
                         }
@@ -404,10 +408,10 @@ fun AiAssistantCard(
                 value = inputText,
                 onValueChange = { inputText = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Ask anything...", color = Color.White.copy(alpha = 0.2f), fontSize = 14.sp) },
+                placeholder = { Text("Ask anything...", color = DotzTheme.colors.text.copy(alpha = 0.2f), fontSize = 14.sp) },
                 trailingIcon = {
                     if (uiState.isAiLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = DotzTheme.colors.text)
                     } else {
                         IconButton(onClick = {
                             if (inputText.isNotBlank()) {
@@ -416,16 +420,16 @@ fun AiAssistantCard(
                                 focusManager.clearFocus()
                             }
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.Send, null, tint = DotzTheme.colors.text)
                         }
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
-                    focusedBorderColor = Color.White.copy(alpha = 0.3f),
-                    cursorColor = Color.White,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    unfocusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.1f),
+                    focusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.3f),
+                    cursorColor = DotzTheme.colors.text,
+                    focusedTextColor = DotzTheme.colors.text,
+                    unfocusedTextColor = DotzTheme.colors.text
                 ),
                 shape = RoundedCornerShape(12.dp),
                 maxLines = 3,

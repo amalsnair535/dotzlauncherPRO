@@ -51,10 +51,10 @@ fun DotzTheme(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val darkTheme = isSystemInDarkTheme()
+    val darkTheme = !settings.isLightMode // Use settings instead of isSystemInDarkTheme() for explicit control
 
     // 1. Determine base colors
-    val preset = ThemePresets.getById(settings.themeId)
+    val preset = if (settings.isLightMode) ThemePresets.Light else ThemePresets.getById(settings.themeId)
     
     var background = preset.background
     var tile = preset.tile
@@ -80,14 +80,25 @@ fun DotzTheme(
         dateText = text.copy(alpha = 0.6f)
     )
 
-    val materialColorScheme = darkColorScheme(
-        primary = accent,
-        background = background,
-        surface = tile,
-        onPrimary = background,
-        onBackground = text,
-        onSurface = text
-    )
+    val materialColorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = accent,
+            background = background,
+            surface = tile,
+            onPrimary = background,
+            onBackground = text,
+            onSurface = text
+        )
+    } else {
+        lightColorScheme(
+            primary = accent,
+            background = background,
+            surface = tile,
+            onPrimary = background,
+            onBackground = text,
+            onSurface = text
+        )
+    }
 
     CompositionLocalProvider(LocalDotzColors provides dotzColors) {
         MaterialTheme(

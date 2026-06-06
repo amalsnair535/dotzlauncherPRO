@@ -48,7 +48,16 @@ object ThemePresets {
         accent = Color(0xFFE9967A)
     )
 
-    val all = listOf(Default, Nord, Forest, Sunset)
+    val Light = DotzThemePreset(
+        id = "light",
+        name = "Dotz Light",
+        background = Color(0xFFF5F5F5),
+        tile = Color(0xFFFFFFFF),
+        text = Color(0xFF000000),
+        accent = Color(0xFF000000)
+    )
+
+    val all = listOf(Default, Nord, Forest, Sunset, Light)
     
     fun getById(id: String) = all.find { it.id == id } ?: Default
 }

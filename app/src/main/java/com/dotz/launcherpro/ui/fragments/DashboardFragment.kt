@@ -59,7 +59,7 @@ class DashboardFragment : Fragment() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(DotzTheme.colors.background)
                 .statusBarsPadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 24.dp)
@@ -74,7 +74,7 @@ class DashboardFragment : Fragment() {
             ) {
                 Text(
                     text = "DASHBOARD",
-                    color = Color.White,
+                    color = DotzTheme.colors.text,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp
@@ -83,19 +83,19 @@ class DashboardFragment : Fragment() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = DotzTheme.colors.text.copy(alpha = 0.5f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(Modifier.width(12.dp))
                     Box(
                         modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                            .background(DotzTheme.colors.text.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "PRO",
-                            color = Color.White,
+                            color = DotzTheme.colors.text,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black
                         )

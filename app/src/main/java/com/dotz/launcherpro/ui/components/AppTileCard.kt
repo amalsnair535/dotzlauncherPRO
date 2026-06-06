@@ -29,6 +29,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
 import com.dotz.launcherpro.ui.theme.DotzColors
+import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
 
 @Composable
@@ -48,7 +49,7 @@ fun AppTileCard(
     val pressScale = remember { Animatable(1f) }
 
     val baseOpacity = if (tile.isInstalled) 1.0f else 0.4f
-    val tileBackground = DotzColors.Tile.copy(alpha = baseOpacity)
+    val tileBackground = DotzTheme.colors.tile.copy(alpha = baseOpacity)
     
     // Check cache first, then load if needed
     val cachedBitmap = remember(tile.packageName, iconPackPackage, grayscale) {
@@ -113,7 +114,7 @@ fun AppTileCard(
                     Icon(
                         imageVector        = tile.iconVector,
                         contentDescription = tile.label,
-                        tint               = DotzColors.White,
+                        tint               = DotzTheme.colors.text,
                         modifier           = Modifier.size(36.dp)
                     )
                 }
@@ -124,6 +125,7 @@ fun AppTileCard(
             Text(
                 text      = tile.label,
                 style     = DotzType.TileLabelStyle,
+                color     = DotzTheme.colors.text,
                 textAlign = TextAlign.Center,
                 maxLines  = 1,
                 overflow  = TextOverflow.Ellipsis
@@ -139,13 +141,13 @@ fun AppTileCard(
                     .padding(10.dp)
                     .size(if (showCount) 20.dp else 8.dp)
                     .clip(CircleShape)
-                    .background(DotzColors.BadgeDot),
+                    .background(DotzTheme.colors.badgeDot),
                 contentAlignment = Alignment.Center
             ) {
                 if (showCount) {
                     Text(
                         text  = if (tile.badgeCount > 99) "99+" else tile.badgeCount.toString(),
-                        color = DotzColors.Background,
+                        color = DotzTheme.colors.background,
                         fontSize = 9.sp,
                         textAlign = TextAlign.Center
                     )

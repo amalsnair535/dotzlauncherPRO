@@ -14,6 +14,7 @@ import com.dotz.launcherpro.data.IconCacheManager
 import com.dotz.launcherpro.ui.components.AppGrid
 import com.dotz.launcherpro.ui.components.StaticHeader
 import com.dotz.launcherpro.ui.theme.DotzColors
+import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 import kotlin.math.abs
 
@@ -43,7 +44,7 @@ fun DotzHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DotzColors.Background)
+            .background(DotzTheme.colors.background)
             .statusBarsPadding()
     ) {
         // ── Fixed Header (Integrated with Detox Panel) ────────────────────

@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.ui.theme.DotzColors
+import com.dotz.launcherpro.ui.theme.DotzTheme
 
 @Composable
 fun DetoxPanel(
@@ -108,14 +109,14 @@ private fun DetoxIcon(
         modifier = Modifier
             .size(42.dp) // Slightly smaller for better fit in 2 rows
             .clip(CircleShape)
-            .background(if (isActive) DotzColors.White.copy(alpha = 0.12f) else DotzColors.Tile)
+            .background(if (isActive) DotzTheme.colors.text.copy(alpha = 0.12f) else DotzTheme.colors.tile)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (isActive) DotzColors.White else DotzColors.White.copy(alpha = 0.35f),
+            tint = if (isActive) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.35f),
             modifier = Modifier.size(20.dp)
         )
     }

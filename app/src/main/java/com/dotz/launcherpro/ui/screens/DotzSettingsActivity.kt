@@ -85,6 +85,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onShowDots        = viewModel::setShowNotificationDots,
                     onShowCounts      = viewModel::setShowNumericalCounts,
                     onNotificationFilterToggle = viewModel::setNotificationFilterEnabled,
+                    onLightModeToggle = viewModel::setIsLightMode,
                     onGrayscaleToggle = viewModel::setGrayscaleMode,
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
@@ -117,6 +118,7 @@ private fun DotzSettingsScreen(
     onShowDots: (Boolean) -> Unit,
     onShowCounts: (Boolean) -> Unit,
     onNotificationFilterToggle: (Boolean) -> Unit,
+    onLightModeToggle: (Boolean) -> Unit,
     onGrayscaleToggle: (Boolean) -> Unit,
     onVerticalScrollToggle: (Boolean) -> Unit,
     onEnableExtraPageToggle: (Boolean) -> Unit,
@@ -145,18 +147,18 @@ private fun DotzSettingsScreen(
                         fontSize = 14.sp,
                         letterSpacing = 2.sp,
                         fontWeight = FontWeight.Normal,
-                        color = DotzColors.White,
+                        color = DotzTheme.colors.text,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzColors.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = DotzTheme.colors.text)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DotzTheme.colors.background),
             )
         },
-        containerColor = Color.Black,
+        containerColor = DotzTheme.colors.background,
     ) { innerPadding ->
         LazyColumn(
             modifier            = Modifier.fillMaxSize().padding(innerPadding),
@@ -204,7 +206,7 @@ private fun DotzSettingsScreen(
                 )
                 Text(
                     "Hides dots for social media apps",
-                    color = DotzColors.White.copy(alpha = 0.4f),
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
                     fontSize = 11.sp,
                     modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
                 )
@@ -225,17 +227,17 @@ private fun DotzSettingsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
                             .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Extra Tiles Count", color = DotzColors.White, fontSize = 14.sp)
+                            Text("Extra Tiles Count", color = DotzTheme.colors.text, fontSize = 14.sp)
                             Text(
                                 "${settings.extraTileCount}",
-                                color = DotzColors.White.copy(alpha = 0.5f), fontSize = 14.sp
+                                color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 14.sp
                             )
                         }
                         Slider(
@@ -244,14 +246,22 @@ private fun DotzSettingsScreen(
                             valueRange    = 1f..6f,
                             steps         = 4,
                             colors        = SliderDefaults.colors(
-                                thumbColor       = DotzColors.White,
-                                activeTrackColor = DotzColors.White,
-                                inactiveTrackColor = DotzColors.White.copy(alpha = 0.2f)
+                                thumbColor       = DotzTheme.colors.text,
+                                activeTrackColor = DotzTheme.colors.text,
+                                inactiveTrackColor = DotzTheme.colors.text.copy(alpha = 0.2f)
                             )
                         )
                     }
                 }
             }
+            item {
+                SettingsToggleRow(
+                    label   = "Light Mode",
+                    checked = settings.isLightMode,
+                    onToggle = onLightModeToggle
+                )
+            }
+
             item {
                 SettingsToggleRow(
                     label   = "Grayscale Mode",
@@ -343,12 +353,12 @@ private fun DotzSettingsScreen(
     if (showExperimentalDashboardDialog) {
         AlertDialog(
             onDismissRequest = { showExperimentalDashboardDialog = false },
-            containerColor = DotzColors.Tile,
-            title = { Text("Experimental Feature", color = DotzColors.White, fontSize = 16.sp) },
-            text = { Text("The Dashboard is currently an experimental feature and may contain bugs.", color = DotzColors.White.copy(alpha = 0.7f), fontSize = 14.sp) },
+            containerColor = DotzTheme.colors.tile,
+            title = { Text("Experimental Feature", color = DotzTheme.colors.text, fontSize = 16.sp) },
+            text = { Text("The Dashboard is currently an experimental feature and may contain bugs.", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
             confirmButton = {
                 TextButton(onClick = { showExperimentalDashboardDialog = false }) {
-                    Text("GOT IT", color = DotzColors.White)
+                    Text("GOT IT", color = DotzTheme.colors.text)
                 }
             }
         )
@@ -360,17 +370,17 @@ private fun AppSelectionMenuRow(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("App Selection", color = DotzColors.White, fontSize = 14.sp)
+        Text("App Selection", color = DotzTheme.colors.text, fontSize = 14.sp)
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = DotzColors.White.copy(alpha = 0.4f)
+            tint = DotzTheme.colors.text.copy(alpha = 0.4f)
         )
     }
 }
@@ -380,17 +390,17 @@ private fun SettingsActionRow(label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = DotzColors.White, fontSize = 14.sp)
+        Text(label, color = DotzTheme.colors.text, fontSize = 14.sp)
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = DotzColors.White.copy(alpha = 0.4f)
+            tint = DotzTheme.colors.text.copy(alpha = 0.4f)
         )
     }
 }
@@ -407,17 +417,17 @@ private fun IconPackSelectionRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Icon Pack", color = DotzColors.White, fontSize = 14.sp)
+            Text("Icon Pack", color = DotzTheme.colors.text, fontSize = 14.sp)
             Text(
                 displayName,
-                color    = DotzColors.White.copy(alpha = 0.35f),
+                color    = DotzTheme.colors.text.copy(alpha = 0.35f),
                 fontSize = 11.sp,
                 maxLines = 1
             )
@@ -425,7 +435,7 @@ private fun IconPackSelectionRow(
         Icon(
             Icons.Default.ChevronRight,
             contentDescription = null,
-            tint = DotzColors.White.copy(alpha = 0.4f)
+            tint = DotzTheme.colors.text.copy(alpha = 0.4f)
         )
     }
 }
@@ -439,14 +449,14 @@ private fun IconPackDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor   = DotzColors.Tile,
-        title = { Text("Select Icon Pack", color = DotzColors.White, fontSize = 16.sp) },
+        containerColor   = DotzTheme.colors.tile,
+        title = { Text("Select Icon Pack", color = DotzTheme.colors.text, fontSize = 16.sp) },
         text = {
             LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
                 item {
                     Text(
                         "Default",
-                        color = if (currentIconPack == null) DotzColors.White else DotzColors.White.copy(alpha = 0.6f),
+                        color = if (currentIconPack == null) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.6f),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelect(null) }
@@ -458,7 +468,7 @@ private fun IconPackDialog(
                     val (pkg, name) = iconPacks[index]
                     Text(
                         name,
-                        color = if (currentIconPack == pkg) DotzColors.White else DotzColors.White.copy(alpha = 0.6f),
+                        color = if (currentIconPack == pkg) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.6f),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelect(pkg) }
@@ -470,7 +480,7 @@ private fun IconPackDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("CANCEL", color = DotzColors.White, fontSize = 13.sp)
+                Text("CANCEL", color = DotzTheme.colors.text, fontSize = 13.sp)
             }
         }
     )
@@ -485,15 +495,15 @@ private fun BackupButton(
 ) {
     Row(
         modifier = modifier
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = DotzColors.White, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = null, tint = DotzTheme.colors.text, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(label, color = DotzColors.White, fontSize = 14.sp)
+        Text(label, color = DotzTheme.colors.text, fontSize = 14.sp)
     }
 }
 
@@ -501,7 +511,7 @@ private fun BackupButton(
 private fun SectionHeader(text: String) {
     Text(
         text       = text,
-        color      = DotzColors.White.copy(alpha = 0.4f),
+        color      = DotzTheme.colors.text.copy(alpha = 0.4f),
         fontSize   = 11.sp,
         fontWeight = FontWeight.Medium,
         letterSpacing = 2.sp,
@@ -518,20 +528,20 @@ private fun SettingsToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DotzColors.Tile, RoundedCornerShape(16.dp))
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
             .padding(horizontal = 20.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = DotzColors.White, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Text(label, color = DotzTheme.colors.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
         Switch(
             checked         = checked,
             onCheckedChange = onToggle,
             colors          = SwitchDefaults.colors(
-                checkedThumbColor  = Color.Black,
-                checkedTrackColor  = DotzColors.White,
-                uncheckedThumbColor = DotzColors.White.copy(alpha = 0.4f),
-                uncheckedTrackColor = DotzColors.Tile
+                checkedThumbColor  = DotzTheme.colors.background,
+                checkedTrackColor  = DotzTheme.colors.text,
+                uncheckedThumbColor = DotzTheme.colors.text.copy(alpha = 0.4f),
+                uncheckedTrackColor = DotzTheme.colors.tile
             )
         )
     }

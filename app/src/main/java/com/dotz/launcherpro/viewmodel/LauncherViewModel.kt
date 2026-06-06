@@ -878,6 +878,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setNotificationFilterEnabled(value)
     }
 
+    fun setIsLightMode(value: Boolean) = viewModelScope.launch {
+        prefs.setIsLightMode(value)
+        iconCache.clearCache() // Icons might need re-rendering for light mode if grayscale is on
+    }
+
     fun setGrayscaleMode(value: Boolean) = viewModelScope.launch {
         prefs.setGrayscaleMode(value)
         iconCache.clearCache()
