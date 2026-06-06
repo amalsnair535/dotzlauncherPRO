@@ -9,6 +9,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
 import com.dotz.launcherpro.ui.components.AppGrid
@@ -46,6 +47,8 @@ fun DotzHomeScreen(
             .fillMaxSize()
             .background(DotzTheme.colors.background)
             .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(bottom = 24.dp)
     ) {
         // ── Fixed Header (Integrated with Detox Panel) ────────────────────
         StaticHeader(

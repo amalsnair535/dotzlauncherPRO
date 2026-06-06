@@ -61,6 +61,7 @@ class DashboardFragment : Fragment() {
                 .fillMaxSize()
                 .background(DotzTheme.colors.background)
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
@@ -133,7 +134,7 @@ class DashboardFragment : Fragment() {
                 modifier = Modifier.fillMaxWidth()
             )
             
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(48.dp))
         }
     }
 }
