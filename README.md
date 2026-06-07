@@ -18,6 +18,11 @@ Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, D
 ## 🧠 Core Philosophy
 Dotz Launcher PRO is a minimalist, high-intentionality dashboard designed to reduce digital clutter. It transforms your phone into a tool for productivity rather than a source of distraction by neutralizing eye-catching branding and introducing intentional friction.
 
+## 🔭 The Vision (Dream)
+The development of Dotz Launcher PRO is driven by a vision of reclaiming our focus in an age of digital distraction. These videos encapsulate the inspiration and "dream" behind this project:
+*   [The Vision - Part 1](https://youtu.be/m39ZGAem1B8)
+*   [The Vision - Part 2](https://youtu.be/FFMwIhez3xw)
+
 ## ✨ Key Features
 
 ### 0. Website & Community
