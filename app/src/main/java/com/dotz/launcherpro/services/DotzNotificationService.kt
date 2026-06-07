@@ -120,9 +120,16 @@ class DotzNotificationService : NotificationListenerService() {
                         blocked++
                         return@forEach
                     }
-                    counts[pkg] = (counts[pkg] ?: 0) + 1
 
                     val extras = sbn.notification.extras
+                    
+                    // Try to get internal count (e.g., missed calls count or message count)
+                    // android.number is the standard extra for this.
+                    val internalCount = extras.getInt("android.number", 0)
+                    val countToAdd = if (internalCount > 0) internalCount else 1
+                    
+                    counts[pkg] = (counts[pkg] ?: 0) + countToAdd
+
                     val title = extras.getCharSequence("android.title")?.toString()
                     val text = extras.getCharSequence("android.text")?.toString()
                     
