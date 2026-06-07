@@ -697,6 +697,43 @@
       color: var(--gray-400);
     }
 
+    /* ── VIDEO EMBEDS ── */
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 1000px;
+      margin: 56px auto 0;
+    }
+
+    .video-wrapper {
+      position: relative;
+      padding-bottom: 56.25%; /* 16:9 ratio */
+      height: 0;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+      background: var(--gray-900);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .video-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .video-caption {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--gray-400);
+      margin-top: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
     /* ── ANIMATIONS ── */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(30px); }
@@ -906,10 +943,21 @@
   <section id="vision" class="fade-in" style="background: var(--black); text-align: center; border-bottom: 1px solid var(--gray-700);">
     <p class="section-label" style="justify-content: center;">The Vision</p>
     <h2 class="showcase-title">A dream of digital<br><em>tranquility.</em></h2>
-    <p class="showcase-desc" style="margin-left: auto; margin-right: auto;">Our vision is to build tools that respect your time and attention. These videos represent the "dream" and inspiration behind Dotz Launcher PRO.</p>
-    <div class="os-actions">
-      <a href="https://youtu.be/m39ZGAem1B8" target="_blank" class="btn-ghost">The Vision (Part 1)</a>
-      <a href="https://youtu.be/FFMwIhez3xw" target="_blank" class="btn-ghost">The Vision (Part 2)</a>
+    <p class="showcase-desc" style="margin-left: auto; margin-right: auto; max-width: 600px;">Our vision is to build tools that respect your time and attention. These videos encapsulate the inspiration and "dream" behind Dotz Launcher PRO.</p>
+
+    <div class="video-grid">
+      <div class="fade-in">
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube.com/embed/m39ZGAem1B8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+        <p class="video-caption">The Vision — Part 1</p>
+      </div>
+      <div class="fade-in">
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube.com/embed/FFMwIhez3xw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+        <p class="video-caption">The Vision — Part 2</p>
+      </div>
     </div>
   </section>
 
