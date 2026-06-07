@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 11
         versionName = "5.4.0"
 
@@ -19,7 +19,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

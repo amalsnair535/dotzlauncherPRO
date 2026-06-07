@@ -65,21 +65,22 @@ object DefaultApps {
     /** Packages that should show numeric badge (calls & SMS) */
     val numericBadgePackages = setOf(
         "com.google.android.dialer",
+        "com.android.dialer",
+        "com.samsung.android.dialer",
         "com.google.android.apps.messaging",
-        "com.android.mms"
+        "com.samsung.android.messaging",
+        "com.android.mms",
+        "com.whatsapp",
+        "com.whatsapp.w4b",
+        "org.thoughtcrime.securesms",
+        "org.telegram.messenger"
     )
 
-    /** Common social media packages to filter out if Notification Filter is enabled */
+    /** Common social media keywords to filter out if Notification Filter is enabled */
     val distractingPackages = setOf(
-        "com.facebook.katana",
-        "com.facebook.orca",
-        "com.instagram.android",
-        "com.twitter.android",
-        "com.snapchat.android",
-        "com.zhiliaoapp.musically", // TikTok
-        "com.reddit.frontpage",
-        "com.linkedin.android",
-        "com.pinterest"
+        "facebook", "instagram", "twitter", "x.android", "snapchat", "tiktok", "musically",
+        "reddit", "linkedin", "pinterest", "youtube", "netflix", "disney", "primevideo",
+        "bumble", "tinder", "okcupid", "badoo", "threads", "bluesky"
     )
 
     /** Fallback package names for common OEM variants */

@@ -828,7 +828,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
             val count = if (settings.showNotificationDots) {
                 val raw = notifCounts[pkg] ?: -1
-                if (raw > 0 && settings.showNumericalCounts && DefaultApps.numericBadgePackages.contains(pkg)) {
+                // Show numerical counts for Dialer (0), WhatsApp (1), and Messaging (2) tiles, 
+                // OR if the package is in the explicit numeric list.
+                val isNumericAllowed = tile.tileId in 0..2 || DefaultApps.numericBadgePackages.contains(pkg)
+                
+                if (raw > 0 && settings.showNumericalCounts && isNumericAllowed) {
                     raw
                 } else if (raw >= 0) {
                     0

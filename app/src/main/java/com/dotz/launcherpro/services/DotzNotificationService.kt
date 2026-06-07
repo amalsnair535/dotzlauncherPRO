@@ -114,7 +114,9 @@ class DotzNotificationService : NotificationListenerService() {
             activeNotifications?.forEach { sbn ->
                 if (!sbn.isOngoing) {
                     val pkg = sbn.packageName
-                    if (isFilterEnabled && DefaultApps.distractingPackages.contains(pkg)) {
+                    val isDistracting = DefaultApps.distractingPackages.any { pkg.contains(it, ignoreCase = true) }
+                    
+                    if (isFilterEnabled && isDistracting) {
                         blocked++
                         return@forEach
                     }
