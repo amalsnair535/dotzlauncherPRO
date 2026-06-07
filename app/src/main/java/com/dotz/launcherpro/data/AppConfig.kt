@@ -80,7 +80,8 @@ object DefaultApps {
     val distractingPackages = setOf(
         "facebook", "instagram", "twitter", "x.android", "snapchat", "tiktok", "musically",
         "reddit", "linkedin", "pinterest", "youtube", "netflix", "disney", "primevideo",
-        "bumble", "tinder", "okcupid", "badoo", "threads", "bluesky"
+        "bumble", "tinder", "okcupid", "badoo", "threads", "bluesky", "whatsapp", "telegram", "messenger",
+        "discord", "signal", "viber", "line.android", "wechat"
     )
 
     /** Fallback package names for common OEM variants */
