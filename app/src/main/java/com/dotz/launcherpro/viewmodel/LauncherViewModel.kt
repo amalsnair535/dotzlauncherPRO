@@ -887,6 +887,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         iconCache.clearCache() // Icons might need re-rendering for light mode if grayscale is on
     }
 
+    fun setIs24HourFormat(value: Boolean) = viewModelScope.launch {
+        prefs.setIs24HourFormat(value)
+    }
+
     fun setGrayscaleMode(value: Boolean) = viewModelScope.launch {
         prefs.setGrayscaleMode(value)
         iconCache.clearCache()

@@ -30,6 +30,7 @@ fun StaticHeader(
     isTorchOn: Boolean,
     isAirplaneModeOn: Boolean,
     isDarkModeOn: Boolean,
+    is24HourFormat: Boolean,
     onLauncherSettingsTap: () -> Unit,
     onWifiToggle: () -> Unit,
     onBluetoothToggle: () -> Unit,
@@ -41,13 +42,13 @@ fun StaticHeader(
     onWeatherClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var timeText by remember { mutableStateOf(currentTime()) }
+    var timeText by remember(is24HourFormat) { mutableStateOf(currentTime(is24HourFormat)) }
     var dateText by remember { mutableStateOf(currentDate()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(30_000L)
-            timeText = currentTime()
+            timeText = currentTime(is24HourFormat)
             dateText = currentDate()
         }
     }
@@ -156,8 +157,10 @@ fun StaticHeader(
     }
 }
 
-private fun currentTime(): String =
-    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+private fun currentTime(is24Hour: Boolean): String {
+    val pattern = if (is24Hour) "HH:mm" else "h:mm a"
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date())
+}
 
 private fun currentDate(): String =
     SimpleDateFormat("EEE, dd MMM", Locale.getDefault())

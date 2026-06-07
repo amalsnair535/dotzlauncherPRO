@@ -19,6 +19,7 @@ data class DotzSettings(
     val useAdaptiveTheme: Boolean = false,
     val notificationFilterEnabled: Boolean = false,
     val isLightMode: Boolean = false,
+    val is24HourFormat: Boolean = true,
     val verticalScrolling: Boolean = false,
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
@@ -41,6 +42,7 @@ object PrefsKeys {
     val USE_ADAPTIVE_THEME      = booleanPreferencesKey("use_adaptive_theme")
     val NOTIFICATION_FILTER_ENABLED = booleanPreferencesKey("notification_filter_enabled")
     val IS_LIGHT_MODE           = booleanPreferencesKey("is_light_mode")
+    val IS_24_HOUR_FORMAT       = booleanPreferencesKey("is_24_hour_format")
     val VERTICAL_SCROLLING      = booleanPreferencesKey("vertical_scrolling")
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
@@ -79,6 +81,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 useAdaptiveTheme     = prefs[PrefsKeys.USE_ADAPTIVE_THEME]      ?: false,
                 notificationFilterEnabled = prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] ?: false,
                 isLightMode          = prefs[PrefsKeys.IS_LIGHT_MODE]          ?: false,
+                is24HourFormat       = prefs[PrefsKeys.IS_24_HOUR_FORMAT]       ?: true,
                 verticalScrolling    = prefs[PrefsKeys.VERTICAL_SCROLLING]      ?: false,
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
@@ -125,6 +128,10 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setIsLightMode(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.IS_LIGHT_MODE] = value }
+    }
+
+    suspend fun setIs24HourFormat(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.IS_24_HOUR_FORMAT] = value }
     }
 
     suspend fun setVerticalScrolling(value: Boolean) {
@@ -187,6 +194,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.USE_ADAPTIVE_THEME] = settings.useAdaptiveTheme
                 prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = settings.notificationFilterEnabled
                 prefs[PrefsKeys.IS_LIGHT_MODE] = settings.isLightMode
+                prefs[PrefsKeys.IS_24_HOUR_FORMAT] = settings.is24HourFormat
                 prefs[PrefsKeys.VERTICAL_SCROLLING] = settings.verticalScrolling
                 prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = settings.enableExtraPage
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount

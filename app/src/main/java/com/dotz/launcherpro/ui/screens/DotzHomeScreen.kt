@@ -63,6 +63,7 @@ fun DotzHomeScreen(
             isTorchOn = uiState.isTorchOn,
             isAirplaneModeOn = uiState.isAirplaneModeOn,
             isDarkModeOn = uiState.isDarkModeOn,
+            is24HourFormat = uiState.settings.is24HourFormat,
             onLauncherSettingsTap = onLauncherSettingsTap,
             onWifiToggle = onWifiToggle,
             onBluetoothToggle = onBluetoothToggle,

@@ -86,6 +86,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onShowCounts      = viewModel::setShowNumericalCounts,
                     onNotificationFilterToggle = viewModel::setNotificationFilterEnabled,
                     onLightModeToggle = viewModel::setIsLightMode,
+                    on24HourToggle    = viewModel::setIs24HourFormat,
                     onGrayscaleToggle = viewModel::setGrayscaleMode,
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
@@ -119,6 +120,7 @@ private fun DotzSettingsScreen(
     onShowCounts: (Boolean) -> Unit,
     onNotificationFilterToggle: (Boolean) -> Unit,
     onLightModeToggle: (Boolean) -> Unit,
+    on24HourToggle: (Boolean) -> Unit,
     onGrayscaleToggle: (Boolean) -> Unit,
     onVerticalScrollToggle: (Boolean) -> Unit,
     onEnableExtraPageToggle: (Boolean) -> Unit,
@@ -180,6 +182,16 @@ private fun DotzSettingsScreen(
                         onClick = onSetDefault
                     )
                 }
+            }
+
+            // ── Section: Clock ──────────────────────────────────────────
+            item { Spacer(Modifier.height(8.dp)); SectionHeader("CLOCK") }
+            item {
+                SettingsToggleRow(
+                    label   = "24-Hour Format",
+                    checked = settings.is24HourFormat,
+                    onToggle = on24HourToggle
+                )
             }
 
             // ── Section: Notifications ────────────────────────────────────

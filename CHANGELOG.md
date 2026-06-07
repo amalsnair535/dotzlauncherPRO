@@ -2,9 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.4.0] - 2026-06-02
+## [5.4.1] - 2026-06-02
 
 ### Added
+- **Clock Format Option:** Added a toggle in settings to switch between 12-hour and 24-hour clock formats.
 - **Light Mode Support:** Added a new "Dotz Light" theme with a clean, high-contrast palette. Toggle it in settings.
 - **Dynamic Theming:** All UI components now dynamically adapt to Light/Dark mode settings.
 
