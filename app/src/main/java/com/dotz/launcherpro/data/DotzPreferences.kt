@@ -24,7 +24,7 @@ data class DotzSettings(
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
     val showWeatherInfo: Boolean = true,
-    val enableDashboard: Boolean = true,
+    val enableDashboard: Boolean = false,
     /** JSON-serialized map of tileId -> packageName overrides */
     val tileOverrides: Map<Int, String> = emptyMap(),
     val tileLabels: Map<Int, String> = emptyMap(),
@@ -86,7 +86,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: true,
-                enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: true,
+                enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: false,
                 tileOverrides        = overrides,
                 tileLabels           = labels,
                 focusStreak          = prefs[PrefsKeys.FOCUS_STREAK] ?: 0,

@@ -37,8 +37,8 @@ A fixed header on the home screen that provides quick access to system utilities
 * **One-Tap Toggles:** Quick buttons for WiFi, Bluetooth, Silent Mode, Torch (Flashlight), Airplane Mode, and Dark Mode.
 * **Quick Data:** Direct access to Mobile Data and Roaming settings.
 
-### 2. Pro Dashboard (Swipe Right)
-A dedicated minimalist workspace accessible by swiping right from the home screen, featuring essential info cards:
+### 2. Pro Dashboard (Swipe Right - Optional)
+A dedicated minimalist workspace accessible by swiping right from the home screen (disabled by default, enable in settings), featuring essential info cards:
 * **Focus Stats:** Visualize your digital wellbeing with a circular progress gauge. Tracks focus time, notification blocks, and streaks.
 * **AI Summary:** Intelligent categorization of incoming notifications. See at a glance if you have important messages or missed calls without entering the notification shade.
 * **Now Playing:** Full media controls with progress tracking and metadata display for whatever you're listening to.
