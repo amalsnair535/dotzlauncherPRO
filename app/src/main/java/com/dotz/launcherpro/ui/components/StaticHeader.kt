@@ -6,16 +6,49 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dotz.launcherpro.data.DotzSettings
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Composable
+fun PreviewStaticHeader() {
+    DotzTheme(settings = DotzSettings()) {
+        StaticHeader(
+            batteryLevel = 85,
+            networkStatus = "WiFi",
+            weatherTemp = "18°C",
+            weatherCondition = "Clearsky",
+            showWeatherInfo = true,
+            isWifiEnabled = true,
+            isBluetoothEnabled = true,
+            isSilentMode = false,
+            isTorchOn = false,
+            isAirplaneModeOn = false,
+            isDarkModeOn = true,
+            is24HourFormat = true,
+            onLauncherSettingsTap = {},
+            onWifiToggle = {},
+            onBluetoothToggle = {},
+            onSilentToggle = {},
+            onTorchToggle = {},
+            onAirplaneToggle = {},
+            onDarkModeToggle = {},
+            onDataClick = {},
+            onWeatherClick = {}
+        )
+    }
+}
 
 @Composable
 fun StaticHeader(
@@ -31,6 +64,7 @@ fun StaticHeader(
     isAirplaneModeOn: Boolean,
     isDarkModeOn: Boolean,
     is24HourFormat: Boolean,
+    transparency: Float = 1.0f,
     onLauncherSettingsTap: () -> Unit,
     onWifiToggle: () -> Unit,
     onBluetoothToggle: () -> Unit,
@@ -117,7 +151,7 @@ fun StaticHeader(
                     Text(
                         text      = dateText,
                         style     = DotzType.DateStyle,
-                        color     = DotzTheme.colors.text.copy(alpha = 0.6f),
+                        color     = DotzTheme.colors.text.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
                     )
                 }
@@ -143,6 +177,7 @@ fun StaticHeader(
                 isTorchOn = isTorchOn,
                 isAirplaneModeOn = isAirplaneModeOn,
                 isDarkModeOn = isDarkModeOn,
+                transparency = transparency,
                 onWifiToggle = onWifiToggle,
                 onBluetoothToggle = onBluetoothToggle,
                 onSilentToggle = onSilentToggle,

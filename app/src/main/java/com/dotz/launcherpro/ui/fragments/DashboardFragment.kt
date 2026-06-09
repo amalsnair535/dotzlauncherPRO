@@ -36,6 +36,7 @@ class DashboardFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
             setContent {
                 val uiState by viewModel.uiState.collectAsState()
                 DotzTheme(settings = uiState.settings) {
@@ -56,10 +57,12 @@ class DashboardFragment : Fragment() {
             }
         }
 
+        val backgroundColor = if (uiState.settings.showWallpaper) Color.Transparent else DotzTheme.colors.background
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DotzTheme.colors.background)
+                .background(backgroundColor)
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .verticalScroll(scrollState)

@@ -64,11 +64,11 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `5.2.1`
+* **Version:** `5.4.1`
 * **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)
-* **Target Android:** API 35 (Android 15)
+* **Target Android:** API 36 (Android 16)
 
 ## ☕ Support the Project
 If Dotz Launcher PRO has helped you reclaim your focus, consider supporting its development!

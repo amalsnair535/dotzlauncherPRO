@@ -24,13 +24,17 @@ data class DotzSettings(
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
     val showWeatherInfo: Boolean = true,
+    val showWallpaper: Boolean = true,
     val enableDashboard: Boolean = false,
+    val tileTransparency: Float = 1.0f,
+    val layoutStyle: String = "classic",
     /** JSON-serialized map of tileId -> packageName overrides */
     val tileOverrides: Map<Int, String> = emptyMap(),
     val tileLabels: Map<Int, String> = emptyMap(),
     val focusStreak: Int = 0,
     val lastUsedDate: Long = 0,
     val focusTimeToday: Long = 0, // in milliseconds
+    val isPremium: Boolean = false,
 )
 
 object PrefsKeys {
@@ -47,7 +51,10 @@ object PrefsKeys {
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
     val SHOW_WEATHER_INFO       = booleanPreferencesKey("show_weather_info")
+    val SHOW_WALLPAPER          = booleanPreferencesKey("show_wallpaper")
     val ENABLE_DASHBOARD        = booleanPreferencesKey("enable_dashboard")
+    val TILE_TRANSPARENCY       = floatPreferencesKey("tile_transparency")
+    val LAYOUT_STYLE            = stringPreferencesKey("layout_style")
     // Tile overrides stored as individual keys: tile_override_0, tile_override_1, …
     fun tileOverride(id: Int) = stringPreferencesKey("tile_override_$id")
     fun tileLabel(id: Int)    = stringPreferencesKey("tile_label_$id")
@@ -55,6 +62,7 @@ object PrefsKeys {
     val FOCUS_STREAK = intPreferencesKey("focus_streak")
     val LAST_USED_DATE = longPreferencesKey("last_used_date")
     val FOCUS_TIME_TODAY = longPreferencesKey("focus_time_today")
+    val IS_PREMIUM = booleanPreferencesKey("is_premium")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -86,12 +94,16 @@ class DotzPreferencesRepository(private val context: Context) {
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: true,
+                showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: true,
                 enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: false,
+                tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
+                layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
                 tileOverrides        = overrides,
                 tileLabels           = labels,
                 focusStreak          = prefs[PrefsKeys.FOCUS_STREAK] ?: 0,
                 lastUsedDate         = prefs[PrefsKeys.LAST_USED_DATE] ?: 0,
-                focusTimeToday       = prefs[PrefsKeys.FOCUS_TIME_TODAY] ?: 0
+                focusTimeToday       = prefs[PrefsKeys.FOCUS_TIME_TODAY] ?: 0,
+                isPremium            = prefs[PrefsKeys.IS_PREMIUM] ?: false
             )
         }
 
@@ -150,8 +162,24 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.SHOW_WEATHER_INFO] = value }
     }
 
+    suspend fun setShowWallpaper(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.SHOW_WALLPAPER] = value }
+    }
+
     suspend fun setEnableDashboard(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.ENABLE_DASHBOARD] = value }
+    }
+
+    suspend fun setPremium(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.IS_PREMIUM] = value }
+    }
+
+    suspend fun setTileTransparency(value: Float) {
+        context.dataStore.edit { it[PrefsKeys.TILE_TRANSPARENCY] = value }
+    }
+
+    suspend fun setLayoutStyle(value: String) {
+        context.dataStore.edit { it[PrefsKeys.LAYOUT_STYLE] = value }
     }
 
     suspend fun setTileOverride(tileId: Int, packageName: String, label: String) {
@@ -199,7 +227,10 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = settings.enableExtraPage
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount
                 prefs[PrefsKeys.SHOW_WEATHER_INFO] = settings.showWeatherInfo
+                prefs[PrefsKeys.SHOW_WALLPAPER] = settings.showWallpaper
                 prefs[PrefsKeys.ENABLE_DASHBOARD] = settings.enableDashboard
+                prefs[PrefsKeys.TILE_TRANSPARENCY] = settings.tileTransparency
+                prefs[PrefsKeys.LAYOUT_STYLE] = settings.layoutStyle
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

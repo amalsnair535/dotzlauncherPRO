@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
@@ -31,12 +32,25 @@ class HomeFragment : Fragment() {
 
     private val viewModel: LauncherViewModel by activityViewModels()
 
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
+            viewModel.refreshWeather()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
+            // Ensure the view itself is transparent to see the wallpaper
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+
             setContent {
                 val uiState by viewModel.uiState.collectAsState()
                 DotzTheme(settings = uiState.settings) {
@@ -47,6 +61,14 @@ class HomeFragment : Fragment() {
                     LaunchedEffect(uiState.isDefaultLauncher) {
                         if (!isNotificationListenerEnabled()) showNotifPermDialog = true
                         showDefaultLauncherDialog = !uiState.isDefaultLauncher
+                        
+                        // Request location permission for weather
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {

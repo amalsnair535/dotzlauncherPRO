@@ -75,6 +75,13 @@
             android:label="About"
             android:theme="@style/Theme.DotzLauncherPRO" />
 
+        <!-- Upgrade Activity -->
+        <activity
+            android:name=".ui.screens.DotzUpgradeActivity"
+            android:exported="false"
+            android:label="Upgrade"
+            android:theme="@style/Theme.DotzLauncherPRO" />
+
         <!-- Notification Listener Service -->
         <service
             android:name=".services.DotzNotificationService"

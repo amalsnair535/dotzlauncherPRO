@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 12
         versionName = "5.4.1"
 
@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.session)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
     implementation(libs.generativeai)
     implementation(libs.okhttp)

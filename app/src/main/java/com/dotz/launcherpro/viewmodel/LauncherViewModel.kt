@@ -25,11 +25,14 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dotz.launcherpro.data.*
 import com.dotz.launcherpro.services.DotzNotificationService
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +78,7 @@ data class LauncherUiState(
     val latestVersionName: String? = null,
     val updateApkUrl: String? = null,
     val isCheckingForUpdate: Boolean = false,
+    val isPremium: Boolean = false,
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -88,6 +92,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val bluetoothManager = application.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
     private val mediaSessionManager = application.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
+    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
     private var activeController: MediaController? = null
 
     private val mediaCallback = object : MediaController.Callback() {
@@ -248,7 +253,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             cm.registerNetworkCallback(NetworkRequest.Builder().build(), networkCallback)
         } catch (e: Exception) { e.printStackTrace() }
 
-        fetchWeather()
+        refreshWeather()
         
         // Register Media Session Listener
         val componentName = ComponentName(app, DotzNotificationService::class.java)
@@ -356,11 +361,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val p1 = allTiles.drop(6).take(6)
                 val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(settings.extraTileCount) else emptyList()
                 
+                val effectiveSettings = if (settings.isPremium) settings else settings.copy(
+                    tileTransparency = 1.0f,
+                    layoutStyle = "classic",
+                    showWallpaper = false
+                )
+
                 LauncherUiState(
                     page0Tiles = p0,
                     page1Tiles = p1,
                     page2Tiles = p2,
-                    settings = settings,
+                    settings = effectiveSettings,
                     notificationCounts = notifCounts,
                     batteryLevel = battery,
                     networkStatus = network,
@@ -389,7 +400,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isCheckingForUpdate = checkingUpdate,
                     isUpdateAvailable = updateAvail,
                     latestVersionName = latestVer,
-                    updateApkUrl = updateUrl
+                    updateApkUrl = updateUrl,
+                    isPremium = settings.isPremium
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -725,7 +737,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun openWallpaperPicker() {
+        val app = getApplication<Application>()
+        val intent = Intent(Intent.ACTION_SET_WALLPAPER)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            app.startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(app, "No wallpaper picker found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun openWeatherApp() {
+        refreshWeather()
         val app = getApplication<Application>()
         val intents = listOf(
             Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("dynact://weather") }, // Google Weather
@@ -748,28 +772,62 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun fetchWeather() {
+    fun refreshWeather() {
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val hasFineLocation = ContextCompat.checkSelfPermission(app, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(app, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+            if (hasFineLocation || hasCoarseLocation) {
+                try {
+                    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                        .addOnSuccessListener { location ->
+                            if (location != null) {
+                                fetchWeather(location.latitude, location.longitude)
+                            } else {
+                                fetchWeather() // fallback to default
+                            }
+                        }
+                        .addOnFailureListener {
+                            fetchWeather()
+                        }
+                } catch (e: SecurityException) {
+                    fetchWeather()
+                }
+            } else {
+                fetchWeather()
+            }
+        }
+    }
+
+    private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
         viewModelScope.launch {
             try {
-                // For a production app, we'd use FusedLocationProvider. 
-                // For now, let's use a default or try to get last known location.
-                // Using a simple URL for a common city or hardcoded lat/lon if location permission not yet granted.
-                // We'll use Open-Meteo with a default location (e.g., London) if we can't get one.
-                val lat = 51.5074
-                val lon = 0.1278
-                val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true"
+                // MET Norway (Yr.no) API requires a User-Agent.
+                val url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=$lat&lon=$lon"
                 
-                // Simple network fetch in a coroutine
-                val result = java.net.URL(url).readText()
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.setRequestProperty("User-Agent", "DotzLauncher/1.0 (github.com/amalsnair535/dotzlauncherPRO)")
+                
+                val result = connection.inputStream.bufferedReader().use { it.readText() }
                 val json = Gson().fromJson(result, JsonObject::class.java)
-                val current = json.getAsJsonObject("current_weather")
-                val temp = current.get("temperature").getAsDouble()
-                val code = current.get("weathercode").getAsInt()
+                
+                val properties = json.getAsJsonObject("properties")
+                val timeseries = properties.getAsJsonArray("timeseries")
+                val latest = timeseries.get(0).asJsonObject
+                val data = latest.getAsJsonObject("data")
+                val instant = data.getAsJsonObject("instant")
+                val details = instant.getAsJsonObject("details")
+                val next1h = data.getAsJsonObject("next_1_hours")
+                val summary = next1h.getAsJsonObject("summary")
+                
+                val temp = details.get("air_temperature").getAsDouble()
+                val symbolCode = summary.get("symbol_code").asString
                 
                 _weatherTemp.value = "${temp.toInt()}°C"
-                _weatherCondition.value = translateWeatherCode(code)
+                _weatherCondition.value = formatSymbolCode(symbolCode)
             } catch (e: Exception) {
-                Log.e("DotzWeather", "Failed to fetch weather", e)
+                Log.e("DotzWeather", "Failed to fetch weather from MET Norway", e)
                 // Default fallback
                 _weatherTemp.value = "28°C"
                 _weatherCondition.value = "Cloudy"
@@ -777,16 +835,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun translateWeatherCode(code: Int): String = when (code) {
-        0 -> "Clear"
-        1, 2, 3 -> "Mainly Clear"
-        45, 48 -> "Foggy"
-        51, 53, 55 -> "Drizzle"
-        61, 63, 65 -> "Rainy"
-        71, 73, 75 -> "Snowy"
-        80, 81, 82 -> "Rain Showers"
-        95, 96, 99 -> "Thunderstorm"
-        else -> "Cloudy"
+    private fun formatSymbolCode(code: String): String {
+        return code.split("_")
+            .first()
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
     }
 
     private fun isDefaultLauncher(): Boolean {
@@ -912,13 +964,29 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setShowWeatherInfo(value)
     }
 
+    fun setShowWallpaper(value: Boolean) = viewModelScope.launch {
+        prefs.setShowWallpaper(value)
+    }
+
     fun setEnableDashboard(value: Boolean) = viewModelScope.launch {
         prefs.setEnableDashboard(value)
+    }
+
+    fun setTileTransparency(value: Float) = viewModelScope.launch {
+        prefs.setTileTransparency(value)
+    }
+
+    fun setLayoutStyle(value: String) = viewModelScope.launch {
+        prefs.setLayoutStyle(value)
     }
 
     fun setIconPackPackage(value: String?) = viewModelScope.launch {
         prefs.setIconPackPackage(value)
         iconCache.clearCache()
+    }
+
+    fun setPremium(value: Boolean) = viewModelScope.launch {
+        prefs.setPremium(value)
     }
 
     suspend fun exportSettings(): String {

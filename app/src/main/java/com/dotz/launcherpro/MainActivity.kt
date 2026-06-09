@@ -22,6 +22,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Ensure window is transparent for wallpaper
+        window.setBackgroundDrawableResource(android.R.color.transparent)
+        window.setFlags(
+            android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER,
+            android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER
+        )
+
         // Modern full-screen immersive mode
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowCompat.getInsetsController(window, window.decorView)

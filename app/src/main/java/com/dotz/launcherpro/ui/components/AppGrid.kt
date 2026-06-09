@@ -19,6 +19,7 @@ fun AppGrid(
     grayscale: Boolean,
     iconPackPackage: String?,
     showBadges: Boolean,
+    transparency: Float = 1.0f,
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit,
     modifier: Modifier = Modifier,
@@ -48,6 +49,7 @@ fun AppGrid(
                             grayscale    = grayscale,
                             iconPackPackage = iconPackPackage,
                             showBadge    = showBadges,
+                            transparency = transparency,
                             onTap        = { onTileTap(tile) },
                             onLongPress  = { onTileLongPress(tile) },
                             modifier     = Modifier

@@ -8,11 +8,14 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
 import com.dotz.launcherpro.ui.components.AppGrid
+import com.dotz.launcherpro.ui.components.AppList
 import com.dotz.launcherpro.ui.components.StaticHeader
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
@@ -42,10 +45,21 @@ fun DotzHomeScreen(
     )
     val pagerState = rememberPagerState(pageCount = { pages.size })
 
+    val backgroundModifier = if (uiState.settings.showWallpaper) {
+        Modifier.background(
+            Brush.verticalGradient(
+                colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent),
+                endY = 400f
+            )
+        )
+    } else {
+        Modifier.background(DotzTheme.colors.background)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DotzTheme.colors.background)
+            .then(backgroundModifier)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(bottom = 24.dp)
@@ -64,6 +78,7 @@ fun DotzHomeScreen(
             isAirplaneModeOn = uiState.isAirplaneModeOn,
             isDarkModeOn = uiState.isDarkModeOn,
             is24HourFormat = uiState.settings.is24HourFormat,
+            transparency = uiState.settings.tileTransparency,
             onLauncherSettingsTap = onLauncherSettingsTap,
             onWifiToggle = onWifiToggle,
             onBluetoothToggle = onBluetoothToggle,
@@ -84,32 +99,62 @@ fun DotzHomeScreen(
                 state    = pagerState,
                 modifier = Modifier.weight(0.60f)
             ) { pageIndex ->
-                AppGrid(
-                    tiles         = pages[pageIndex],
-                    iconCache     = iconCache,
-                    grayscale     = uiState.settings.grayscaleMode,
-                    iconPackPackage = uiState.settings.iconPackPackage,
-                    showBadges    = uiState.settings.showNotificationDots,
-                    onTileTap     = onTileTap,
-                    onTileLongPress = onTileLongPress,
-                    modifier      = Modifier.fillMaxSize()
-                )
+                if (uiState.settings.layoutStyle == "list") {
+                    AppList(
+                        tiles = pages[pageIndex],
+                        iconCache = iconCache,
+                        grayscale = uiState.settings.grayscaleMode,
+                        iconPackPackage = uiState.settings.iconPackPackage,
+                        showBadges = uiState.settings.showNotificationDots,
+                        transparency = uiState.settings.tileTransparency,
+                        onTileTap = onTileTap,
+                        onTileLongPress = onTileLongPress,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AppGrid(
+                        tiles = pages[pageIndex],
+                        iconCache = iconCache,
+                        grayscale = uiState.settings.grayscaleMode,
+                        iconPackPackage = uiState.settings.iconPackPackage,
+                        showBadges = uiState.settings.showNotificationDots,
+                        transparency = uiState.settings.tileTransparency,
+                        onTileTap = onTileTap,
+                        onTileLongPress = onTileLongPress,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         } else {
             HorizontalPager(
                 state    = pagerState,
                 modifier = Modifier.weight(0.60f)
             ) { pageIndex ->
-                AppGrid(
-                    tiles         = pages[pageIndex],
-                    iconCache     = iconCache,
-                    grayscale     = uiState.settings.grayscaleMode,
-                    iconPackPackage = uiState.settings.iconPackPackage,
-                    showBadges    = uiState.settings.showNotificationDots,
-                    onTileTap     = onTileTap,
-                    onTileLongPress = onTileLongPress,
-                    modifier      = Modifier.fillMaxSize()
-                )
+                if (uiState.settings.layoutStyle == "list") {
+                    AppList(
+                        tiles = pages[pageIndex],
+                        iconCache = iconCache,
+                        grayscale = uiState.settings.grayscaleMode,
+                        iconPackPackage = uiState.settings.iconPackPackage,
+                        showBadges = uiState.settings.showNotificationDots,
+                        transparency = uiState.settings.tileTransparency,
+                        onTileTap = onTileTap,
+                        onTileLongPress = onTileLongPress,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AppGrid(
+                        tiles = pages[pageIndex],
+                        iconCache = iconCache,
+                        grayscale = uiState.settings.grayscaleMode,
+                        iconPackPackage = uiState.settings.iconPackPackage,
+                        showBadges = uiState.settings.showNotificationDots,
+                        transparency = uiState.settings.tileTransparency,
+                        onTileTap = onTileTap,
+                        onTileLongPress = onTileLongPress,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
