@@ -56,19 +56,25 @@ class HomeFragment : Fragment() {
                 DotzTheme(settings = uiState.settings) {
                     var showNotifPermDialog by remember { mutableStateOf(false) }
                     var showDefaultLauncherDialog by remember { mutableStateOf(false) }
+                    var showLocationDisclosure by remember { mutableStateOf(false) }
+                    var showAppAccessDisclosure by remember { mutableStateOf(false) }
                     var tileToAssign by remember { mutableStateOf<AppTile?>(null) }
 
-                    LaunchedEffect(uiState.isDefaultLauncher) {
+                    // Stable initialization for disclosures and permissions
+                    LaunchedEffect(Unit) {
                         if (!isNotificationListenerEnabled()) showNotifPermDialog = true
-                        showDefaultLauncherDialog = !uiState.isDefaultLauncher
                         
-                        // Request location permission for weather
-                        locationPermissionLauncher.launch(
-                            arrayOf(
-                                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                android.Manifest.permission.ACCESS_COARSE_LOCATION
-                            )
-                        )
+                        if (!hasLocationPermission()) {
+                            showLocationDisclosure = true
+                        }
+
+                        if (!uiState.settings.hasAcceptedAppDisclosure) {
+                            showAppAccessDisclosure = true
+                        }
+                    }
+
+                    LaunchedEffect(uiState.isDefaultLauncher) {
+                        showDefaultLauncherDialog = !uiState.isDefaultLauncher
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {
@@ -122,6 +128,30 @@ class HomeFragment : Fragment() {
                             )
                         }
 
+                        if (showLocationDisclosure) {
+                            LocationDisclosureDialog(
+                                onDismiss = { showLocationDisclosure = false },
+                                onContinue = {
+                                    showLocationDisclosure = false
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                            )
+                        }
+
+                        if (showAppAccessDisclosure) {
+                            AppAccessDisclosureDialog(
+                                onAccept = {
+                                    showAppAccessDisclosure = false
+                                    viewModel.acceptAppDisclosure()
+                                }
+                            )
+                        }
+
                         tileToAssign?.let { tile ->
                             UnassignedTileDialog(
                                 tileLabel = tile.label,
@@ -170,6 +200,13 @@ class HomeFragment : Fragment() {
         val enabled = Settings.Secure.getString(requireContext().contentResolver, "enabled_notification_listeners")
         return enabled?.contains(requireContext().packageName) == true
     }
+
+    private fun hasLocationPermission(): Boolean {
+        return androidx.core.content.ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
 }
 
 @Composable
@@ -200,6 +237,35 @@ private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> U
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("SKIP", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
+        }
+    )
+}
+
+@Composable
+private fun LocationDisclosureDialog(onDismiss: () -> Unit, onContinue: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DotzTheme.colors.tile,
+        title = { Text("Weather Location", color = DotzTheme.colors.text, fontSize = 16.sp) },
+        text = { Text("Dotz uses your location to provide local weather updates in the header. We don't track you or store your location data.", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
+        confirmButton = {
+            TextButton(onClick = onContinue) { Text("CONTINUE", color = DotzTheme.colors.text) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("NOT NOW", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
+        }
+    )
+}
+
+@Composable
+private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { /* Dismiss not allowed to ensure acceptance */ },
+        containerColor = DotzTheme.colors.tile,
+        title = { Text("App Visibility", color = DotzTheme.colors.text, fontSize = 16.sp) },
+        text = { Text("To function as a launcher, Dotz needs to see your installed apps so you can assign them to tiles. We only use this list locally and never share it.", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
+        confirmButton = {
+            TextButton(onClick = onAccept) { Text("I UNDERSTAND", color = DotzTheme.colors.text) }
         }
     )
 }

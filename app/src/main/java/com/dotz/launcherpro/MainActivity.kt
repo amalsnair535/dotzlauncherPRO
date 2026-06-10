@@ -3,6 +3,7 @@ package com.dotz.launcherpro
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: LauncherViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         // Ensure window is transparent for wallpaper
@@ -51,8 +53,8 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.uiState.collectLatest { state ->
                 viewPager.isUserInputEnabled = state.settings.enableDashboard
-                if (!state.settings.enableDashboard) {
-                    viewPager.setCurrentItem(1, true)
+                if (!state.settings.enableDashboard && viewPager.currentItem != 1) {
+                    viewPager.setCurrentItem(1, false) // No animation to avoid flicker
                 }
             }
         }
@@ -60,9 +62,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.refreshState()
-        // Re-apply immersive mode
+        // No need to refresh everything on every resume, DataStore handles settings updates.
+        // viewModel.refreshState() 
+        
+        // Re-apply immersive mode without animation if possible
         WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.systemBars())
         }
     }

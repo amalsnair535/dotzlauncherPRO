@@ -35,6 +35,7 @@ data class DotzSettings(
     val lastUsedDate: Long = 0,
     val focusTimeToday: Long = 0, // in milliseconds
     val isPremium: Boolean = false,
+    val hasAcceptedAppDisclosure: Boolean = false,
 )
 
 object PrefsKeys {
@@ -63,6 +64,7 @@ object PrefsKeys {
     val LAST_USED_DATE = longPreferencesKey("last_used_date")
     val FOCUS_TIME_TODAY = longPreferencesKey("focus_time_today")
     val IS_PREMIUM = booleanPreferencesKey("is_premium")
+    val HAS_ACCEPTED_APP_DISCLOSURE = booleanPreferencesKey("has_accepted_app_disclosure")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -103,7 +105,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 focusStreak          = prefs[PrefsKeys.FOCUS_STREAK] ?: 0,
                 lastUsedDate         = prefs[PrefsKeys.LAST_USED_DATE] ?: 0,
                 focusTimeToday       = prefs[PrefsKeys.FOCUS_TIME_TODAY] ?: 0,
-                isPremium            = prefs[PrefsKeys.IS_PREMIUM] ?: false
+                isPremium            = prefs[PrefsKeys.IS_PREMIUM] ?: false,
+                hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false
             )
         }
 
@@ -172,6 +175,10 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setPremium(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.IS_PREMIUM] = value }
+    }
+
+    suspend fun setHasAcceptedAppDisclosure(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] = value }
     }
 
     suspend fun setTileTransparency(value: Float) {

@@ -4,4 +4,15 @@
     <string name="settings_title">Dotz PRO Settings</string>
     <string name="app_selection_title">Select App</string>
     <string name="notification_service_label">Dotz Notification Service</string>
+
+    <!-- Permission descriptions (Good for Play Store transparency) -->
+    <string name="perm_notifications_title">Notifications</string>
+    <string name="perm_notifications_desc">Required to show notification badges on tiles.</string>
+    <string name="perm_location_title">Location</string>
+    <string name="perm_location_desc">Used to provide accurate weather updates for your area.</string>
+
+    <!-- Accessibility / Utility strings -->
+    <string name="loading_weather">Updating weather&#8230;</string>
+    <string name="pro_version_label">PRO</string>
+    <string name="upgrade_to_pro">Upgrade to Dotz PRO</string>
 </resources>

@@ -394,6 +394,12 @@ fun AiAssistantCard(
                                 }) {
                                     Icon(Icons.Default.ContentCopy, null, tint = DotzTheme.colors.text.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
                                 }
+                                IconButton(onClick = {
+                                    Toast.makeText(context, "Response reported. Thank you for your feedback.", Toast.LENGTH_LONG).show()
+                                    onClear()
+                                }) {
+                                    Icon(Icons.Default.Flag, null, tint = DotzTheme.colors.text.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
+                                }
                                 TextButton(onClick = onClear) {
                                     Text("CLEAR", color = DotzTheme.colors.text.copy(alpha = 0.3f), fontSize = 10.sp)
                                 }
@@ -401,7 +407,14 @@ fun AiAssistantCard(
                         }
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "AI may provide inaccurate info. Report inappropriate responses.",
+                    color = DotzTheme.colors.text.copy(alpha = 0.2f),
+                    fontSize = 9.sp,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+                Spacer(Modifier.height(8.dp))
             }
 
             OutlinedTextField(

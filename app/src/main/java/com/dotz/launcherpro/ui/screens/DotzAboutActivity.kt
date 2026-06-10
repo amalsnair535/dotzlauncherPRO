@@ -53,10 +53,7 @@ class DotzAboutActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsState()
             DotzTheme(settings = uiState.settings) {
                 AboutScreen(
-                    uiState = uiState,
-                    onBack = { finish() },
-                    onCheckUpdate = { viewModel.checkForUpdates() },
-                    onDownloadUpdate = { url -> viewModel.downloadUpdate(url) }
+                    onBack = { finish() }
                 )
             }
         }
@@ -66,10 +63,7 @@ class DotzAboutActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AboutScreen(
-    uiState: LauncherUiState,
-    onBack: () -> Unit,
-    onCheckUpdate: () -> Unit,
-    onDownloadUpdate: (String) -> Unit
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val versionName = remember {
@@ -103,9 +97,6 @@ private fun AboutScreen(
         },
         containerColor = DotzTheme.colors.background,
     ) { innerPadding ->
-        LaunchedEffect(Unit) {
-            onCheckUpdate()
-        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -126,27 +117,6 @@ private fun AboutScreen(
                     text = "Version $versionName",
                     fontSize = 14.sp,
                     color = DotzTheme.colors.text.copy(alpha = 0.5f)
-                )
-            }
-
-            item {
-                val updateLabel = when {
-                    uiState.isUpdateAvailable -> "Update to ${uiState.latestVersionName} available"
-                    uiState.isCheckingForUpdate -> "Checking for updates..."
-                    else -> "You are on the latest version"
-                }
-
-                AboutActionRow(
-                    label = "Updates",
-                    subLabel = updateLabel,
-                    icon = if (uiState.isUpdateAvailable) Icons.Default.Download else Icons.Default.Refresh,
-                    onClick = {
-                        if (uiState.isUpdateAvailable) {
-                            uiState.updateApkUrl?.let { onDownloadUpdate(it) }
-                        } else {
-                            onCheckUpdate()
-                        }
-                    }
                 )
             }
 
@@ -191,14 +161,40 @@ private fun AboutScreen(
             item {
                 AboutActionRow(
                     label = "Contact",
-                    subLabel = "dotzlauncher@gmail.com",
+                    subLabel = "amalsnair535@gmail.com",
                     icon = Icons.Default.Email,
                     trailingIcon = Icons.Default.ContentCopy,
                     onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Dotz Contact", "dotzlauncher@gmail.com")
+                        val clip = ClipData.newPlainText("Dotz Contact", "amalsnair535@gmail.com")
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "Email copied to clipboard", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            item { MatteDivider() }
+
+            item {
+                AboutActionRow(
+                    label = "Privacy Policy",
+                    subLabel = "Read our commitment to your privacy",
+                    icon = Icons.Default.Code,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://gist.github.com/amalsnair535/c114456d49cd0aed815bd79d5bbe05d4".toUri())
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
+                    label = "Terms & Conditions",
+                    subLabel = "Review our service terms",
+                    icon = Icons.Default.Code,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/dotzlauncherPRO/blob/bbb11de4532e26beec065f9dd5b0718494ab3b88/TERMS_AND_CONDITIONS.md".toUri())
+                        context.startActivity(intent)
                     }
                 )
             }

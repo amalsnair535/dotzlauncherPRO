@@ -75,9 +75,6 @@ data class LauncherUiState(
     val focusTimeMillis: Long = 0,
     val focusStreak: Int = 0,
     val isUpdateAvailable: Boolean = false,
-    val latestVersionName: String? = null,
-    val updateApkUrl: String? = null,
-    val isCheckingForUpdate: Boolean = false,
     val isPremium: Boolean = false,
 )
 
@@ -125,10 +122,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _aiResponse = MutableStateFlow<String?>(null)
     private val _isAiLoading = MutableStateFlow(false)
-    private val _isCheckingUpdate = MutableStateFlow(false)
-    private val _updateAvailable = MutableStateFlow(false)
-    private val _latestVersion = MutableStateFlow<String?>(null)
-    private val _updateUrl = MutableStateFlow<String?>(null)
     private val _refreshTrigger = MutableStateFlow(value = Unit)
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -319,10 +312,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _playbackState,
                 _aiResponse,
                 _isAiLoading,
-                _isCheckingUpdate,
-                _updateAvailable,
-                _latestVersion,
-                _updateUrl,
                 _refreshTrigger
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
@@ -347,11 +336,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val playback = args[15] as Triple<Boolean, Long, Long>
                 val aiResp = args[16] as String?
                 val aiLoading = args[17] as Boolean
-                val checkingUpdate = args[18] as Boolean
-                val updateAvail = args[19] as Boolean
-                val latestVer = args[20] as String?
-                val updateUrl = args[21] as String?
-                // args[22] is _refreshTrigger
+                // args[18] is _refreshTrigger
 
                 val isDefault = isDefaultLauncher()
 
@@ -397,10 +382,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
                     focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
                     focusStreak = settings.focusStreak,
-                    isCheckingForUpdate = checkingUpdate,
-                    isUpdateAvailable = updateAvail,
-                    latestVersionName = latestVer,
-                    updateApkUrl = updateUrl,
                     isPremium = settings.isPremium
                 )
             }.collect { state ->
@@ -410,104 +391,25 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun checkForUpdates() {
-        viewModelScope.launch {
-            _isCheckingUpdate.value = true
-            try {
-                val response = withContext(Dispatchers.IO) {
-                    val request = Request.Builder()
-                        .url("https://raw.githubusercontent.com/amalsnair535/dotzlauncherPRO/main/version.json")
-                        .header("Cache-Control", "no-cache") // Force fetch from server
-                        .build()
-                    client.newCall(request).execute().use { it.body?.string() }
-                }
-
-                if (response != null) {
-                    val json = Gson().fromJson(response, JsonObject::class.java)
-                    val remoteVersionCode = json.get("versionCode").asInt
-                    val remoteVersionName = json.get("versionName").asString
-                    val apkUrl = json.get("apkUrl").asString
-
-                    val packageInfo = getApplication<Application>().packageManager.getPackageInfo(getApplication<Application>().packageName, 0)
-                    val currentVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        packageInfo.longVersionCode
-                    } else {
-                        @Suppress("DEPRECATION")
-                        packageInfo.versionCode.toLong()
-                    }
-
-                    if (remoteVersionCode > currentVersionCode) {
-                        _updateAvailable.value = true
-                        _latestVersion.value = remoteVersionName
-                        _updateUrl.value = apkUrl
-                    } else {
-                        _updateAvailable.value = false
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _isCheckingUpdate.value = false
-            }
-        }
+        // Removed for Play Store compliance
     }
 
     fun downloadUpdate(url: String) {
+        // Redirect to Play Store
         val app = getApplication<Application>()
         try {
-            // Remove existing file if it exists to avoid conflicts
-            val destinationFile = java.io.File(app.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS), "dotz_update.apk")
-            if (destinationFile.exists()) destinationFile.delete()
-
-            val request = android.app.DownloadManager.Request(url.toUri())
-                .setTitle("Dotz Launcher Update")
-                .setDescription("Downloading version ${_latestVersion.value ?: "latest"}...")
-                .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationUri(Uri.fromFile(destinationFile))
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(true)
-
-            val dm = app.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
-            val downloadId = dm.enqueue(request)
-
-            // Register receiver to open installer when finished
-            val onComplete = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) {
-                    val id = intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                    if (id == downloadId) {
-                        installApk(destinationFile)
-                        app.unregisterReceiver(this)
-                    }
-                }
-            }
-            app.registerReceiver(
-                onComplete, 
-                IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
-            )
-
-            Toast.makeText(app, "Update download started...", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            // Fallback to browser
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${app.packageName}"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(intent)
+        } catch (_: Exception) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${app.packageName}"))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(intent)
         }
     }
 
     private fun installApk(file: java.io.File) {
-        val app = getApplication<Application>()
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            app,
-            "${app.packageName}.fileprovider",
-            file
-        )
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        app.startActivity(intent)
+        // Removed for Play Store compliance
     }
 
     private fun updateSessionTime() {
@@ -987,6 +889,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setPremium(value: Boolean) = viewModelScope.launch {
         prefs.setPremium(value)
+    }
+
+    fun acceptAppDisclosure() = viewModelScope.launch {
+        prefs.setHasAcceptedAppDisclosure(true)
     }
 
     suspend fun exportSettings(): String {
