@@ -503,19 +503,33 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun toggleSilentMode() {
         val app = getApplication<Application>()
         val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        
         if (!notificationManager.isNotificationPolicyAccessGranted) {
+            Toast.makeText(app, "Please grant 'Do Not Disturb' access to toggle silent mode.", Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(intent)
             return
         }
 
-        val newMode = if (audioManager.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
-            AudioManager.RINGER_MODE_VIBRATE
-        } else {
-            AudioManager.RINGER_MODE_NORMAL
+        val currentMode = audioManager.ringerMode
+        val newMode = when (currentMode) {
+            AudioManager.RINGER_MODE_NORMAL -> AudioManager.RINGER_MODE_VIBRATE
+            AudioManager.RINGER_MODE_VIBRATE -> AudioManager.RINGER_MODE_SILENT
+            else -> AudioManager.RINGER_MODE_NORMAL
         }
-        audioManager.ringerMode = newMode
+        
+        try {
+            audioManager.ringerMode = newMode
+            val modeName = when (newMode) {
+                AudioManager.RINGER_MODE_NORMAL -> "Normal"
+                AudioManager.RINGER_MODE_VIBRATE -> "Vibrate"
+                else -> "Silent"
+            }
+            Toast.makeText(app, "Mode: $modeName", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun toggleTorch() {
