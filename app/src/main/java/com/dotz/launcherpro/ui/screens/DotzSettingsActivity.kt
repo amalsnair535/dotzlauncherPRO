@@ -86,6 +86,7 @@ class DotzSettingsActivity : ComponentActivity() {
 
                 DotzSettingsScreen(
                     settings          = uiState.settings,
+                    isUpgradeAvailable = uiState.isUpgradeAvailable,
                     onBack            = { finish() },
                     onShowDots        = viewModel::setShowNotificationDots,
                     onShowCounts      = viewModel::setShowNumericalCounts,
@@ -127,6 +128,7 @@ class DotzSettingsActivity : ComponentActivity() {
 @Composable
 private fun DotzSettingsScreen(
     settings: com.dotz.launcherpro.data.DotzSettings,
+    isUpgradeAvailable: Boolean,
     onBack: () -> Unit,
     onShowDots: (Boolean) -> Unit,
     onShowCounts: (Boolean) -> Unit,
@@ -170,7 +172,7 @@ private fun DotzSettingsScreen(
                             fontWeight = FontWeight.Normal,
                             color = DotzTheme.colors.text,
                         )
-                        if (settings.isPremium) {
+                        if (settings.isPremium && isUpgradeAvailable) {
                             Spacer(Modifier.width(8.dp))
                             PremiumBadge()
                         }
@@ -192,7 +194,7 @@ private fun DotzSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // ── Section: Premium ──────────────────────────────────────────
-            if (!settings.isPremium) {
+            if (!settings.isPremium && isUpgradeAvailable) {
                 item { SectionHeader("GET PRO") }
                 item {
                     PremiumPromotionCard(onClick = onUpgradeClick)
@@ -259,17 +261,21 @@ private fun DotzSettingsScreen(
 
             // ── Section: Appearance ───────────────────────────────────────
             item { Spacer(Modifier.height(8.dp)); SectionHeader("APPEARANCE") }
-            item {
-                SettingsActionRow(
-                    label = "Change Wallpaper",
-                    isPremium = true,
-                    isLocked = !settings.isPremium,
-                    onClick = {
-                        if (settings.isPremium) onWallpaperClick()
-                        else showPremiumDialog = true
-                    }
-                )
+            
+            if (isUpgradeAvailable || settings.isPremium) {
+                item {
+                    SettingsActionRow(
+                        label = "Change Wallpaper",
+                        isPremium = isUpgradeAvailable,
+                        isLocked = !settings.isPremium && isUpgradeAvailable,
+                        onClick = {
+                            if (!isUpgradeAvailable || settings.isPremium) onWallpaperClick()
+                            else showPremiumDialog = true
+                        }
+                    )
+                }
             }
+
             item {
                 SettingsToggleRow(
                     label   = "Enable Extra Tiles (Page 3)",
@@ -334,86 +340,92 @@ private fun DotzSettingsScreen(
                 )
             }
 
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Tile Layout", color = DotzTheme.colors.text, fontSize = 14.sp)
-                        Spacer(Modifier.width(8.dp))
-                        PremiumBadge()
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            if (isUpgradeAvailable || settings.isPremium) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
-                        listOf("classic", "list").forEach { style ->
-                            val isSelected = settings.layoutStyle == style
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .background(
-                                        if (isSelected) DotzTheme.colors.text else DotzTheme.colors.background,
-                                        RoundedCornerShape(8.dp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Tile Layout", color = DotzTheme.colors.text, fontSize = 14.sp)
+                            if (isUpgradeAvailable) {
+                                Spacer(Modifier.width(8.dp))
+                                PremiumBadge()
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("classic", "list").forEach { style ->
+                                val isSelected = settings.layoutStyle == style
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .background(
+                                            if (isSelected) DotzTheme.colors.text else DotzTheme.colors.background,
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable {
+                                            if (!isUpgradeAvailable || settings.isPremium) onLayoutStyleChange(style)
+                                            else showPremiumDialog = true
+                                        }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        style.uppercase(),
+                                        color = if (isSelected) DotzTheme.colors.background else DotzTheme.colors.text,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
-                                    .clickable {
-                                        if (settings.isPremium) onLayoutStyleChange(style)
-                                        else showPremiumDialog = true
-                                    }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    style.uppercase(),
-                                    color = if (isSelected) DotzTheme.colors.background else DotzTheme.colors.text,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Tile Transparency", color = DotzTheme.colors.text, fontSize = 14.sp)
-                            Spacer(Modifier.width(8.dp))
-                            PremiumBadge()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Tile Transparency", color = DotzTheme.colors.text, fontSize = 14.sp)
+                                if (isUpgradeAvailable) {
+                                    Spacer(Modifier.width(8.dp))
+                                    PremiumBadge()
+                                }
+                            }
+                            Text(
+                                "${(settings.tileTransparency * 100).toInt()}%",
+                                color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 14.sp
+                            )
                         }
-                        Text(
-                            "${(settings.tileTransparency * 100).toInt()}%",
-                            color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 14.sp
+                        Slider(
+                            value = settings.tileTransparency,
+                            onValueChange = {
+                                if (!isUpgradeAvailable || settings.isPremium) onTransparencyChange(it)
+                                else showPremiumDialog = true
+                            },
+                            valueRange = 0.1f..1.0f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = if (!isUpgradeAvailable || settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.2f),
+                                activeTrackColor = if (!isUpgradeAvailable || settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.1f),
+                                inactiveTrackColor = DotzTheme.colors.text.copy(alpha = 0.1f)
+                            )
                         )
                     }
-                    Slider(
-                        value = settings.tileTransparency,
-                        onValueChange = {
-                            if (settings.isPremium) onTransparencyChange(it)
-                            else showPremiumDialog = true
-                        },
-                        valueRange = 0.1f..1.0f,
-                        colors = SliderDefaults.colors(
-                            thumbColor = if (settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.2f),
-                            activeTrackColor = if (settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.1f),
-                            inactiveTrackColor = DotzTheme.colors.text.copy(alpha = 0.1f)
-                        )
-                    )
                 }
             }
 
@@ -425,17 +437,19 @@ private fun DotzSettingsScreen(
                 )
             }
 
-            item {
-                SettingsToggleRow(
-                    label   = "Show Wallpaper",
-                    checked = settings.showWallpaper,
-                    isPremium = true,
-                    isLocked = !settings.isPremium,
-                    onToggle = {
-                        if (settings.isPremium) onShowWallpaperToggle(it)
-                        else showPremiumDialog = true
-                    }
-                )
+            if (isUpgradeAvailable || settings.isPremium) {
+                item {
+                    SettingsToggleRow(
+                        label   = "Show Wallpaper",
+                        checked = settings.showWallpaper,
+                        isPremium = isUpgradeAvailable,
+                        isLocked = !settings.isPremium && isUpgradeAvailable,
+                        onToggle = {
+                            if (!isUpgradeAvailable || settings.isPremium) onShowWallpaperToggle(it)
+                            else showPremiumDialog = true
+                        }
+                    )
+                }
             }
 
             item {

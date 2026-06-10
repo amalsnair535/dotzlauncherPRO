@@ -26,81 +26,33 @@ class StoreBridgeImpl(
 ) : StoreBridge {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    
+    // Always false for Indus build - Pro features are Play Store exclusive
     private val _isPremium = MutableStateFlow(false)
     override val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
-    override val monthlyPrice = MutableStateFlow("₹149 / mo")
-    override val yearlyPrice = MutableStateFlow("₹999 / yr")
-    override val lifetimePrice = MutableStateFlow("₹1999 once")
+    override val isUpgradeAvailable: Boolean = false
+
+    override val monthlyPrice = MutableStateFlow("N/A")
+    override val yearlyPrice = MutableStateFlow("N/A")
+    override val lifetimePrice = MutableStateFlow("N/A")
 
     init {
-        refreshPremiumStatus()
+        // Ensure premium is false in prefs for Indus build
+        scope.launch {
+            prefs.setPremium(false)
+        }
     }
 
     override fun refreshPremiumStatus() {
-        scope.launch {
-            prefs.settingsFlow.collect { settings ->
-                _isPremium.value = settings.isPremium
-            }
-        }
+        _isPremium.value = false
     }
 
     override fun startBillingFlow(activity: Activity, productId: String) {
-        val amount = when (productId) {
-            "dotz_pro_monthly" -> "149.00"
-            "dotz_pro_yearly" -> "999.00"
-            "dotz_pro_lifetime" -> "1999.00"
-            else -> "1.00"
-        }
-
-        // Clean UPI URL to avoid blocks by some banking apps
-        val upiId = "amalsnair535-1@okhdfcbank"
-        val name = "Amal Nair"
-        
-        val uri = Uri.parse("upi://pay").buildUpon()
-            .appendQueryParameter("pa", upiId)
-            .appendQueryParameter("pn", name)
-            .appendQueryParameter("am", amount)
-            .appendQueryParameter("cu", "INR")
-            .build()
-
-        val intent = Intent(Intent.ACTION_VIEW, uri)
-
-        try {
-            activity.startActivity(intent)
-
-            // Instead of auto-unlocking, we show a confirmation dialog
-            // after the user returns to the app.
-            showConfirmationDialog(activity)
-            
-        } catch (e: Exception) {
-            Toast.makeText(activity, "No UPI app found. Please install GPay, PhonePe, or Paytm.", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun showConfirmationDialog(activity: Activity) {
         AlertDialog.Builder(activity)
-            .setTitle("Unlock PRO Features")
-            .setMessage("If you have completed the UPI payment, please enter your transaction ID or reference below for verification. PRO will be unlocked immediately after verification.")
-            .setView(android.widget.EditText(activity).apply { 
-                hint = "Enter Transaction ID (e.g. 1234...)"
-                setPadding(48, 20, 48, 20)
-            })
-            .setPositiveButton("Verify & Unlock") { _, _ ->
-                // In a real production app, we would verify this ID against our server.
-                // For Indus, we provide instant unlock upon entry of a reference ID.
-                scope.launch {
-                    prefs.setPremium(true)
-                    _isPremium.value = true
-                    Toast.makeText(activity, "Thank you! Verification complete. PRO unlocked.", Toast.LENGTH_SHORT).show()
-                    activity.finish()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .setNeutralButton("Need Help?") { _, _ ->
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("mailto:amalsnair535@gmail.com?subject=Indus Payment Help"))
-                activity.startActivity(intent)
-            }
+            .setTitle("PRO Exclusive")
+            .setMessage("Premium features like Transparency, Wallpapers, and List Layout are exclusive to the Google Play Store version of Dotz Launcher.")
+            .setPositiveButton("OK", null)
             .show()
     }
 

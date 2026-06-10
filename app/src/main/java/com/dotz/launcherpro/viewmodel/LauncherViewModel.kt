@@ -75,6 +75,7 @@ data class LauncherUiState(
     val focusStreak: Int = 0,
     val isUpdateAvailable: Boolean = false,
     val isPremium: Boolean = false,
+    val isUpgradeAvailable: Boolean = true,
 )
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -383,7 +384,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
                     focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
                     focusStreak = settings.focusStreak,
-                    isPremium = isPremiumStatus
+                    isPremium = isPremiumStatus,
+                    isUpgradeAvailable = storeBridge.isUpgradeAvailable
                 )
             }.collect { state ->
                 _uiState.value = state

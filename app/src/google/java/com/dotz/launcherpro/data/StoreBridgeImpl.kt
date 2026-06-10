@@ -31,6 +31,8 @@ class StoreBridgeImpl(
     private val _isPremium = MutableStateFlow(false)
     override val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
+    override val isUpgradeAvailable: Boolean = true
+
     private val _monthlyPrice = MutableStateFlow("$1.99 / month")
     override val monthlyPrice: StateFlow<String> = _monthlyPrice.asStateFlow()
 
@@ -91,9 +93,6 @@ class StoreBridgeImpl(
     private fun updatePremium(value: Boolean) {
         _isPremium.value = value
         scope.launch { prefs.setPremium(value) }
-        if (value) {
-            (context as? Activity)?.finish()
-        }
     }
 
     private fun queryProductDetails() {
@@ -120,7 +119,12 @@ class StoreBridgeImpl(
     }
 
     override fun startBillingFlow(activity: Activity, productId: String) {
-        val details = productDetailsList.find { it.productId == productId } ?: return
+        val details = productDetailsList.find { it.productId == productId }
+        if (details == null) {
+            android.widget.Toast.makeText(activity, "Store connection in progress. Please try again in a moment.", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val offerToken = details.subscriptionOfferDetails?.get(0)?.offerToken
         
         val params = BillingFlowParams.newBuilder()

@@ -49,6 +49,13 @@ class DotzUpgradeActivity : ComponentActivity() {
             val yearlyPrice by viewModel.yearlyPrice.collectAsState()
             val lifetimePrice by viewModel.lifetimePrice.collectAsState()
 
+            // Close screen if premium status becomes true
+            LaunchedEffect(uiState.isPremium) {
+                if (uiState.isPremium) {
+                    finish()
+                }
+            }
+
             DotzTheme(settings = uiState.settings) {
                 UpgradeScreen(
                     onBack = { finish() },

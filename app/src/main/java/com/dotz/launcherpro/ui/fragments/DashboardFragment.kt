@@ -91,18 +91,20 @@ class DashboardFragment : Fragment() {
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .background(DotzTheme.colors.text.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "PRO",
-                            color = DotzTheme.colors.text,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                    if (uiState.isUpgradeAvailable) {
+                        Spacer(Modifier.width(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(DotzTheme.colors.text.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "PRO",
+                                color = DotzTheme.colors.text,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
                     }
                 }
             }
