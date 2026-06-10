@@ -1,5 +1,6 @@
 package com.dotz.launcherpro.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -45,7 +46,7 @@ fun AppList(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Top)
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)
     ) {
         tiles.forEach { tile ->
             AppListTile(
@@ -62,7 +63,7 @@ fun AppList(
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppListTile(
     tile: AppTile,
@@ -89,7 +90,7 @@ private fun AppListTile(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(72.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(tileBackground)
             .combinedClickable(

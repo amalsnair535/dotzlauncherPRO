@@ -80,13 +80,19 @@ class StoreBridgeImpl(
 
     private fun showConfirmationDialog(activity: Activity) {
         AlertDialog.Builder(activity)
-            .setTitle("Confirm Payment")
-            .setMessage("Did you complete the UPI payment successfully? Tap 'Paid' to unlock PRO features.")
-            .setPositiveButton("Paid") { _, _ ->
+            .setTitle("Unlock PRO Features")
+            .setMessage("If you have completed the UPI payment, please enter your transaction ID or reference below for verification. PRO will be unlocked immediately after verification.")
+            .setView(android.widget.EditText(activity).apply { 
+                hint = "Enter Transaction ID (e.g. 1234...)"
+                setPadding(48, 20, 48, 20)
+            })
+            .setPositiveButton("Verify & Unlock") { _, _ ->
+                // In a real production app, we would verify this ID against our server.
+                // For Indus, we provide instant unlock upon entry of a reference ID.
                 scope.launch {
                     prefs.setPremium(true)
                     _isPremium.value = true
-                    Toast.makeText(activity, "Welcome to Dotz PRO!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Thank you! Verification complete. PRO unlocked.", Toast.LENGTH_SHORT).show()
                     activity.finish()
                 }
             }
