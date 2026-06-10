@@ -93,7 +93,7 @@ fun StaticHeader(
             .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 0.dp),
     ) {
         // Weather Info (Top Right)
-        if (showWeatherInfo && weatherTemp != null) {
+        if (showWeatherInfo) {
             Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -101,7 +101,7 @@ fun StaticHeader(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = weatherTemp,
+                    text = weatherTemp ?: "...",
                     style = DotzType.DateStyle.copy(
                         fontSize = 20.sp, 
                         fontWeight = FontWeight.Normal,
@@ -110,7 +110,7 @@ fun StaticHeader(
                     color = DotzTheme.colors.text
                 )
                 Text(
-                    text = weatherCondition ?: "",
+                    text = weatherCondition ?: "Searching",
                     style = DotzType.DateStyle.copy(
                         fontSize = 12.sp,
                         letterSpacing = 0.sp

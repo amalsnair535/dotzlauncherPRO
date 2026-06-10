@@ -82,7 +82,7 @@ class StoreBridgeImpl(
                             override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
                             override fun onProviderEnabled(p: String) {}
                             override fun onProviderDisabled(p: String) {}
-                        }, null)
+                        }, android.os.Looper.getMainLooper())
                     }
                 } else {
                     fallback()
