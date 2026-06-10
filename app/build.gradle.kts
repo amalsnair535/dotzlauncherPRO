@@ -33,12 +33,15 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = file("keystore.jks")
+            val keystorePath = "C:/Users/USER/Downloads/DOTZLAUNCHERPRO KEYSTORE/KEYSTORE"
+            val keystoreFile = file(keystorePath)
+            
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+                keyAlias = "key0"
+                // Reading passwords from gradle.properties or environment variables
+                storePassword = (project.findProperty("RELEASE_STORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD"))?.toString()
+                keyPassword = (project.findProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD"))?.toString()
             }
         }
     }
@@ -48,7 +51,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             val releaseSigningConfig = signingConfigs.getByName("release")
-            if (releaseSigningConfig.storeFile != null) {
+            if (releaseSigningConfig.storeFile != null && releaseSigningConfig.storePassword != null && releaseSigningConfig.keyPassword != null) {
                 signingConfig = releaseSigningConfig
             }
             proguardFiles(
