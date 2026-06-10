@@ -45,13 +45,14 @@ class DotzUpgradeActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
+            val productDetails by viewModel.productDetails.collectAsState()
+
             DotzTheme(settings = uiState.settings) {
                 UpgradeScreen(
                     onBack = { finish() },
-                    onUpgrade = { plan ->
-                        viewModel.setPremium(true)
-                        Toast.makeText(this, "Upgrade successful! Enjoy Dotz PRO $plan", Toast.LENGTH_LONG).show()
-                        finish()
+                    productDetails = productDetails,
+                    onUpgrade = { planId ->
+                        viewModel.buyProduct(this, planId)
                     }
                 )
             }
@@ -62,9 +63,19 @@ class DotzUpgradeActivity : ComponentActivity() {
 @Composable
 private fun UpgradeScreen(
     onBack: () -> Unit,
+    productDetails: List<com.android.billingclient.api.ProductDetails>,
     onUpgrade: (String) -> Unit
 ) {
-    var selectedPlan by remember { mutableStateOf("Monthly") }
+    var selectedPlanId by remember { mutableStateOf("dotz_pro_monthly") }
+
+    val monthlyPrice = productDetails.find { it.productId == "dotz_pro_monthly" }
+        ?.subscriptionOfferDetails?.get(0)?.pricingPhases?.pricingPhaseList?.get(0)?.formattedPrice ?: "$1.99 / month"
+    
+    val yearlyPrice = productDetails.find { it.productId == "dotz_pro_yearly" }
+        ?.subscriptionOfferDetails?.get(0)?.pricingPhases?.pricingPhaseList?.get(0)?.formattedPrice ?: "$14.99 / year"
+    
+    val lifetimePrice = productDetails.find { it.productId == "dotz_pro_lifetime" }
+        ?.oneTimePurchaseOfferDetails?.formattedPrice ?: "$29.99 once"
 
     Scaffold(
         containerColor = DotzTheme.colors.background,
@@ -126,18 +137,18 @@ private fun UpgradeScreen(
 
             // Plans
             item {
-                PlanCard("Monthly", "$1.99 / month", selectedPlan == "Monthly") { selectedPlan = "Monthly" }
+                PlanCard("Monthly", monthlyPrice, selectedPlanId == "dotz_pro_monthly") { selectedPlanId = "dotz_pro_monthly" }
                 Spacer(Modifier.height(12.dp))
-                PlanCard("Yearly", "$14.99 / year", selectedPlan == "Yearly", "Save 40%") { selectedPlan = "Yearly" }
+                PlanCard("Yearly", yearlyPrice, selectedPlanId == "dotz_pro_yearly", "Save 40%") { selectedPlanId = "dotz_pro_yearly" }
                 Spacer(Modifier.height(12.dp))
-                PlanCard("Lifetime", "$29.99 once", selectedPlan == "Lifetime") { selectedPlan = "Lifetime" }
+                PlanCard("Lifetime", lifetimePrice, selectedPlanId == "dotz_pro_lifetime") { selectedPlanId = "dotz_pro_lifetime" }
                 Spacer(Modifier.height(40.dp))
             }
 
             // Subscribe Button
             item {
                 Button(
-                    onClick = { onUpgrade(selectedPlan) },
+                    onClick = { onUpgrade(selectedPlanId) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

@@ -1,5 +1,6 @@
 package com.dotz.launcherpro.viewmodel
 
+import android.app.Activity
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -81,6 +82,7 @@ data class LauncherUiState(
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = DotzPreferencesRepository(application)
+    private val billingRepository = BillingRepository(application, prefs)
     val iconCache = IconCacheManager(application)
     private val pm: PackageManager = application.packageManager
     private val audioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -889,6 +891,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setPremium(value: Boolean) = viewModelScope.launch {
         prefs.setPremium(value)
+    }
+
+    val productDetails = billingRepository.productDetails
+
+    fun buyProduct(activity: Activity, productId: String) {
+        val details = productDetails.value.find { it.productId == productId }
+        if (details != null) {
+            billingRepository.launchBillingFlow(activity, details)
+        } else {
+            Toast.makeText(activity, "Product not found", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun acceptAppDisclosure() = viewModelScope.launch {
