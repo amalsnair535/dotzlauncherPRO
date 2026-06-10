@@ -1,6 +1,7 @@
 package com.dotz.launcherpro.data
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -37,7 +38,11 @@ class StoreBridgeImpl(
     }
 
     override fun refreshPremiumStatus() {
-        // No specific license check for UPI flow yet
+        scope.launch {
+            prefs.settingsFlow.collect { settings ->
+                _isPremium.value = settings.isPremium
+            }
+        }
     }
 
     override fun startBillingFlow(activity: Activity, productId: String) {
@@ -48,14 +53,13 @@ class StoreBridgeImpl(
             else -> "1.00"
         }
 
+        // Clean UPI URL to avoid blocks by some banking apps
         val upiId = "amalsnair535-1@okhdfcbank"
         val name = "Amal Nair"
-        val note = "Dotz Launcher PRO - Upgrade"
-
+        
         val uri = Uri.parse("upi://pay").buildUpon()
             .appendQueryParameter("pa", upiId)
             .appendQueryParameter("pn", name)
-            .appendQueryParameter("tn", note)
             .appendQueryParameter("am", amount)
             .appendQueryParameter("cu", "INR")
             .build()
@@ -65,16 +69,33 @@ class StoreBridgeImpl(
         try {
             activity.startActivity(intent)
 
-            // Unlock on return
-            scope.launch {
-                prefs.setPremium(true)
-                _isPremium.value = true
-                Toast.makeText(activity, "Thank you! PRO features unlocked.", Toast.LENGTH_LONG).show()
-                activity.finish()
-            }
+            // Instead of auto-unlocking, we show a confirmation dialog
+            // after the user returns to the app.
+            showConfirmationDialog(activity)
+            
         } catch (e: Exception) {
             Toast.makeText(activity, "No UPI app found. Please install GPay, PhonePe, or Paytm.", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showConfirmationDialog(activity: Activity) {
+        AlertDialog.Builder(activity)
+            .setTitle("Confirm Payment")
+            .setMessage("Did you complete the UPI payment successfully? Tap 'Paid' to unlock PRO features.")
+            .setPositiveButton("Paid") { _, _ ->
+                scope.launch {
+                    prefs.setPremium(true)
+                    _isPremium.value = true
+                    Toast.makeText(activity, "Welcome to Dotz PRO!", Toast.LENGTH_SHORT).show()
+                    activity.finish()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .setNeutralButton("Need Help?") { _, _ ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("mailto:amalsnair535@gmail.com?subject=Indus Payment Help"))
+                activity.startActivity(intent)
+            }
+            .show()
     }
 
     override fun getCurrentLocation(callback: (Double, Double) -> Unit, fallback: () -> Unit) {
