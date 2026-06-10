@@ -45,12 +45,16 @@ class DotzUpgradeActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            val productDetails by viewModel.productDetails.collectAsState()
+            val monthlyPrice by viewModel.monthlyPrice.collectAsState()
+            val yearlyPrice by viewModel.yearlyPrice.collectAsState()
+            val lifetimePrice by viewModel.lifetimePrice.collectAsState()
 
             DotzTheme(settings = uiState.settings) {
                 UpgradeScreen(
                     onBack = { finish() },
-                    productDetails = productDetails,
+                    monthlyPrice = monthlyPrice,
+                    yearlyPrice = yearlyPrice,
+                    lifetimePrice = lifetimePrice,
                     onUpgrade = { planId ->
                         viewModel.buyProduct(this, planId)
                     }
@@ -63,19 +67,12 @@ class DotzUpgradeActivity : ComponentActivity() {
 @Composable
 private fun UpgradeScreen(
     onBack: () -> Unit,
-    productDetails: List<com.android.billingclient.api.ProductDetails>,
+    monthlyPrice: String,
+    yearlyPrice: String,
+    lifetimePrice: String,
     onUpgrade: (String) -> Unit
 ) {
     var selectedPlanId by remember { mutableStateOf("dotz_pro_monthly") }
-
-    val monthlyPrice = productDetails.find { it.productId == "dotz_pro_monthly" }
-        ?.subscriptionOfferDetails?.get(0)?.pricingPhases?.pricingPhaseList?.get(0)?.formattedPrice ?: "$1.99 / month"
-    
-    val yearlyPrice = productDetails.find { it.productId == "dotz_pro_yearly" }
-        ?.subscriptionOfferDetails?.get(0)?.pricingPhases?.pricingPhaseList?.get(0)?.formattedPrice ?: "$14.99 / year"
-    
-    val lifetimePrice = productDetails.find { it.productId == "dotz_pro_lifetime" }
-        ?.oneTimePurchaseOfferDetails?.formattedPrice ?: "$29.99 once"
 
     Scaffold(
         containerColor = DotzTheme.colors.background,

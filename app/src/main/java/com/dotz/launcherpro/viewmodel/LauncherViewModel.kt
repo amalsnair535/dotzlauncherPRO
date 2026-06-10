@@ -32,8 +32,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dotz.launcherpro.data.*
 import com.dotz.launcherpro.services.DotzNotificationService
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +80,7 @@ data class LauncherUiState(
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = DotzPreferencesRepository(application)
-    private val billingRepository = BillingRepository(application, prefs)
+    private val storeBridge = StoreBridgeImpl(application, prefs)
     val iconCache = IconCacheManager(application)
     private val pm: PackageManager = application.packageManager
     private val audioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -91,7 +89,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val bluetoothManager = application.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
     private val mediaSessionManager = application.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
     private var activeController: MediaController? = null
 
     private val mediaCallback = object : MediaController.Callback() {
@@ -314,6 +311,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _playbackState,
                 _aiResponse,
                 _isAiLoading,
+                storeBridge.isPremium,
                 _refreshTrigger
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
@@ -338,7 +336,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val playback = args[15] as Triple<Boolean, Long, Long>
                 val aiResp = args[16] as String?
                 val aiLoading = args[17] as Boolean
-                // args[18] is _refreshTrigger
+                val isPremiumStatus = args[18] as Boolean
+                // args[19] is _refreshTrigger
 
                 val isDefault = isDefaultLauncher()
 
@@ -348,7 +347,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val p1 = allTiles.drop(6).take(6)
                 val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(settings.extraTileCount) else emptyList()
                 
-                val effectiveSettings = if (settings.isPremium) settings else settings.copy(
+                val effectiveSettings = if (isPremiumStatus) settings else settings.copy(
                     tileTransparency = 1.0f,
                     layoutStyle = "classic",
                     showWallpaper = false
@@ -384,7 +383,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
                     focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
                     focusStreak = settings.focusStreak,
-                    isPremium = settings.isPremium
+                    isPremium = isPremiumStatus
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -677,31 +676,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun refreshWeather() {
-        viewModelScope.launch {
-            val app = getApplication<Application>()
-            val hasFineLocation = ContextCompat.checkSelfPermission(app, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            val hasCoarseLocation = ContextCompat.checkSelfPermission(app, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-            if (hasFineLocation || hasCoarseLocation) {
-                try {
-                    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
-                        .addOnSuccessListener { location ->
-                            if (location != null) {
-                                fetchWeather(location.latitude, location.longitude)
-                            } else {
-                                fetchWeather() // fallback to default
-                            }
-                        }
-                        .addOnFailureListener {
-                            fetchWeather()
-                        }
-                } catch (e: SecurityException) {
-                    fetchWeather()
-                }
-            } else {
-                fetchWeather()
-            }
-        }
+        storeBridge.getCurrentLocation(
+            callback = { lat: Double, lon: Double -> fetchWeather(lat, lon) },
+            fallback = { fetchWeather() }
+        )
     }
 
     private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
@@ -893,15 +871,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setPremium(value)
     }
 
-    val productDetails = billingRepository.productDetails
+    val monthlyPrice = storeBridge.monthlyPrice
+    val yearlyPrice = storeBridge.yearlyPrice
+    val lifetimePrice = storeBridge.lifetimePrice
 
     fun buyProduct(activity: Activity, productId: String) {
-        val details = productDetails.value.find { it.productId == productId }
-        if (details != null) {
-            billingRepository.launchBillingFlow(activity, details)
-        } else {
-            Toast.makeText(activity, "Product not found", Toast.LENGTH_SHORT).show()
-        }
+        storeBridge.startBillingFlow(activity, productId)
     }
 
     fun acceptAppDisclosure() = viewModelScope.launch {
