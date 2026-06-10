@@ -56,7 +56,6 @@ class HomeFragment : Fragment() {
                 DotzTheme(settings = uiState.settings) {
                     var showNotifPermDialog by remember { mutableStateOf(false) }
                     var showDefaultLauncherDialog by remember { mutableStateOf(false) }
-                    var showLocationDisclosure by remember { mutableStateOf(false) }
                     var showAppAccessDisclosure by remember { mutableStateOf(false) }
                     var tileToAssign by remember { mutableStateOf<AppTile?>(null) }
 
@@ -64,10 +63,6 @@ class HomeFragment : Fragment() {
                     LaunchedEffect(Unit) {
                         if (!isNotificationListenerEnabled()) showNotifPermDialog = true
                         
-                        if (!hasLocationPermission()) {
-                            showLocationDisclosure = true
-                        }
-
                         if (!uiState.settings.hasAcceptedAppDisclosure) {
                             showAppAccessDisclosure = true
                         }
@@ -124,21 +119,6 @@ class HomeFragment : Fragment() {
                                 onGoToSettings = {
                                     showDefaultLauncherDialog = false
                                     viewModel.openDefaultLauncherSettings()
-                                }
-                            )
-                        }
-
-                        if (showLocationDisclosure) {
-                            LocationDisclosureDialog(
-                                onDismiss = { showLocationDisclosure = false },
-                                onContinue = {
-                                    showLocationDisclosure = false
-                                    locationPermissionLauncher.launch(
-                                        arrayOf(
-                                            android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                            android.Manifest.permission.ACCESS_COARSE_LOCATION
-                                        )
-                                    )
                                 }
                             )
                         }
@@ -237,22 +217,6 @@ private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> U
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("SKIP", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
-        }
-    )
-}
-
-@Composable
-private fun LocationDisclosureDialog(onDismiss: () -> Unit, onContinue: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DotzTheme.colors.tile,
-        title = { Text("Weather Location", color = DotzTheme.colors.text, fontSize = 16.sp) },
-        text = { Text("Dotz uses your location to provide local weather updates in the header. We don't track you or store your location data.", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
-        confirmButton = {
-            TextButton(onClick = onContinue) { Text("CONTINUE", color = DotzTheme.colors.text) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("NOT NOW", color = DotzTheme.colors.text.copy(alpha = 0.4f)) }
         }
     )
 }

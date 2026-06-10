@@ -677,7 +677,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun refreshWeather() {
+    fun refreshWeather(force: Boolean = false) {
+        if (!force && !uiState.value.settings.showWeatherInfo) return
+
         storeBridge.getCurrentLocation(
             callback = { lat: Double, lon: Double -> fetchWeather(lat, lon) },
             fallback = { fetchWeather() }
@@ -846,6 +848,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setShowWeatherInfo(value: Boolean) = viewModelScope.launch {
         prefs.setShowWeatherInfo(value)
+        if (value) refreshWeather(force = true)
     }
 
     fun setShowWallpaper(value: Boolean) = viewModelScope.launch {

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
@@ -84,6 +85,19 @@ class DotzSettingsActivity : ComponentActivity() {
                     }
                 }
 
+                val locationPermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissions ->
+                    val granted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                                  permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                    if (granted) {
+                        viewModel.setShowWeatherInfo(true)
+                        viewModel.refreshWeather()
+                    } else {
+                        Toast.makeText(context, "Location permission required for weather", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
                 DotzSettingsScreen(
                     settings          = uiState.settings,
                     isUpgradeAvailable = uiState.isUpgradeAvailable,
@@ -97,7 +111,25 @@ class DotzSettingsActivity : ComponentActivity() {
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
                     onExtraTileCountChange = viewModel::setExtraTileCount,
-                    onShowWeatherToggle = viewModel::setShowWeatherInfo,
+                    onShowWeatherToggle = { enabled ->
+                        if (enabled) {
+                            val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (hasFine || hasCoarse) {
+                                viewModel.setShowWeatherInfo(true)
+                                viewModel.refreshWeather()
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            }
+                        } else {
+                            viewModel.setShowWeatherInfo(false)
+                        }
+                    },
                     onShowWallpaperToggle = viewModel::setShowWallpaper,
                     onEnableDashboardToggle = viewModel::setEnableDashboard,
                     onTransparencyChange = viewModel::setTileTransparency,
