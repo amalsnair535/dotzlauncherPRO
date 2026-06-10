@@ -39,9 +39,11 @@ android {
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
                 keyAlias = "key0"
-                // Reading passwords from gradle.properties or environment variables
-                storePassword = (project.findProperty("RELEASE_STORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD"))?.toString()
-                keyPassword = (project.findProperty("RELEASE_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD"))?.toString()
+
+                // Reading passwords from project properties (gradle.properties)
+                // You can add these to your global ~/.gradle/gradle.properties for security
+                storePassword = project.findProperty("RELEASE_STORE_PASSWORD")?.toString() ?: System.getenv("RELEASE_STORE_PASSWORD")
+                keyPassword = project.findProperty("RELEASE_KEY_PASSWORD")?.toString() ?: System.getenv("RELEASE_KEY_PASSWORD")
             }
         }
     }
