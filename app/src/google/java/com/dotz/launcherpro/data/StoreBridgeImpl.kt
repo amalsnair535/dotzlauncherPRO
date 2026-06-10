@@ -91,6 +91,9 @@ class StoreBridgeImpl(
     private fun updatePremium(value: Boolean) {
         _isPremium.value = value
         scope.launch { prefs.setPremium(value) }
+        if (value) {
+            (context as? Activity)?.finish()
+        }
     }
 
     private fun queryProductDetails() {
@@ -160,7 +163,9 @@ class StoreBridgeImpl(
                 billingClient.acknowledgePurchase(
                     AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
                 ) { result ->
-                    if (result.responseCode == BillingClient.BillingResponseCode.OK) updatePremium(true)
+                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        updatePremium(true)
+                    }
                 }
             } else {
                 updatePremium(true)

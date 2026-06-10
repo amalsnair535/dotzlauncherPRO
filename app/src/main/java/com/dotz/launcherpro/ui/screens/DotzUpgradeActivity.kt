@@ -127,7 +127,6 @@ private fun UpgradeScreen(
                 FeatureRow("Tile Transparency Control")
                 FeatureRow("Custom Home Wallpapers")
                 FeatureRow("Modern List Layout")
-                FeatureRow("Priority AI Assistance")
                 FeatureRow("Ad-free Experience")
                 Spacer(Modifier.height(40.dp))
             }

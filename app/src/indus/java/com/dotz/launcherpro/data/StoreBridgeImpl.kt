@@ -8,15 +8,20 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class StoreBridgeImpl(
     private val context: Context,
     private val prefs: DotzPreferencesRepository
 ) : StoreBridge {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val _isPremium = MutableStateFlow(false)
     override val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
@@ -38,6 +43,10 @@ class StoreBridgeImpl(
         // Redirect to Indus Pay or show a message
         // For now, we'll just unlock it to allow testing the Indus build
         _isPremium.value = true
+        scope.launch {
+            prefs.setPremium(true)
+            activity.finish()
+        }
         // Note: In a real app, you would integrate the Indus SDK here
     }
 
