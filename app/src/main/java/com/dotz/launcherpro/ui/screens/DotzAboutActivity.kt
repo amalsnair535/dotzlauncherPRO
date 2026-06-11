@@ -160,6 +160,18 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
+                    label = "Indus Appstore",
+                    subLabel = "Download from India's Appstore",
+                    icon = Icons.Default.Download,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://indusapp.store/u6nshrvm".toUri())
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
                     label = "Contact",
                     subLabel = "amalsnair535@gmail.com",
                     icon = Icons.Default.Email,

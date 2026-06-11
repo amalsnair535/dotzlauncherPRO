@@ -28,6 +28,7 @@ The development of Dotz Launcher PRO is driven by a vision of reclaiming our foc
 ### 0. Website & Community
 * **Official Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
 * **GitHub Repository:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
+* **Indus Appstore:** [Download on Indus Appstore](https://indusapp.store/u6nshrvm)
 
 ### 1. The "Detox" Control Panel & Live Weather
 A fixed header on the home screen that provides quick access to system utilities and environment awareness:
