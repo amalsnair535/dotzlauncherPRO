@@ -69,9 +69,9 @@ private fun AboutScreen(
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "5.2.1"
+            packageInfo.versionName ?: "5.5.0"
         } catch (_: Exception) {
-            "5.2.1"
+            "5.5.0"
         }
     }
 

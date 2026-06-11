@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -35,15 +37,26 @@ android {
         create("release") {
             val keystorePath = "C:/Users/USER/Downloads/DOTZLAUNCHERPRO KEYSTORE/KEYSTORE"
             val keystoreFile = file(keystorePath)
-            
+
+            // Manually load local.properties
+            val localProperties = Properties()
+            val localPropertiesFile = rootProject.file("local.properties")
+            if (localPropertiesFile.exists()) {
+                localProperties.load(localPropertiesFile.inputStream())
+            }
+
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
                 keyAlias = "key0"
 
-                // Reading passwords from project properties (gradle.properties)
-                // You can add these to your global ~/.gradle/gradle.properties for security
-                storePassword = project.findProperty("RELEASE_STORE_PASSWORD")?.toString() ?: System.getenv("RELEASE_STORE_PASSWORD")
-                keyPassword = project.findProperty("RELEASE_KEY_PASSWORD")?.toString() ?: System.getenv("RELEASE_KEY_PASSWORD")
+                // Read from localProperties, fallback to project properties or environment variables
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                    ?: project.findProperty("RELEASE_STORE_PASSWORD")?.toString()
+                    ?: System.getenv("RELEASE_STORE_PASSWORD")
+
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+                    ?: project.findProperty("RELEASE_KEY_PASSWORD")?.toString()
+                    ?: System.getenv("RELEASE_KEY_PASSWORD")
             }
         }
     }
@@ -60,6 +73,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
