@@ -46,6 +46,8 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 
 ### 3. Dynamic Tile System (Expandable)
 * **Permanent Grid:** 12 tiles (2 pages) are permanently available for your essential daily workflows.
+* **Modern Layouts:** Choose between the classic **Grid Layout** or the new **List Layout** (Premium), optimized for 6 tiles per screen.
+* **Tile Transparency:** Full control over tile background opacity (Premium) to showcase your wallpaper.
 * **Extra Capacity:** Support for an optional 3rd page with adjustable tile counts (1-6).
 * **Universal Remapping:** Every single slot can be assigned to any app installed on your device.
 * **Intelligent Suggestions:** The app picker suggests relevant apps (e.g., Phone apps for the "CALL" tile) but allows you to scroll and pick anything else.
@@ -65,10 +67,11 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
 * **Version:** `5.5.0`
+* **Build Flavors:** `google` (Play Store with Billing) and `indus` (Indus Appstore / Lite)
 * **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)
-* **Target Android:** API 35 (Android 15)
+* **Target Android:** API 36 (Android 16 DP)
 
 ## ☕ Support the Project
 If Dotz Launcher PRO has helped you reclaim your focus, consider supporting its development!

@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 13
         versionName = "5.5.0"
 

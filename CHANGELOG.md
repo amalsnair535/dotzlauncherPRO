@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.0] - 2026-06-15
+
+### Added
+- **Multi-Flavor Build System:** Now supporting `google` (Play Store) and `indus` (Lite/Standalone) variants.
+- **Indus Appstore Support:** Fully optimized for the Indus Appstore with targeted SDK 36 support.
+- **Modern List Layout:** New alternative layout for home screen tiles with optimized 72dp height and 8dp spacing, fitting 6 tiles perfectly.
+- **Tile Transparency:** Added premium control for tile background opacity, allowing wallpapers to blend seamlessly.
+- **Accurate Weather:** Migrated to MET Norway (Yr.no) API for higher accuracy. Weather is now OFF by default for better privacy.
+- **Enhanced Subscription UI:** Dynamic pricing for Google Play variant with improved "Dotz Upgrade" screen.
+- **Compliance & Privacy:** Added mandatory "QUERY_ALL_PACKAGES" and Location disclosures for store compliance.
+
+### Fixed
+- **UI Flickering:** Resolved flickering issues by synchronizing immersive mode across all activities and fragments.
+- **Fragment Stability:** Fixed `LaunchedEffect` triggers in `HomeFragment` to prevent unnecessary UI refreshes.
+- **Weather Permissions:** Weather logic now only requests location permissions when explicitly enabled by the user.
+
+### Changed
+- **Removed Self-Updater:** Offline update logic removed for the `google` flavor to comply with Play Store policies.
+- **SDK Target:** Updated `targetSdk` to 36 (Android 16 DP) to meet the latest store requirements.
+
 ## [5.4.1] - 2026-06-02
 
 ### Added
