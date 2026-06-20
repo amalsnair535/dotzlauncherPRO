@@ -2,11 +2,11 @@
 
 Last updated: May 27, 2026
 
-**Dotz Launcher PRO** ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains our practices regarding the collection, use, and disclosure of information when you use our mobile application (the "App").
+**Dotz Launcher** ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains our practices regarding the collection, use, and disclosure of information when you use our mobile application (the "App").
 
 ## 1. Information Collection and Use
 
-**Dotz Launcher PRO does not collect, store, or transmit any personal data.**
+**Dotz Launcher does not collect, store, or transmit any personal data.**
 
 *   **Local Data:** All your settings, app tile configurations, and preferences are stored locally on your device. We do not have access to this data, and it is not uploaded to any servers.
 *   **Permissions:** The App requests certain permissions to function (e.g., Notification Access, Location, Phone State). These permissions are used exclusively on-device to provide launcher features (like displaying notification counts, weather, or system status) and are never used to collect data about you.

@@ -1,8 +1,8 @@
 # Terms and Conditions
 
-Last updated: May 27, 2026
+Last updated: June 20, 2026
 
-Please read these Terms and Conditions ("Terms", "Terms and Conditions") carefully before using the **Dotz Launcher PRO** mobile application (the "App") operated by **Dotz Launcher PRO** ("us", "we", or "our").
+Please read these Terms and Conditions ("Terms", "Terms and Conditions") carefully before using the **Dotz Launcher** mobile application (the "App") operated by **Dotz Launcher** ("us", "we", or "our").
 
 Your access to and use of the App is conditioned on your acceptance of and compliance with these Terms. These Terms apply to all users and others who access or use the App.
 
@@ -27,11 +27,11 @@ The App is provided on an "AS IS" and "AS AVAILABLE" basis. We make no represent
 
 ## 5. Limitation of Liability
 
-In no event shall **Dotz Launcher PRO**, nor its developers, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the App; (ii) any conduct or content of any third party on the App; or (iii) unauthorized access, use, or alteration of your transmissions or content.
+In no event shall **Dotz Launcher**, nor its developers, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the App; (ii) any conduct or content of any third party on the App; or (iii) unauthorized access, use or alteration of your transmissions or content.
 
 ## 6. Intellectual Property
 
-The App and its original content (excluding apps launched by the user), features, and functionality are and will remain the exclusive property of **Dotz Launcher PRO** and its licensors.
+The App and its original content (excluding apps launched by the user), features, and functionality are and will remain the exclusive property of **Dotz Launcher** and its licensors.
 
 ## 7. Changes
 

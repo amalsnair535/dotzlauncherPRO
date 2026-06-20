@@ -18,6 +18,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="com.android.vending.BILLING" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions"
+        xmlns:tools="http://schemas.android.com/tools" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
@@ -28,7 +31,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DotzLauncherPRO">
+        android:theme="@style/Theme.DotzLauncher">
 
         <!-- Main Launcher Activity -->
         <activity
@@ -51,35 +54,35 @@
             android:name=".ui.screens.DotzSettingsActivity"
             android:exported="false"
             android:label="@string/settings_title"
-            android:theme="@style/Theme.DotzLauncherPRO" />
+            android:theme="@style/Theme.DotzLauncher" />
 
         <!-- App Selection Activity -->
         <activity
             android:name=".ui.screens.AppSelectionActivity"
             android:exported="false"
             android:label="@string/app_selection_title"
-            android:theme="@style/Theme.DotzLauncherPRO" />
+            android:theme="@style/Theme.DotzLauncher" />
 
         <!-- App Selection List Activity -->
         <activity
             android:name=".ui.screens.AppSelectionListActivity"
             android:exported="false"
             android:label="App Selection"
-            android:theme="@style/Theme.DotzLauncherPRO" />
+            android:theme="@style/Theme.DotzLauncher" />
 
         <!-- About Activity -->
         <activity
             android:name=".ui.screens.DotzAboutActivity"
             android:exported="false"
             android:label="About"
-            android:theme="@style/Theme.DotzLauncherPRO" />
+            android:theme="@style/Theme.DotzLauncher" />
 
         <!-- Upgrade Activity -->
         <activity
             android:name=".ui.screens.DotzUpgradeActivity"
             android:exported="false"
             android:label="Upgrade"
-            android:theme="@style/Theme.DotzLauncherPRO" />
+            android:theme="@style/Theme.DotzLauncher" />
 
         <!-- Notification Listener Service -->
         <service

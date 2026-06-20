@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -32,6 +33,7 @@ import androidx.core.view.WindowCompat
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
+import com.dotz.launcherpro.viewmodel.ThemeMode
 import kotlinx.coroutines.launch
 
 class DotzSettingsActivity : ComponentActivity() {
@@ -49,7 +51,9 @@ class DotzSettingsActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            DotzTheme(settings = uiState.settings) {
+            // Force Dark Theme for Settings screen regardless of launcher settings
+            val settingsForSettings = uiState.settings.copy(isLightMode = false, useCircadianTheming = false, showWallpaper = false, tileTransparency = 1.0f)
+            DotzTheme(settings = settingsForSettings) {
                 val scope = rememberCoroutineScope()
                 val context = LocalContext.current
 
@@ -105,8 +109,6 @@ class DotzSettingsActivity : ComponentActivity() {
                     onShowDots        = viewModel::setShowNotificationDots,
                     onShowCounts      = viewModel::setShowNumericalCounts,
                     onNotificationFilterToggle = viewModel::setNotificationFilterEnabled,
-                    onLightModeToggle = viewModel::setIsLightMode,
-                    on24HourToggle    = viewModel::setIs24HourFormat,
                     onGrayscaleToggle = viewModel::setGrayscaleMode,
                     onVerticalScrollToggle = viewModel::setVerticalScrolling,
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
@@ -130,7 +132,6 @@ class DotzSettingsActivity : ComponentActivity() {
                             viewModel.setShowWeatherInfo(false)
                         }
                     },
-                    onShowWallpaperToggle = viewModel::setShowWallpaper,
                     onEnableDashboardToggle = viewModel::setEnableDashboard,
                     onTransparencyChange = viewModel::setTileTransparency,
                     onLayoutStyleChange = viewModel::setLayoutStyle,
@@ -141,16 +142,21 @@ class DotzSettingsActivity : ComponentActivity() {
                     onImport          = { importLauncher.launch("application/json") },
                     isDefaultLauncher = uiState.isDefaultLauncher,
                     onSetDefault      = viewModel::openDefaultLauncherSettings,
+                    onThemeModeChange = viewModel::setThemeMode,
+                    onEnableAppDrawerToggle = viewModel::setEnableAppDrawer,
+                    onShowMindfulUsageToggle = viewModel::setShowMindfulUsage,
                     isUpdateAvailable = uiState.isUpdateAvailable,
+                    isLiteVersion     = uiState.isLiteVersion,
                     onAboutClick      = {
                         startActivity(Intent(this, DotzAboutActivity::class.java))
                     },
                     onUpgradeClick    = {
                         startActivity(Intent(this, DotzUpgradeActivity::class.java))
+                    },
+                    onAppSelectionClick = {
+                        startActivity(Intent(this, AppSelectionListActivity::class.java))
                     }
-                ) {
-                    startActivity(Intent(this, AppSelectionListActivity::class.java))
-                }
+                )
             }
         }
     }
@@ -165,14 +171,11 @@ private fun DotzSettingsScreen(
     onShowDots: (Boolean) -> Unit,
     onShowCounts: (Boolean) -> Unit,
     onNotificationFilterToggle: (Boolean) -> Unit,
-    onLightModeToggle: (Boolean) -> Unit,
-    on24HourToggle: (Boolean) -> Unit,
     onGrayscaleToggle: (Boolean) -> Unit,
     onVerticalScrollToggle: (Boolean) -> Unit,
     onEnableExtraPageToggle: (Boolean) -> Unit,
     onExtraTileCountChange: (Int) -> Unit,
     onShowWeatherToggle: (Boolean) -> Unit,
-    onShowWallpaperToggle: (Boolean) -> Unit,
     onEnableDashboardToggle: (Boolean) -> Unit,
     onTransparencyChange: (Float) -> Unit,
     onLayoutStyleChange: (String) -> Unit,
@@ -184,13 +187,27 @@ private fun DotzSettingsScreen(
     isDefaultLauncher: Boolean,
     onSetDefault: () -> Unit,
     isUpdateAvailable: Boolean,
+    isLiteVersion: Boolean,
     onAboutClick: () -> Unit,
     onUpgradeClick: () -> Unit,
     onAppSelectionClick: () -> Unit,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    onEnableAppDrawerToggle: (Boolean) -> Unit,
+    onShowMindfulUsageToggle: (Boolean) -> Unit,
 ) {
     var showIconPackDialog by remember { mutableStateOf(value = false) }
     var showExperimentalDashboardDialog by remember { mutableStateOf(false) }
+    var showAppDrawerWarningDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
+
+    val currentThemeMode = remember(settings.isLightMode, settings.useCircadianTheming, settings.showWallpaper) {
+        when {
+            settings.showWallpaper -> ThemeMode.TRANSPARENT
+            settings.useCircadianTheming -> ThemeMode.CIRCADIAN
+            settings.isLightMode -> ThemeMode.LIGHT
+            else -> ThemeMode.DARK
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -204,10 +221,6 @@ private fun DotzSettingsScreen(
                             fontWeight = FontWeight.Normal,
                             color = DotzTheme.colors.text,
                         )
-                        if (settings.isPremium && isUpgradeAvailable) {
-                            Spacer(Modifier.width(8.dp))
-                            PremiumBadge()
-                        }
                     }
                 },
                 navigationIcon = {
@@ -252,12 +265,16 @@ private fun DotzSettingsScreen(
             }
 
             // ── Section: Clock ──────────────────────────────────────────
-            item { Spacer(Modifier.height(8.dp)); SectionHeader("CLOCK") }
+            item { Spacer(Modifier.height(8.dp)); SectionHeader("THEME MODE") }
             item {
-                SettingsToggleRow(
-                    label   = "24-Hour Format",
-                    checked = settings.is24HourFormat,
-                    onToggle = on24HourToggle
+                ThemeModeSelectionRow(
+                    currentMode = currentThemeMode,
+                    isPremium = settings.isPremium,
+                    isUpgradeAvailable = isUpgradeAvailable,
+                    isLiteVersion = isLiteVersion,
+                    onModeChange = onThemeModeChange,
+                    onUpgradeClick = onUpgradeClick,
+                    onShowPremiumDialog = { showPremiumDialog = true }
                 )
             }
 
@@ -294,7 +311,7 @@ private fun DotzSettingsScreen(
             // ── Section: Appearance ───────────────────────────────────────
             item { Spacer(Modifier.height(8.dp)); SectionHeader("APPEARANCE") }
             
-            if (isUpgradeAvailable || settings.isPremium) {
+            if (!isLiteVersion) {
                 item {
                     SettingsActionRow(
                         label = "Change Wallpaper",
@@ -305,6 +322,96 @@ private fun DotzSettingsScreen(
                             else showPremiumDialog = true
                         }
                     )
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Tile Transparency", color = if (!settings.isPremium && isUpgradeAvailable) DotzTheme.colors.text.copy(alpha = 0.4f) else DotzTheme.colors.text, fontSize = 14.sp)
+                                if (isUpgradeAvailable) {
+                                    Spacer(Modifier.width(8.dp))
+                                    PremiumBadge()
+                                }
+                            }
+                            Text(
+                                "${(settings.tileTransparency * 100).toInt()}%",
+                                color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 14.sp
+                            )
+                        }
+                        Slider(
+                            value = settings.tileTransparency,
+                            onValueChange = {
+                                if (!isUpgradeAvailable || settings.isPremium) onTransparencyChange(it)
+                                else showPremiumDialog = true
+                            },
+                            enabled = !isUpgradeAvailable || settings.isPremium,
+                            valueRange = 0.1f..1.0f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = if (!isUpgradeAvailable || settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.2f),
+                                activeTrackColor = if (!isUpgradeAvailable || settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.1f),
+                                inactiveTrackColor = DotzTheme.colors.text.copy(alpha = 0.1f)
+                            )
+                        )
+                    }
+                }
+            }
+
+            if (!isLiteVersion) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Tile Layout", color = if (!settings.isPremium && isUpgradeAvailable) DotzTheme.colors.text.copy(alpha = 0.4f) else DotzTheme.colors.text, fontSize = 14.sp)
+                            if (isUpgradeAvailable) {
+                                Spacer(Modifier.width(8.dp))
+                                PremiumBadge()
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("classic", "list").forEach { style ->
+                                val isSelected = settings.layoutStyle == style
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .background(
+                                            if (isSelected) Color.White else Color.Black,
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable {
+                                            if (!isUpgradeAvailable || settings.isPremium) onLayoutStyleChange(style)
+                                            else showPremiumDialog = true
+                                        }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        style.uppercase(),
+                                        color = if (isSelected) Color.Black else Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -340,20 +447,13 @@ private fun DotzSettingsScreen(
                             valueRange    = 1f..6f,
                             steps         = 4,
                             colors        = SliderDefaults.colors(
-                                thumbColor       = DotzTheme.colors.text,
-                                activeTrackColor = DotzTheme.colors.text,
-                                inactiveTrackColor = DotzTheme.colors.text.copy(alpha = 0.2f)
+                                thumbColor       = Color.Black,
+                                activeTrackColor = Color.White,
+                                inactiveTrackColor = Color.White.copy(alpha = 0.2f)
                             )
                         )
                     }
                 }
-            }
-            item {
-                SettingsToggleRow(
-                    label   = "Light Mode",
-                    checked = settings.isLightMode,
-                    onToggle = onLightModeToggle
-                )
             }
 
             item {
@@ -372,116 +472,12 @@ private fun DotzSettingsScreen(
                 )
             }
 
-            if (isUpgradeAvailable || settings.isPremium) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Tile Layout", color = DotzTheme.colors.text, fontSize = 14.sp)
-                            if (isUpgradeAvailable) {
-                                Spacer(Modifier.width(8.dp))
-                                PremiumBadge()
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf("classic", "list").forEach { style ->
-                                val isSelected = settings.layoutStyle == style
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(
-                                            if (isSelected) DotzTheme.colors.text else DotzTheme.colors.background,
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .clickable {
-                                            if (!isUpgradeAvailable || settings.isPremium) onLayoutStyleChange(style)
-                                            else showPremiumDialog = true
-                                        }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        style.uppercase(),
-                                        color = if (isSelected) DotzTheme.colors.background else DotzTheme.colors.text,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Tile Transparency", color = DotzTheme.colors.text, fontSize = 14.sp)
-                                if (isUpgradeAvailable) {
-                                    Spacer(Modifier.width(8.dp))
-                                    PremiumBadge()
-                                }
-                            }
-                            Text(
-                                "${(settings.tileTransparency * 100).toInt()}%",
-                                color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 14.sp
-                            )
-                        }
-                        Slider(
-                            value = settings.tileTransparency,
-                            onValueChange = {
-                                if (!isUpgradeAvailable || settings.isPremium) onTransparencyChange(it)
-                                else showPremiumDialog = true
-                            },
-                            valueRange = 0.1f..1.0f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = if (!isUpgradeAvailable || settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.2f),
-                                activeTrackColor = if (!isUpgradeAvailable || settings.isPremium) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.1f),
-                                inactiveTrackColor = DotzTheme.colors.text.copy(alpha = 0.1f)
-                            )
-                        )
-                    }
-                }
-            }
-
             item {
                 SettingsToggleRow(
                     label   = "Show Weather Info",
                     checked = settings.showWeatherInfo,
                     onToggle = onShowWeatherToggle
                 )
-            }
-
-            if (isUpgradeAvailable || settings.isPremium) {
-                item {
-                    SettingsToggleRow(
-                        label   = "Show Wallpaper",
-                        checked = settings.showWallpaper,
-                        isPremium = isUpgradeAvailable,
-                        isLocked = !settings.isPremium && isUpgradeAvailable,
-                        onToggle = {
-                            if (!isUpgradeAvailable || settings.isPremium) onShowWallpaperToggle(it)
-                            else showPremiumDialog = true
-                        }
-                    )
-                }
             }
 
             item {
@@ -492,6 +488,40 @@ private fun DotzSettingsScreen(
                         if (enabled) showExperimentalDashboardDialog = true
                         onEnableDashboardToggle(enabled)
                     }
+                )
+            }
+
+            item {
+                SettingsToggleRow(
+                    label = "All Apps Drawer",
+                    checked = settings.enableAppDrawer,
+                    onToggle = { enabled ->
+                        if (enabled) {
+                            showAppDrawerWarningDialog = true
+                        } else {
+                            onEnableAppDrawerToggle(false)
+                        }
+                    }
+                )
+                Text(
+                    "Enable swipe up for all apps",
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
+                )
+            }
+
+            item {
+                SettingsToggleRow(
+                    label = "Mindful Usage Tracking",
+                    checked = settings.showMindfulUsage,
+                    onToggle = onShowMindfulUsageToggle
+                )
+                Text(
+                    "Show time spent in apps and launch limits",
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
                 )
             }
 
@@ -561,6 +591,28 @@ private fun DotzSettingsScreen(
             }
         )
     }
+
+    if (showAppDrawerWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showAppDrawerWarningDialog = false },
+            containerColor = DotzTheme.colors.tile,
+            title = { Text("Enable All Apps?", color = DotzTheme.colors.text, fontSize = 16.sp) },
+            text = { Text("Having access to all apps can decrease focus and increase screen time. Are you sure you want to enable this?", color = DotzTheme.colors.text.copy(alpha = 0.7f), fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onEnableAppDrawerToggle(true)
+                    showAppDrawerWarningDialog = false
+                }) {
+                    Text("ENABLE", color = DotzTheme.colors.text)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAppDrawerWarningDialog = false }) {
+                    Text("CANCEL", color = DotzTheme.colors.text.copy(alpha = 0.4f))
+                }
+            }
+        )
+    }
     if (showPremiumDialog) {
         AlertDialog(
             onDismissRequest = { showPremiumDialog = false },
@@ -581,6 +633,96 @@ private fun DotzSettingsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ThemeModeSelectionRow(
+    currentMode: ThemeMode,
+    isPremium: Boolean,
+    isUpgradeAvailable: Boolean,
+    isLiteVersion: Boolean,
+    onModeChange: (ThemeMode) -> Unit,
+    onUpgradeClick: () -> Unit,
+    onShowPremiumDialog: () -> Unit
+) {
+    val modes = if (isLiteVersion) {
+        listOf(ThemeMode.LIGHT, ThemeMode.DARK)
+    } else {
+        ThemeMode.entries
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+            .padding(8.dp)
+    ) {
+        modes.chunked(2).forEach { rowModes ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowModes.forEach { mode ->
+                    val isSelected = currentMode == mode
+                    val isProMode = mode == ThemeMode.CIRCADIAN || mode == ThemeMode.TRANSPARENT
+                    val isLocked = isProMode && isUpgradeAvailable && !isPremium
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 4.dp)
+                            .background(
+                                if (isSelected) Color.White else Color.Black,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .clickable { 
+                                if (isLocked) {
+                                    onShowPremiumDialog()
+                                } else {
+                                    onModeChange(mode)
+                                }
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = when(mode) {
+                                    ThemeMode.LIGHT -> "LIGHT MODE"
+                                    ThemeMode.DARK -> "DARK MODE"
+                                    ThemeMode.CIRCADIAN -> "CIRCADIAN THEME"
+                                    ThemeMode.TRANSPARENT -> "TRANSPARENT MODE"
+                                },
+                                color = if (isSelected) Color.Black else if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            if (isProMode && isUpgradeAvailable) {
+                                Spacer(Modifier.height(2.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (isSelected) Color.Black.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.1f), 
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        "PRO", 
+                                        color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.5f), 
+                                        fontSize = 7.sp, 
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -614,14 +756,37 @@ private fun PremiumPromotionCard(onClick: () -> Unit) {
                     modifier = Modifier.size(16.dp)
                 )
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Access Transparency, Custom Wallpapers, List Layout and more exclusive features.",
-                color = DotzTheme.colors.background.copy(alpha = 0.8f),
-                fontSize = 13.sp,
-                lineHeight = 18.sp
-            )
+            
             Spacer(Modifier.height(16.dp))
+            
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(
+                    "Transparent Mode & Wallpapers",
+                    "Circadian Theming (Day/Night Colors)",
+                    "Tile Transparency Control",
+                    "Modern List Layout",
+                    "Premium Dashboard Experience"
+                ).forEach { feature ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = DotzTheme.colors.background.copy(alpha = 0.6f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            feature,
+                            color = DotzTheme.colors.background.copy(alpha = 0.8f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
             Text(
                 "UPGRADE NOW",
                 color = DotzTheme.colors.background,
@@ -838,10 +1003,10 @@ private fun SettingsToggleRow(
             onCheckedChange = onToggle,
             enabled         = !isLocked || checked, // Allow disabling if somehow enabled, but mostly locked
             colors          = SwitchDefaults.colors(
-                checkedThumbColor  = DotzTheme.colors.background,
-                checkedTrackColor  = if (isLocked) DotzTheme.colors.text.copy(alpha = 0.2f) else DotzTheme.colors.text,
-                uncheckedThumbColor = DotzTheme.colors.text.copy(alpha = 0.4f),
-                uncheckedTrackColor = DotzTheme.colors.tile
+                checkedThumbColor  = Color.Black,
+                checkedTrackColor  = if (isLocked) Color.White.copy(alpha = 0.2f) else Color.White,
+                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
+                uncheckedTrackColor = Color(0xFF1A1A1A) // Match row background roughly
             )
         )
     }

@@ -36,7 +36,6 @@ fun PreviewStaticHeader() {
             isTorchOn = false,
             isAirplaneModeOn = false,
             isDarkModeOn = true,
-            is24HourFormat = true,
             onLauncherSettingsTap = {},
             onWifiToggle = {},
             onBluetoothToggle = {},
@@ -63,7 +62,6 @@ fun StaticHeader(
     isTorchOn: Boolean,
     isAirplaneModeOn: Boolean,
     isDarkModeOn: Boolean,
-    is24HourFormat: Boolean,
     transparency: Float = 1.0f,
     onLauncherSettingsTap: () -> Unit,
     onWifiToggle: () -> Unit,
@@ -74,15 +72,23 @@ fun StaticHeader(
     onDarkModeToggle: () -> Unit,
     onDataClick: () -> Unit,
     onWeatherClick: () -> Unit,
+    onWifiLongClick: () -> Unit = {},
+    onBluetoothLongClick: () -> Unit = {},
+    onDataLongClick: () -> Unit = {},
+    onAirplaneLongClick: () -> Unit = {},
+    onSilentLongClick: () -> Unit = {},
+    onTorchLongClick: () -> Unit = {},
+    onDarkModeLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var timeText by remember(is24HourFormat) { mutableStateOf(currentTime(is24HourFormat)) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var timeText by remember { mutableStateOf(currentTime(context)) }
     var dateText by remember { mutableStateOf(currentDate()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(30_000L)
-            timeText = currentTime(is24HourFormat)
+            timeText = currentTime(context)
             dateText = currentDate()
         }
     }
@@ -186,13 +192,21 @@ fun StaticHeader(
                 onDarkModeToggle = onDarkModeToggle,
                 onSettingsClick = onLauncherSettingsTap,
                 onDataClick = onDataClick,
+                onWifiLongClick = onWifiLongClick,
+                onBluetoothLongClick = onBluetoothLongClick,
+                onDataLongClick = onDataLongClick,
+                onAirplaneLongClick = onAirplaneLongClick,
+                onSilentLongClick = onSilentLongClick,
+                onTorchLongClick = onTorchLongClick,
+                onDarkModeLongClick = onDarkModeLongClick,
                 modifier = Modifier.padding(bottom = 0.dp)
             )
         }
     }
 }
 
-private fun currentTime(is24Hour: Boolean): String {
+private fun currentTime(context: android.content.Context): String {
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
     val pattern = if (is24Hour) "HH:mm" else "h:mm a"
     return SimpleDateFormat(pattern, Locale.getDefault()).format(Date())
 }

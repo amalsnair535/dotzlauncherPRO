@@ -16,11 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,17 +45,32 @@ fun AppTileCard(
     iconPackPackage: String?,
     showBadge: Boolean,
     transparency: Float = 1.0f,
+    isHighlighted: Boolean = false,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
 
     // Press animation
     val pressScale = remember { Animatable(1f) }
 
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val highlightScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    val currentScale = if (isHighlighted) highlightScale else pressScale.value
+
     val baseOpacity = if (tile.isInstalled) transparency else 0.4f * transparency
-    val tileBackground = DotzTheme.colors.tile.copy(alpha = baseOpacity)
+    val tileBackground = if (isHighlighted) DotzTheme.colors.text.copy(alpha = 0.2f) else DotzTheme.colors.tile.copy(alpha = baseOpacity)
     
     // Check cache first, then load if needed
     val cachedBitmap = remember(tile.packageName, iconPackPackage, grayscale) {
@@ -66,11 +85,14 @@ fun AppTileCard(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .scale(pressScale.value)
+            .scale(currentScale)
             .clip(RoundedCornerShape(28.dp))
             .background(tileBackground)
             .combinedClickable(
-                onClick = onTap,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onTap()
+                },
                 onLongClick = onLongPress,
             ),
         contentAlignment = Alignment.Center
@@ -132,6 +154,17 @@ fun AppTileCard(
                 maxLines  = 1,
                 overflow  = TextOverflow.Ellipsis
             )
+
+            if (tile.usageTime != null) {
+                Text(
+                    text = tile.usageTime,
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
 
         // ── Badge ─────────────────────────────────────────────────────────────
@@ -149,7 +182,7 @@ fun AppTileCard(
                 if (showCount) {
                     Text(
                         text  = if (tile.badgeCount > 99) "99+" else tile.badgeCount.toString(),
-                        color = DotzTheme.colors.background,
+                        color = if (DotzTheme.colors.badgeDot == Color.White) Color.Black else Color.White,
                         fontSize = 9.sp,
                         textAlign = TextAlign.Center
                     )

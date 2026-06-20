@@ -21,6 +21,15 @@ data class AppTile(
     val iconVector: ImageVector,
     val badgeCount: Int = -1,
     val isInstalled: Boolean = true,
+    val usageTime: String? = null,
+    val launchCount: Int = 0
+)
+
+data class DrawerApp(
+    val packageName: String,
+    val label: String,
+    val usageTime: String? = null,
+    val launchCount: Int = 0
 )
 
 enum class TileType {
@@ -92,4 +101,8 @@ object DefaultApps {
         "com.google.android.apps.walletnfcrel" to listOf("com.samsung.android.spay"),
         "com.google.android.keep"           to listOf("com.miui.notes", "com.colornote.notepad")
     )
+
+    fun isSocialMediaApp(packageName: String): Boolean {
+        return distractingPackages.any { packageName.contains(it, ignoreCase = true) }
+    }
 }

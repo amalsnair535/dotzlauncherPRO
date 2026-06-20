@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -12,11 +13,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +44,7 @@ fun AppList(
     iconPackPackage: String?,
     showBadges: Boolean,
     transparency: Float = 1.0f,
+    highlightedTileId: Int? = null,
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit,
     modifier: Modifier = Modifier,
@@ -56,6 +63,7 @@ fun AppList(
                 iconPackPackage = iconPackPackage,
                 showBadge = showBadges,
                 transparency = transparency,
+                isHighlighted = tile.tileId == highlightedTileId,
                 onTap = { onTileTap(tile) },
                 onLongPress = { onTileLongPress(tile) }
             )
@@ -72,12 +80,14 @@ private fun AppListTile(
     iconPackPackage: String?,
     showBadge: Boolean,
     transparency: Float,
+    isHighlighted: Boolean = false,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val baseOpacity = if (tile.isInstalled) transparency else 0.4f * transparency
-    val tileBackground = DotzTheme.colors.tile.copy(alpha = baseOpacity)
+    val tileBackground = if (isHighlighted) DotzTheme.colors.text.copy(alpha = 0.2f) else DotzTheme.colors.tile.copy(alpha = baseOpacity)
 
     val cachedBitmap = remember(tile.packageName, iconPackPackage, grayscale) {
         iconCache.getIcon(tile.packageName, iconPackPackage, grayscale)
@@ -94,7 +104,10 @@ private fun AppListTile(
             .clip(RoundedCornerShape(16.dp))
             .background(tileBackground)
             .combinedClickable(
-                onClick = onTap,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onTap()
+                },
                 onLongClick = onLongPress,
             )
             .padding(horizontal = 16.dp),
@@ -144,16 +157,47 @@ private fun AppListTile(
 
         Spacer(Modifier.width(16.dp))
 
-        // Label
-        Text(
-            text = tile.label,
-            style = DotzType.TileLabelStyle.copy(fontSize = 18.sp),
-            color = DotzTheme.colors.text,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        
-        // Badge could be added here if needed, but the image doesn't show any.
+        // Label and Usage Time
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = tile.label,
+                style = DotzType.TileLabelStyle.copy(fontSize = 18.sp),
+                color = DotzTheme.colors.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            if (tile.usageTime != null) {
+                Text(
+                    text = tile.usageTime,
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // ── Badge ─────────────────────────────────────────────────────────────
+        if (showBadge && (tile.badgeCount >= 0)) {
+            val showCount = tile.badgeCount > 0
+            Box(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(if (showCount) 24.dp else 10.dp)
+                    .clip(CircleShape)
+                    .background(DotzTheme.colors.badgeDot),
+                contentAlignment = Alignment.Center
+            ) {
+                if (showCount) {
+                    Text(
+                        text = if (tile.badgeCount > 99) "99+" else tile.badgeCount.toString(),
+                        color = if (DotzTheme.colors.badgeDot == Color.White) Color.Black else Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
     }
 }

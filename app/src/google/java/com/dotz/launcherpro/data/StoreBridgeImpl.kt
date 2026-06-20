@@ -32,6 +32,7 @@ class StoreBridgeImpl(
     override val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
     override val isUpgradeAvailable: Boolean = true
+    override val isLiteVersion: Boolean = false
 
     private val _monthlyPrice = MutableStateFlow("$1.99 / month")
     override val monthlyPrice: StateFlow<String> = _monthlyPrice.asStateFlow()
@@ -39,7 +40,7 @@ class StoreBridgeImpl(
     private val _yearlyPrice = MutableStateFlow("$14.99 / year")
     override val yearlyPrice: StateFlow<String> = _yearlyPrice.asStateFlow()
 
-    private val _lifetimePrice = MutableStateFlow("$29.99 once")
+    private val _lifetimePrice = MutableStateFlow("$0.99 / ₹110")
     override val lifetimePrice: StateFlow<String> = _lifetimePrice.asStateFlow()
 
     private var productDetailsList: List<ProductDetails> = emptyList()
@@ -92,7 +93,12 @@ class StoreBridgeImpl(
 
     private fun updatePremium(value: Boolean) {
         _isPremium.value = value
-        scope.launch { prefs.setPremium(value) }
+        // Only update preferences if we actually found a purchase.
+        // This prevents the Billing check from overwriting a 'true' value
+        // set by a promo code or other manual means.
+        if (value) {
+            scope.launch { prefs.setPremium(true) }
+        }
     }
 
     private fun queryProductDetails() {

@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.3] - 2026-06-26
+
+### Added
+- **Digital Balance Dashboard:** Replaced "Focus Stats" with a new **App Usage** card that displays your top 5 most-used apps and total screen time directly on the dashboard.
+- **Mindful Usage Tracking:** Real-time indicators of time spent on each app now appear directly on home screen tiles and in the app drawer.
+- **Selective Mindfulness Prompt:** A smart check-in appears when you try to open a social media app for the 11th time in a single day, helping you stay intentional with your digital habits.
+- **Mindfulness Settings:** Added a dedicated toggle in settings to enable or disable usage tracking and launch prompts.
+
+### Fixed
+- **Navigation Conflict:** Implemented a gesture dead zone at the bottom of the screen to prevent the app drawer from interfering with system navigation (Home/Recents).
+- **Accuracy Improvements:** Overhauled launch counting logic to ensure precise tracking of app openings by eliminating double-counted events.
+- **Permission Flow:** Added a guided prompt to help users easily grant the required "Usage Access" permission.
+
+## [5.5.2] - 2026-06-25
+
+### Added
+- **Digital Balance Dashboard:** Replaced "Focus Stats" with a new **App Usage** card that displays your top 5 most-used apps and total screen time directly on the dashboard.
+- **Mindful Usage Tracking:** Real-time indicators of time spent on each app now appear directly on home screen tiles and in the app drawer.
+- **Mindfulness Prompt:** A smart check-in appears when you try to open a social media app for the 11th time in a single day, helping you stay intentional with your digital habits.
+- **Interactive Dashboard:** Refined the dashboard experience. Buttons now distinguish between a quick tap and a long press.
+- **Direct Toggles:** Tapping dashboard icons (WiFi, Bluetooth, Dark Mode, Silent, Torch) now performs the action directly without opening settings where possible.
+- **Haptic Feedback:** Added tactile vibration feedback for long-press actions on the dashboard and for opening the app drawer.
+- **Movable Tiles:** Home screen tiles can now be rearranged via long-press and swap gesture.
+- **Refined Data Control:** Integrated the new Internet Connectivity Panel for quicker network management on modern Android versions.
+
+### Fixed
+- **Build Stability:** Resolved critical "Unresolved Reference" errors in `HomeFragment` and `AppSelectionActivity` that were causing build failures.
+- **ViewModel Logic:** Added missing `updateTileOverride` logic to properly handle custom app assignments for tiles.
+- **PRO Transition:** Prevented the app from automatically switching to Transparent mode when upgrading to PRO; it now maintains the current theme mode.
+
+### Changed
+- **Sound Profile Feedback:** Re-enabled status Toasts for sound profile toggles (Normal, Vibrate, Silent) for better visibility.
+
+## [5.5.1] - 2026-06-20
+
+### Added
+- **Rebrand:** Officially renamed the app to **Dotz Launcher** for a cleaner, more minimalist identity.
+- **Circadian Theming (PRO):** Subtle, dynamic UI color shifts based on the time of day (Cool morning tones, warm evening amber).
+- **Unified Theme Selector:** Redesigned theme settings with a 4-way mode selector (Light, Dark, Circadian, Transparent).
+- **PRO Dashboard Experience:** AI Summary and Dotz AI Assistant are now premium features, creating a clear distinction between utility and intelligence.
+- **Exclusive Lifetime Offer:** Permanent PRO access now available for a limited-time promotional price of $0.99 / ₹110.
+
+### Fixed
+- **PRO Redemption Fix:** Resolved an issue where promo codes wouldn't persist or unlock features correctly in certain build flavors.
+- **Context-Aware Wallpaper Settings:** Wallpaper controls now automatically hide when non-transparent themes are active to reduce clutter.
+
+### Changed
+- **Battery Optimization:** Suppressed high-frequency media polling when the dashboard is hidden and implemented 3-hour weather data caching.
+- **Settings UI Polish:** Updated "Unlock PRO" banners with detailed feature lists and improved visual hierarchy.
+
 ## [5.5.0] - 2026-06-15
 
 ### Added
@@ -9,7 +59,7 @@ All notable changes to this project will be documented in this file.
 - **Indus Appstore Support:** Fully optimized for the Indus Appstore with targeted SDK 36 support.
 - **Modern List Layout:** New alternative layout for home screen tiles with optimized 72dp height and 8dp spacing, fitting 6 tiles perfectly.
 - **Tile Transparency:** Added premium control for tile background opacity, allowing wallpapers to blend seamlessly.
-- **Accurate Weather:** Migrated to MET Norway (Yr.no) API for higher accuracy. Weather is now OFF by default for better privacy.
+- **Accurate Weather:** Migrated to Open-Meteo API for higher reliability and no-key access. Weather is now OFF by default for better privacy.
 - **Enhanced Subscription UI:** Dynamic pricing for Google Play variant with improved "Dotz Upgrade" screen.
 - **Compliance & Privacy:** Added mandatory "QUERY_ALL_PACKAGES" and Location disclosures for store compliance.
 

@@ -2,15 +2,18 @@
 package com.dotz.launcherpro.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
@@ -36,7 +39,17 @@ fun DotzHomeScreen(
     onAirplaneToggle: () -> Unit,
     onDarkModeToggle: () -> Unit,
     onDataClick: () -> Unit,
-    onWeatherClick: () -> Unit
+    onWeatherClick: () -> Unit,
+    onWifiLongClick: () -> Unit = {},
+    onBluetoothLongClick: () -> Unit = {},
+    onDataLongClick: () -> Unit = {},
+    onAirplaneLongClick: () -> Unit = {},
+    onSilentLongClick: () -> Unit = {},
+    onTorchLongClick: () -> Unit = {},
+    onDarkModeLongClick: () -> Unit = {},
+    onPageChanged: (Int) -> Unit,
+    onOpenDrawer: () -> Unit,
+    highlightedTileId: Int? = null
 ) {
     val pages = listOfNotNull(
         uiState.page0Tiles,
@@ -44,6 +57,10 @@ fun DotzHomeScreen(
         uiState.page2Tiles.takeIf { it.isNotEmpty() }
     )
     val pagerState = rememberPagerState(pageCount = { pages.size })
+
+    LaunchedEffect(pagerState.currentPage) {
+        onPageChanged(pagerState.currentPage)
+    }
 
     val backgroundModifier = if (uiState.settings.showWallpaper) {
         Modifier.background(
@@ -62,6 +79,44 @@ fun DotzHomeScreen(
             .then(backgroundModifier)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .pointerInput(uiState.settings.verticalScrolling) {
+                var totalDragX = 0f
+                var totalDragY = 0f
+                var hasTriggered = false
+                var isStartInDeadZone = false
+                
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        totalDragX = 0f
+                        totalDragY = 0f
+                        hasTriggered = false
+                        // Ignore gestures starting from the bottom 15% of the screen to avoid conflict with Recents/Home gestures
+                        isStartInDeadZone = offset.y > size.height * 0.85f
+                    },
+                    onDrag = { change, dragAmount ->
+                        if (!hasTriggered && !isStartInDeadZone) {
+                            totalDragX += dragAmount.x
+                            totalDragY += dragAmount.y
+
+                            if (uiState.settings.verticalScrolling) {
+                                // In vertical mode, swiping LEFT opens the drawer
+                                if (totalDragX < -150 && abs(totalDragX) > abs(totalDragY)) {
+                                    hasTriggered = true
+                                    onOpenDrawer()
+                                }
+                            } else {
+                                // In horizontal mode, swiping UP opens the drawer
+                                if (totalDragY < -150 && abs(totalDragY) > abs(totalDragX)) {
+                                    hasTriggered = true
+                                    onOpenDrawer()
+                                }
+                            }
+                            if (hasTriggered) change.consume()
+                        }
+                    },
+                    onDragEnd = { }
+                )
+            }
             .padding(bottom = 24.dp)
     ) {
         // ── Fixed Header (Integrated with Detox Panel) ────────────────────
@@ -77,7 +132,6 @@ fun DotzHomeScreen(
             isTorchOn = uiState.isTorchOn,
             isAirplaneModeOn = uiState.isAirplaneModeOn,
             isDarkModeOn = uiState.isDarkModeOn,
-            is24HourFormat = uiState.settings.is24HourFormat,
             transparency = uiState.settings.tileTransparency,
             onLauncherSettingsTap = onLauncherSettingsTap,
             onWifiToggle = onWifiToggle,
@@ -88,6 +142,13 @@ fun DotzHomeScreen(
             onDarkModeToggle = onDarkModeToggle,
             onDataClick = onDataClick,
             onWeatherClick = onWeatherClick,
+            onWifiLongClick = onWifiLongClick,
+            onBluetoothLongClick = onBluetoothLongClick,
+            onDataLongClick = onDataLongClick,
+            onAirplaneLongClick = onAirplaneLongClick,
+            onSilentLongClick = onSilentLongClick,
+            onTorchLongClick = onTorchLongClick,
+            onDarkModeLongClick = onDarkModeLongClick,
             modifier      = Modifier
                 .fillMaxWidth()
                 .weight(0.40f)
@@ -107,6 +168,7 @@ fun DotzHomeScreen(
                         iconPackPackage = uiState.settings.iconPackPackage,
                         showBadges = uiState.settings.showNotificationDots,
                         transparency = uiState.settings.tileTransparency,
+                        highlightedTileId = highlightedTileId,
                         onTileTap = onTileTap,
                         onTileLongPress = onTileLongPress,
                         modifier = Modifier.fillMaxSize()
@@ -119,6 +181,7 @@ fun DotzHomeScreen(
                         iconPackPackage = uiState.settings.iconPackPackage,
                         showBadges = uiState.settings.showNotificationDots,
                         transparency = uiState.settings.tileTransparency,
+                        highlightedTileId = highlightedTileId,
                         onTileTap = onTileTap,
                         onTileLongPress = onTileLongPress,
                         modifier = Modifier.fillMaxSize()
@@ -138,6 +201,7 @@ fun DotzHomeScreen(
                         iconPackPackage = uiState.settings.iconPackPackage,
                         showBadges = uiState.settings.showNotificationDots,
                         transparency = uiState.settings.tileTransparency,
+                        highlightedTileId = highlightedTileId,
                         onTileTap = onTileTap,
                         onTileLongPress = onTileLongPress,
                         modifier = Modifier.fillMaxSize()
@@ -150,6 +214,7 @@ fun DotzHomeScreen(
                         iconPackPackage = uiState.settings.iconPackPackage,
                         showBadges = uiState.settings.showNotificationDots,
                         transparency = uiState.settings.tileTransparency,
+                        highlightedTileId = highlightedTileId,
                         onTileTap = onTileTap,
                         onTileLongPress = onTileLongPress,
                         modifier = Modifier.fillMaxSize()

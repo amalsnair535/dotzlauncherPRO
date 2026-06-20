@@ -1,7 +1,8 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 package com.dotz.launcherpro.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +35,13 @@ fun DetoxPanel(
     onDarkModeToggle: () -> Unit,
     onSettingsClick: () -> Unit,
     onDataClick: () -> Unit,
+    onWifiLongClick: () -> Unit = {},
+    onBluetoothLongClick: () -> Unit = {},
+    onDataLongClick: () -> Unit = {},
+    onAirplaneLongClick: () -> Unit = {},
+    onSilentLongClick: () -> Unit = {},
+    onTorchLongClick: () -> Unit = {},
+    onDarkModeLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -52,25 +60,29 @@ fun DetoxPanel(
                 icon = if (isWifiEnabled) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
                 isActive = isWifiEnabled,
                 transparency = transparency,
-                onClick = onWifiToggle
+                onClick = onWifiToggle,
+                onLongClick = onWifiLongClick
             )
             DetoxIcon(
                 icon = if (isBluetoothEnabled) Icons.Rounded.Bluetooth else Icons.Rounded.BluetoothDisabled,
                 isActive = isBluetoothEnabled,
                 transparency = transparency,
-                onClick = onBluetoothToggle
+                onClick = onBluetoothToggle,
+                onLongClick = onBluetoothLongClick
             )
             DetoxIcon(
                 icon = Icons.Rounded.SwapVert,
                 isActive = true,
                 transparency = transparency,
-                onClick = onDataClick
+                onClick = onDataClick,
+                onLongClick = onDataLongClick
             )
             DetoxIcon(
                 icon = if (isAirplaneModeOn) Icons.Rounded.AirplanemodeActive else Icons.Rounded.AirplanemodeInactive,
                 isActive = isAirplaneModeOn,
                 transparency = transparency,
-                onClick = onAirplaneToggle
+                onClick = onAirplaneToggle,
+                onLongClick = onAirplaneLongClick
             )
         }
 
@@ -84,19 +96,22 @@ fun DetoxPanel(
                 icon = if (isSilentMode) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
                 isActive = !isSilentMode,
                 transparency = transparency,
-                onClick = onSilentToggle
+                onClick = onSilentToggle,
+                onLongClick = onSilentLongClick
             )
             DetoxIcon(
                 icon = if (isTorchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
                 isActive = isTorchOn,
                 transparency = transparency,
-                onClick = onTorchToggle
+                onClick = onTorchToggle,
+                onLongClick = onTorchLongClick
             )
             DetoxIcon(
                 icon = if (isDarkModeOn) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
                 isActive = isDarkModeOn,
                 transparency = transparency,
-                onClick = onDarkModeToggle
+                onClick = onDarkModeToggle,
+                onLongClick = onDarkModeLongClick
             )
             DetoxIcon(
                 icon = Icons.Rounded.Settings,
@@ -113,14 +128,18 @@ private fun DetoxIcon(
     icon: ImageVector,
     isActive: Boolean,
     transparency: Float,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
             .size(42.dp) // Slightly smaller for better fit in 2 rows
             .clip(CircleShape)
             .background(if (isActive) DotzTheme.colors.text.copy(alpha = 0.2f * transparency) else DotzTheme.colors.tile.copy(alpha = transparency.coerceAtLeast(0.4f)))
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(

@@ -19,12 +19,12 @@ data class DotzSettings(
     val useAdaptiveTheme: Boolean = false,
     val notificationFilterEnabled: Boolean = false,
     val isLightMode: Boolean = false,
-    val is24HourFormat: Boolean = true,
     val verticalScrolling: Boolean = false,
     val enableExtraPage: Boolean = false,
     val extraTileCount: Int = 6,
     val showWeatherInfo: Boolean = false,
-    val showWallpaper: Boolean = true,
+    val showMindfulUsage: Boolean = true,
+    val showWallpaper: Boolean = false,
     val enableDashboard: Boolean = false,
     val tileTransparency: Float = 1.0f,
     val layoutStyle: String = "classic",
@@ -34,8 +34,12 @@ data class DotzSettings(
     val focusStreak: Int = 0,
     val lastUsedDate: Long = 0,
     val focusTimeToday: Long = 0, // in milliseconds
+    val lastWeatherFetchTime: Long = 0,
     val isPremium: Boolean = false,
+    val useCircadianTheming: Boolean = false,
+    val enableAppDrawer: Boolean = false,
     val hasAcceptedAppDisclosure: Boolean = false,
+    val tileOrder: List<Int> = (0..17).toList(),
 )
 
 object PrefsKeys {
@@ -47,7 +51,6 @@ object PrefsKeys {
     val USE_ADAPTIVE_THEME      = booleanPreferencesKey("use_adaptive_theme")
     val NOTIFICATION_FILTER_ENABLED = booleanPreferencesKey("notification_filter_enabled")
     val IS_LIGHT_MODE           = booleanPreferencesKey("is_light_mode")
-    val IS_24_HOUR_FORMAT       = booleanPreferencesKey("is_24_hour_format")
     val VERTICAL_SCROLLING      = booleanPreferencesKey("vertical_scrolling")
     val ENABLE_EXTRA_PAGE       = booleanPreferencesKey("enable_extra_page")
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
@@ -63,8 +66,13 @@ object PrefsKeys {
     val FOCUS_STREAK = intPreferencesKey("focus_streak")
     val LAST_USED_DATE = longPreferencesKey("last_used_date")
     val FOCUS_TIME_TODAY = longPreferencesKey("focus_time_today")
+    val LAST_WEATHER_FETCH_TIME = longPreferencesKey("last_weather_fetch_time")
+    val SHOW_MINDFUL_USAGE = booleanPreferencesKey("show_mindful_usage")
     val IS_PREMIUM = booleanPreferencesKey("is_premium")
+    val USE_CIRCADIAN_THEMING = booleanPreferencesKey("use_circadian_theming")
+    val ENABLE_APP_DRAWER      = booleanPreferencesKey("enable_app_drawer")
     val HAS_ACCEPTED_APP_DISCLOSURE = booleanPreferencesKey("has_accepted_app_disclosure")
+    val TILE_ORDER              = stringPreferencesKey("tile_order")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -82,6 +90,15 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.tileLabel(id)]?.let { id to it }
             }.toMap()
 
+            val orderString = prefs[PrefsKeys.TILE_ORDER]
+            val order = if (orderString != null) {
+                try {
+                    orderString.split(",").map { it.toInt() }
+                } catch (e: Exception) { (0..17).toList() }
+            } else {
+                (0..17).toList()
+            }
+
             DotzSettings(
                 showNotificationDots = prefs[PrefsKeys.SHOW_NOTIFICATION_DOTS] ?: true,
                 showNumericalCounts  = prefs[PrefsKeys.SHOW_NUMERICAL_COUNTS]  ?: true,
@@ -91,12 +108,12 @@ class DotzPreferencesRepository(private val context: Context) {
                 useAdaptiveTheme     = prefs[PrefsKeys.USE_ADAPTIVE_THEME]      ?: false,
                 notificationFilterEnabled = prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] ?: false,
                 isLightMode          = prefs[PrefsKeys.IS_LIGHT_MODE]          ?: false,
-                is24HourFormat       = prefs[PrefsKeys.IS_24_HOUR_FORMAT]       ?: true,
                 verticalScrolling    = prefs[PrefsKeys.VERTICAL_SCROLLING]      ?: false,
                 enableExtraPage      = prefs[PrefsKeys.ENABLE_EXTRA_PAGE]        ?: false,
                 extraTileCount       = prefs[PrefsKeys.EXTRA_TILE_COUNT]         ?: 6,
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: false,
-                showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: true,
+                showMindfulUsage     = prefs[PrefsKeys.SHOW_MINDFUL_USAGE]       ?: true,
+                showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: false,
                 enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: false,
                 tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
                 layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
@@ -105,8 +122,12 @@ class DotzPreferencesRepository(private val context: Context) {
                 focusStreak          = prefs[PrefsKeys.FOCUS_STREAK] ?: 0,
                 lastUsedDate         = prefs[PrefsKeys.LAST_USED_DATE] ?: 0,
                 focusTimeToday       = prefs[PrefsKeys.FOCUS_TIME_TODAY] ?: 0,
+                lastWeatherFetchTime = prefs[PrefsKeys.LAST_WEATHER_FETCH_TIME] ?: 0,
                 isPremium            = prefs[PrefsKeys.IS_PREMIUM] ?: false,
-                hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false
+                useCircadianTheming  = prefs[PrefsKeys.USE_CIRCADIAN_THEMING] ?: false,
+                enableAppDrawer      = prefs[PrefsKeys.ENABLE_APP_DRAWER]      ?: false,
+                hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false,
+                tileOrder            = order
             )
         }
 
@@ -145,10 +166,6 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.IS_LIGHT_MODE] = value }
     }
 
-    suspend fun setIs24HourFormat(value: Boolean) {
-        context.dataStore.edit { it[PrefsKeys.IS_24_HOUR_FORMAT] = value }
-    }
-
     suspend fun setVerticalScrolling(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.VERTICAL_SCROLLING] = value }
     }
@@ -165,6 +182,10 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.SHOW_WEATHER_INFO] = value }
     }
 
+    suspend fun setLastWeatherFetchTime(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.LAST_WEATHER_FETCH_TIME] = value }
+    }
+
     suspend fun setShowWallpaper(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.SHOW_WALLPAPER] = value }
     }
@@ -173,8 +194,20 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.ENABLE_DASHBOARD] = value }
     }
 
+    suspend fun setShowMindfulUsage(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.SHOW_MINDFUL_USAGE] = value }
+    }
+
     suspend fun setPremium(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.IS_PREMIUM] = value }
+    }
+
+    suspend fun setUseCircadianTheming(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.USE_CIRCADIAN_THEMING] = value }
+    }
+
+    suspend fun setEnableAppDrawer(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.ENABLE_APP_DRAWER] = value }
     }
 
     suspend fun setHasAcceptedAppDisclosure(value: Boolean) {
@@ -194,6 +227,10 @@ class DotzPreferencesRepository(private val context: Context) {
             prefs[PrefsKeys.tileOverride(tileId)] = packageName
             prefs[PrefsKeys.tileLabel(tileId)]    = label
         }
+    }
+
+    suspend fun setTileOrder(order: List<Int>) {
+        context.dataStore.edit { it[PrefsKeys.TILE_ORDER] = order.joinToString(",") }
     }
 
     suspend fun updateFocusStats(streak: Int, lastDate: Long, timeToday: Long) {
@@ -229,7 +266,6 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.USE_ADAPTIVE_THEME] = settings.useAdaptiveTheme
                 prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = settings.notificationFilterEnabled
                 prefs[PrefsKeys.IS_LIGHT_MODE] = settings.isLightMode
-                prefs[PrefsKeys.IS_24_HOUR_FORMAT] = settings.is24HourFormat
                 prefs[PrefsKeys.VERTICAL_SCROLLING] = settings.verticalScrolling
                 prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = settings.enableExtraPage
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount
@@ -238,6 +274,9 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.ENABLE_DASHBOARD] = settings.enableDashboard
                 prefs[PrefsKeys.TILE_TRANSPARENCY] = settings.tileTransparency
                 prefs[PrefsKeys.LAYOUT_STYLE] = settings.layoutStyle
+                prefs[PrefsKeys.USE_CIRCADIAN_THEMING] = settings.useCircadianTheming
+                prefs[PrefsKeys.ENABLE_APP_DRAWER] = settings.enableAppDrawer
+                prefs[PrefsKeys.TILE_ORDER] = settings.tileOrder.joinToString(",")
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

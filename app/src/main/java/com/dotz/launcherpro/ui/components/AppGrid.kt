@@ -20,6 +20,7 @@ fun AppGrid(
     iconPackPackage: String?,
     showBadges: Boolean,
     transparency: Float = 1.0f,
+    highlightedTileId: Int? = null,
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit,
     modifier: Modifier = Modifier,
@@ -50,6 +51,7 @@ fun AppGrid(
                             iconPackPackage = iconPackPackage,
                             showBadge    = showBadges,
                             transparency = transparency,
+                            isHighlighted = tile.tileId == highlightedTileId,
                             onTap        = { onTileTap(tile) },
                             onLongPress  = { onTileLongPress(tile) },
                             modifier     = Modifier

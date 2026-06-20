@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Dotz Launcher PRO</string>
-    <string name="settings_title">Dotz PRO Settings</string>
+    <string name="app_name">Dotz Launcher</string>
+    <string name="settings_title">Dotz Settings</string>
     <string name="app_selection_title">Select App</string>
     <string name="notification_service_label">Dotz Notification Service</string>
 
@@ -14,5 +14,5 @@
     <!-- Accessibility / Utility strings -->
     <string name="loading_weather">Updating weather&#8230;</string>
     <string name="pro_version_label">PRO</string>
-    <string name="upgrade_to_pro">Upgrade to Dotz PRO</string>
+    <string name="upgrade_to_pro">Get Full Version</string>
 </resources>

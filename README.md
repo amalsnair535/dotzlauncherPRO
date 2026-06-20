@@ -1,10 +1,10 @@
-# Dotz Launcher PRO
+# Dotz Launcher
 
 <img width="250" height="250" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
 
 
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
-Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, Dotz Launcher PRO transforms your device into a tool rather than a distraction. It retains instant access to core daily workflows—like payments, music, and communication—while eliminating the visual noise that triggers mindless scrolling.
+Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, Dotz Launcher transforms your device into a tool rather than a distraction. It retains instant access to core daily workflows—like payments, music, and communication—while eliminating the visual noise that triggers mindless scrolling.
 
 ## 📱 Screenshots
 
@@ -16,10 +16,10 @@ Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, D
 
 
 ## 🧠 Core Philosophy
-Dotz Launcher PRO is a minimalist, high-intentionality dashboard designed to reduce digital clutter. It transforms your phone into a tool for productivity rather than a source of distraction by neutralizing eye-catching branding and introducing intentional friction.
+Dotz Launcher is a minimalist, high-intentionality dashboard designed to reduce digital clutter. It transforms your phone into a tool for productivity rather than a source of distraction by neutralizing eye-catching branding and introducing intentional friction.
 
 ## 🔭 The Vision (Dream)
-The development of Dotz Launcher PRO is driven by a vision of reclaiming our focus in an age of digital distraction. These videos encapsulate the inspiration and "dream" behind this project:
+The development of Dotz Launcher is driven by a vision of reclaiming our focus in an age of digital distraction. These videos encapsulate the inspiration and "dream" behind this project:
 *   [The Vision - Part 1](https://youtu.be/m39ZGAem1B8)
 *   [The Vision - Part 2](https://youtu.be/FFMwIhez3xw)
 
@@ -33,17 +33,17 @@ The development of Dotz Launcher PRO is driven by a vision of reclaiming our foc
 ### 1. The "Detox" Control Panel & Live Weather
 A fixed header on the home screen that provides quick access to system utilities and environment awareness:
 * **Time & Date:** Large, minimalist digital clock and date display.
-* **Live Weather:** Real-time temperature and condition display. One-tap to open your preferred weather app.
+* **Live Weather:** Real-time temperature and condition display powered by Open-Meteo.
 * **Live Status:** Real-time Battery percentage and Network status (WiFi/LTE/Eth).
-* **One-Tap Toggles:** Quick buttons for WiFi, Bluetooth, Silent Mode, Torch (Flashlight), Airplane Mode, and Dark Mode.
-* **Quick Data:** Direct access to Mobile Data and Roaming settings.
+* **Smart Toggles:** Fast actions for WiFi, Bluetooth, Dark Mode, Silent, and Torch. Long-press to open full settings.
+* **Connectivity Panel:** Direct access to modern system network controls.
 
-### 2. Pro Dashboard (Swipe Right - Optional)
-A dedicated minimalist workspace accessible by swiping right from the home screen (disabled by default, enable in settings), featuring essential info cards:
-* **Focus Stats:** Visualize your digital wellbeing with a circular progress gauge. Tracks focus time, notification blocks, and streaks.
-* **AI Summary:** Intelligent categorization of incoming notifications. See at a glance if you have important messages or missed calls without entering the notification shade.
-* **Now Playing:** Full media controls with progress tracking and metadata display for whatever you're listening to.
-* **Dotz AI Assistant:** Integrated generative AI support. Ask questions, get help, or copy responses directly from your dashboard.
+### 2. Digital Balance Dashboard (Swipe Right - Optional)
+A dedicated minimalist workspace featuring essential mindful insights:
+* **App Usage Stats:** Visualize your daily habits with a real-time list of your Top 5 most-used apps and total screen time.
+* **AI Summary:** Categorization of notifications to reduce notification shade anxiety.
+* **Now Playing:** Full media controls for your active music or podcasts.
+* **Dotz AI Assistant:** Integrated generative AI for quick, focused queries.
 
 ### 3. Dynamic Tile System (Expandable)
 * **Permanent Grid:** 12 tiles (2 pages) are permanently available for your essential daily workflows.
@@ -60,22 +60,24 @@ A dedicated minimalist workspace accessible by swiping right from the home scree
 * **Scroll Orientation:** Choose between Horizontal (classic) or Vertical (modern) page scrolling for tiles.
 
 ### 5. Mindful Management & Privacy
-* **Notification Management:** Toggle notification dots, numerical counts, and a smart "Distraction Filter" for social apps.
+* **Mindful Usage Tracking:** Real-time indicators of time spent on each app on tiles and in the drawer.
+* **Mindfulness Prompt:** Selective check-ins when opening social media apps too frequently.
+* **Notification Management:** Toggle dots, numerical counts, and a smart "Distraction Filter".
 * **Weather Toggle:** Show or hide live weather info on the home screen.
 * **Data Portability:** Full Backup & Restore via JSON files.
-* **Privacy Focused:** No data collection. All settings are stored locally. [Privacy Policy](PRIVACY_POLICY.md) | [Terms and Conditions](TERMS_AND_CONDITIONS.md).
+* **Privacy Focused:** No data collection. [Privacy Policy](PRIVACY_POLICY.md) | [Terms and Conditions](TERMS_AND_CONDITIONS.md).
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `5.5.0`
-* **Build Flavors:** `google` (Play Store with Billing) and `indus` (Indus Appstore / Lite)
+* **Version:** `5.5.3`
+* **Build Flavors:** `google` (Play Store) and `indus` (Indus Appstore / Lite)
 * **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)
-* **Target Android:** API 36 (Android 16 DP)
+* **Target Android:** API 35 (Android 15)
 
 ## ☕ Support the Project
-If Dotz Launcher PRO has helped you reclaim your focus, consider supporting its development!
+If Dotz Launcher has helped you reclaim your focus, consider supporting its development!
 
 **Buy Me a Coffee via UPI:**
 `amalsnair535-1@okhdfcbank`

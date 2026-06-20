@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.WindowCompat
+import com.dotz.launcherpro.data.DrawerApp
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
@@ -66,15 +67,15 @@ class AppSelectionActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppSelectionScreen(
-    apps: List<Pair<String, String>>,
+    apps: List<DrawerApp>,
     title: String,
     onBack: () -> Unit,
     onSelect: (String, String) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    val filtered = remember(query) {
+    val filtered = remember(query, apps) {
         if (query.isBlank()) apps
-        else apps.filter { it.second.contains(query, ignoreCase = true) }
+        else apps.filter { it.label.contains(query, ignoreCase = true) }
     }
 
     Scaffold(
@@ -123,12 +124,12 @@ private fun AppSelectionScreen(
             )
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filtered) { (pkg, label) ->
+                items(filtered) { app ->
                     AppRow(
-                        pkg = pkg, 
-                        label = label, 
+                        pkg = app.packageName, 
+                        label = app.label, 
                         onClick = { 
-                            onSelect(pkg, label)
+                            onSelect(app.packageName, app.label)
                         }
                     )
                 }

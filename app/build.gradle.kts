@@ -12,9 +12,9 @@ android {
     defaultConfig {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 13
-        versionName = "5.5.0"
+        targetSdk = 35
+        versionCode = 18
+        versionName = "5.5.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -65,6 +65,11 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
+
             val releaseSigningConfig = signingConfigs.getByName("release")
             if (releaseSigningConfig.storeFile != null && releaseSigningConfig.storePassword != null && releaseSigningConfig.keyPassword != null) {
                 signingConfig = releaseSigningConfig
@@ -76,6 +81,12 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
     }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

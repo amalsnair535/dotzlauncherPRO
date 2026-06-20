@@ -32,16 +32,14 @@ class StoreBridgeImpl(
     override val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
 
     override val isUpgradeAvailable: Boolean = false
+    override val isLiteVersion: Boolean = true
 
     override val monthlyPrice = MutableStateFlow("N/A")
     override val yearlyPrice = MutableStateFlow("N/A")
     override val lifetimePrice = MutableStateFlow("N/A")
 
     init {
-        // Ensure premium is false in prefs for Indus build
-        scope.launch {
-            prefs.setPremium(false)
-        }
+        // No forced reset to false - allows promo codes to persist
     }
 
     override fun refreshPremiumStatus() {

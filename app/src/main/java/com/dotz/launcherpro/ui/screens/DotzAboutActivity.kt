@@ -60,19 +60,59 @@ class DotzAboutActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun AboutScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val viewModel: LauncherViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    var showPromoDialog by remember { mutableStateOf(false) }
+
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "5.5.0"
+            packageInfo.versionName ?: "5.5.3"
         } catch (_: Exception) {
-            "5.5.0"
+            "5.5.3"
         }
+    }
+
+    if (showPromoDialog) {
+        var codeText by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showPromoDialog = false },
+            containerColor = DotzTheme.colors.tile,
+            title = { Text("Redeem Code", color = DotzTheme.colors.text) },
+            text = {
+                OutlinedTextField(
+                    value = codeText,
+                    onValueChange = { codeText = it },
+                    label = { Text("Enter Code") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = DotzTheme.colors.text,
+                        unfocusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.3f),
+                        cursorColor = DotzTheme.colors.text
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (viewModel.redeemPromoCode(codeText)) {
+                        Toast.makeText(context, "PRO Unlocked!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Invalid Code", Toast.LENGTH_SHORT).show()
+                    }
+                    showPromoDialog = false
+                }) { Text("REDEEM", color = DotzTheme.colors.text) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPromoDialog = false }) {
+                    Text("CANCEL", color = DotzTheme.colors.text.copy(alpha = 0.4f))
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -107,7 +147,7 @@ private fun AboutScreen(
         ) {
             item {
                 Text(
-                    text = "Dotz Launcher PRO",
+                    text = "Dotz Launcher",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = DotzTheme.colors.text
@@ -116,7 +156,11 @@ private fun AboutScreen(
                 Text(
                     text = "Version $versionName",
                     fontSize = 14.sp,
-                    color = DotzTheme.colors.text.copy(alpha = 0.5f)
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                    modifier = Modifier.combinedClickable(
+                        onClick = {},
+                        onLongClick = { showPromoDialog = true }
+                    )
                 )
             }
 
@@ -193,7 +237,7 @@ private fun AboutScreen(
                     subLabel = "Read our commitment to your privacy",
                     icon = Icons.Default.Code,
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://gist.github.com/amalsnair535/c114456d49cd0aed815bd79d5bbe05d4".toUri())
+                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/dotzlauncherPRO/blob/main/PRIVACY_POLICY.md".toUri())
                         context.startActivity(intent)
                     }
                 )
@@ -205,7 +249,7 @@ private fun AboutScreen(
                     subLabel = "Review our service terms",
                     icon = Icons.Default.Code,
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/dotzlauncherPRO/blob/bbb11de4532e26beec065f9dd5b0718494ab3b88/TERMS_AND_CONDITIONS.md".toUri())
+                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/dotzlauncherPRO/blob/main/TERMS_AND_CONDITIONS.md".toUri())
                         context.startActivity(intent)
                     }
                 )
@@ -253,7 +297,7 @@ private fun AboutScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Dotz Launcher PRO does not collect or store any personal data. All settings and configurations are kept locally on your device.",
+                        text = "Dotz Launcher does not collect or store any personal data. All settings and configurations are kept locally on your device.",
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                         color = DotzTheme.colors.text.copy(alpha = 0.6f)

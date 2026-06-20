@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,93 +84,106 @@ fun DashboardCard(
 }
 
 @Composable
-fun FocusStatsCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
+fun LockedDashboardCard(
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
     DashboardCard(
-        title = "FOCUS STATS",
-        icon = Icons.Default.FilterCenterFocus,
+        title = title,
+        icon = icon,
         modifier = modifier
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                val arcColor = DotzTheme.colors.text.copy(alpha = 0.05f)
-                val accentColor = DotzTheme.colors.accent
-                
-                androidx.compose.foundation.Canvas(modifier = Modifier.size(110.dp)) {
-                    val stroke = 10.dp.toPx()
-                    drawArc(
-                        color = arcColor,
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                    )
-                    
-                    // 6 hours (21,600,000 ms) is 100% of the circle
-                    val goalMillis = 6 * 60 * 60 * 1000L
-                    val sweepAngle = (uiState.focusTimeMillis.toFloat() / goalMillis * 360f).coerceIn(5f, 360f)
-                    
-                    drawArc(
-                        color = accentColor,
-                        startAngle = -90f,
-                        sweepAngle = sweepAngle,
-                        useCenter = false,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = uiState.focusTimeToday, 
-                        color = DotzTheme.colors.text,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "FOCUS TIME",
-                        color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                }
-            }
-            
-            Spacer(Modifier.height(16.dp))
-            
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatRow(uiState.blockedNotificationsCount.toString(), "Notifications Blocked")
-                StatRow("${uiState.focusStreak} Days", "Focus Streak")
-                StatRow("${uiState.blockedNotificationsCount * 2}m", "Time Saved Today")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = DotzTheme.colors.text.copy(alpha = 0.2f),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "PRO",
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
 
 @Composable
-fun StatRow(value: String, label: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+fun AppUsageCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
+    DashboardCard(
+        title = "APP USAGE",
+        icon = Icons.Default.BarChart,
+        modifier = modifier
     ) {
-        Text(text = value, color = DotzTheme.colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Text(
-            text = label, 
-            color = DotzTheme.colors.text.copy(alpha = 0.3f), 
-            fontSize = 10.sp, 
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (uiState.topApps.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        "Grant usage access to see stats",
+                        color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                uiState.topApps.take(5).forEach { app ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = app.label.uppercase(),
+                            color = DotzTheme.colors.text,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = app.usageTime ?: "0m",
+                            color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+            
+            HorizontalDivider(color = DotzTheme.colors.text.copy(alpha = 0.05f), thickness = 1.dp)
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "SCREEN TIME", 
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f), 
+                    fontSize = 9.sp, 
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    uiState.focusTimeToday, 
+                    color = DotzTheme.colors.accent, 
+                    fontSize = 12.sp, 
+                    fontWeight = FontWeight.Black
+                )
+            }
+        }
     }
 }
 

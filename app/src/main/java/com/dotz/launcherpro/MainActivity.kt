@@ -13,6 +13,7 @@ import com.dotz.launcherpro.ui.LauncherPagerAdapter
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -48,13 +49,23 @@ class MainActivity : AppCompatActivity() {
 
         // Start on Home Screen (index 1)
         viewPager.setCurrentItem(1, false)
+        viewModel.setDashboardVisible(false)
 
-        // Observe dashboard setting
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                viewModel.setDashboardVisible(position == 0)
+            }
+        })
+
+        // Observe dashboard setting and inner page state to prevent nested scroll conflicts
         lifecycleScope.launch {
-            viewModel.uiState.collectLatest { state ->
-                viewPager.isUserInputEnabled = state.settings.enableDashboard
-                if (!state.settings.enableDashboard && viewPager.currentItem != 1) {
-                    viewPager.setCurrentItem(1, false) // No animation to avoid flicker
+            combine(viewModel.uiState, viewModel.currentInnerPage) { state, innerPage ->
+                state.settings.enableDashboard to innerPage
+            }.collectLatest { (dashboardEnabled, innerPage) ->
+                viewPager.isUserInputEnabled = dashboardEnabled && (innerPage == 0 || viewPager.currentItem == 0)
+                
+                if (!dashboardEnabled && viewPager.currentItem != 1) {
+                    viewPager.setCurrentItem(1, false)
                 }
             }
         }

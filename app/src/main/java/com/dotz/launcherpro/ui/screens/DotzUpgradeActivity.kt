@@ -45,8 +45,6 @@ class DotzUpgradeActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            val monthlyPrice by viewModel.monthlyPrice.collectAsState()
-            val yearlyPrice by viewModel.yearlyPrice.collectAsState()
             val lifetimePrice by viewModel.lifetimePrice.collectAsState()
 
             // Close screen if premium status becomes true
@@ -59,8 +57,6 @@ class DotzUpgradeActivity : ComponentActivity() {
             DotzTheme(settings = uiState.settings) {
                 UpgradeScreen(
                     onBack = { finish() },
-                    monthlyPrice = monthlyPrice,
-                    yearlyPrice = yearlyPrice,
                     lifetimePrice = lifetimePrice,
                     onUpgrade = { planId ->
                         viewModel.buyProduct(this, planId)
@@ -74,13 +70,9 @@ class DotzUpgradeActivity : ComponentActivity() {
 @Composable
 private fun UpgradeScreen(
     onBack: () -> Unit,
-    monthlyPrice: String,
-    yearlyPrice: String,
     lifetimePrice: String,
     onUpgrade: (String) -> Unit
 ) {
-    var selectedPlanId by remember { mutableStateOf("dotz_pro_monthly") }
-
     Scaffold(
         containerColor = DotzTheme.colors.background,
         topBar = {
@@ -115,7 +107,7 @@ private fun UpgradeScreen(
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Dotz PRO",
+                    "Dotz Launcher PRO",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = DotzTheme.colors.text,
@@ -131,27 +123,29 @@ private fun UpgradeScreen(
 
             // Features List
             item {
+                FeatureRow("Transparent Mode (Custom Wallpapers)")
+                FeatureRow("Circadian Theming (Dynamic UI Colors)")
                 FeatureRow("Tile Transparency Control")
-                FeatureRow("Custom Home Wallpapers")
                 FeatureRow("Modern List Layout")
-                FeatureRow("Ad-free Experience")
+                FeatureRow("Premium Dashboard Experience")
                 Spacer(Modifier.height(40.dp))
             }
 
             // Plans
             item {
-                PlanCard("Monthly", monthlyPrice, selectedPlanId == "dotz_pro_monthly") { selectedPlanId = "dotz_pro_monthly" }
-                Spacer(Modifier.height(12.dp))
-                PlanCard("Yearly", yearlyPrice, selectedPlanId == "dotz_pro_yearly", "Save 40%") { selectedPlanId = "dotz_pro_yearly" }
-                Spacer(Modifier.height(12.dp))
-                PlanCard("Lifetime", lifetimePrice, selectedPlanId == "dotz_pro_lifetime") { selectedPlanId = "dotz_pro_lifetime" }
+                PlanCard(
+                    name = "Lifetime Access",
+                    price = lifetimePrice,
+                    isSelected = true,
+                    badge = "Limited Time Offer"
+                ) { /* Only one plan available */ }
                 Spacer(Modifier.height(40.dp))
             }
 
             // Subscribe Button
             item {
                 Button(
-                    onClick = { onUpgrade(selectedPlanId) },
+                    onClick = { onUpgrade("dotz_pro_lifetime") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -162,14 +156,14 @@ private fun UpgradeScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        "SUBSCRIBE NOW",
+                        "GET LIFETIME ACCESS",
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Cancel anytime. Terms apply.",
+                    "One-time purchase. No subscription.",
                     fontSize = 11.sp,
                     color = DotzTheme.colors.text.copy(alpha = 0.3f)
                 )
@@ -219,30 +213,36 @@ private fun PlanCard(
             .clickable(onClick = onClick)
             .padding(20.dp)
     ) {
-        Column {
-            Text(name, color = DotzTheme.colors.text, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text(price, color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 13.sp)
-        }
-        
-        if (badge != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .background(DotzTheme.colors.text, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Text(badge, color = DotzTheme.colors.background, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(name, color = DotzTheme.colors.text, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    if (badge != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(DotzTheme.colors.text, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(badge, color = DotzTheme.colors.background, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                Text(price, color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 13.sp)
             }
-        }
-        
-        RadioButton(
-            selected = isSelected,
-            onClick = onClick,
-            modifier = Modifier.align(Alignment.CenterEnd),
-            colors = RadioButtonDefaults.colors(
-                selectedColor = DotzTheme.colors.text,
-                unselectedColor = DotzTheme.colors.text.copy(alpha = 0.3f)
+            
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = DotzTheme.colors.text,
+                    unselectedColor = DotzTheme.colors.text.copy(alpha = 0.3f)
+                )
             )
-        )
+        }
     }
 }

@@ -20,6 +20,8 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
 import android.net.wifi.WifiManager
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.os.BatteryManager
 import android.os.Build
 import android.provider.MediaStore
@@ -42,6 +44,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.Calendar
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -76,7 +79,11 @@ data class LauncherUiState(
     val isUpdateAvailable: Boolean = false,
     val isPremium: Boolean = false,
     val isUpgradeAvailable: Boolean = true,
+    val isLiteVersion: Boolean = false,
+    val topApps: List<DrawerApp> = emptyList(),
 )
+
+enum class ThemeMode { LIGHT, DARK, CIRCADIAN, TRANSPARENT }
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -122,7 +129,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _aiResponse = MutableStateFlow<String?>(null)
     private val _isAiLoading = MutableStateFlow(false)
-    private val _refreshTrigger = MutableStateFlow(value = Unit)
+    private val _refreshTrigger = MutableStateFlow(Unit)
+
+    private val _isDashboardVisible = MutableStateFlow(false)
+    fun setDashboardVisible(visible: Boolean) {
+        _isDashboardVisible.value = visible
+    }
+
+    private val _currentInnerPage = MutableStateFlow(0)
+    val currentInnerPage: StateFlow<Int> = _currentInnerPage.asStateFlow()
+    fun setInnerPage(index: Int) {
+        _currentInnerPage.value = index
+    }
+
+    private val WEATHER_REFRESH_INTERVAL = 30 * 60 * 1000L // 30 minutes
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -248,6 +268,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         refreshWeather()
         
+        // Periodic update of weather
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(WEATHER_REFRESH_INTERVAL)
+                refreshWeather()
+            }
+        }
+
+        // Periodic update of usage stats
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(300_000) // Every 5 minutes
+                _refreshTrigger.value = Unit
+            }
+        }
+        
         // Register Media Session Listener
         val componentName = ComponentName(app, DotzNotificationService::class.java)
         try {
@@ -260,26 +296,34 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             while (true) {
                 kotlinx.coroutines.delay(1000)
                 val current = _playbackState.value
-                if (current.first) {
+                val dashboardEnabled = _uiState.value.settings.enableDashboard
+                val dashboardVisible = _isDashboardVisible.value
+
+                // Only update position if something is playing AND dashboard is actually visible to user
+                if (current.first && dashboardEnabled && dashboardVisible) {
                     val newPos = activeController?.playbackState?.position ?: current.second
-                    _playbackState.value = Triple(current.first, newPos, current.third)
+                    if (newPos != current.second) {
+                        _playbackState.value = Triple(current.first, newPos, current.third)
+                    }
                 }
 
                 // If no active controller, or current one is not playing, check for other playing sessions
-                if (activeController == null || !current.first) {
-                    val app = getApplication<Application>()
-                    val componentName = ComponentName(app, DotzNotificationService::class.java)
-                    try {
-                        val sessions = mediaSessionManager.getActiveSessions(componentName)
-                        if (sessions.isNotEmpty()) {
-                            val playingSession = sessions.find { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-                            if (playingSession != null && playingSession != activeController) {
-                                updateActiveController(sessions)
-                            } else if (activeController == null) {
-                                updateActiveController(sessions)
+                // but do this less frequently (e.g. every 5 seconds) to save battery
+                if (System.currentTimeMillis() % 5000 < 1000) {
+                    if (activeController == null || !current.first) {
+                        val componentName = ComponentName(app, DotzNotificationService::class.java)
+                        try {
+                            val sessions = mediaSessionManager.getActiveSessions(componentName)
+                            if (sessions.isNotEmpty()) {
+                                val playingSession = sessions.find { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+                                if (playingSession != null && playingSession != activeController) {
+                                    updateActiveController(sessions)
+                                } else if (activeController == null) {
+                                    updateActiveController(sessions)
+                                }
                             }
-                        }
-                    } catch (_: Exception) {}
+                        } catch (_: Exception) {}
+                    }
                 }
             }
         }
@@ -342,17 +386,42 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
                 val isDefault = isDefaultLauncher()
 
-                val allTiles = buildTiles(DefaultApps.allDefaults, settings, notifCounts)
+                val allTilesUnordered = buildTiles(DefaultApps.allDefaults, settings, notifCounts)
+                val allTiles = settings.tileOrder.mapNotNull { id ->
+                    allTilesUnordered.find { it.tileId == id }
+                }
 
                 val p0 = allTiles.take(6)
                 val p1 = allTiles.drop(6).take(6)
                 val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(settings.extraTileCount) else emptyList()
                 
-                val effectiveSettings = if (isPremiumStatus) settings else settings.copy(
+                val effectiveSettings = if (settings.isPremium || isPremiumStatus) settings else settings.copy(
                     tileTransparency = 1.0f,
                     layoutStyle = "classic",
-                    showWallpaper = false
+                    showWallpaper = false,
+                    useCircadianTheming = false
                 )
+
+                val allUsage = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap()
+
+                val allApps = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }, 0)
+                        .map { 
+                            val pkg = it.activityInfo.packageName
+                            val label = it.loadLabel(pm).toString()
+                            val stats = allUsage[pkg]
+                            DrawerApp(pkg, label, stats?.first, stats?.second ?: 0)
+                        }
+                        .distinctBy { it.packageName }
+
+                val topApps = allApps
+                    .filter { it.usageTime != null }
+                    .sortedByDescending { app ->
+                        val time = app.usageTime ?: "0m"
+                        val hours = if (time.contains("h")) time.substringBefore("h").trim().toInt() else 0
+                        val mins = if (time.contains("m")) time.substringAfter("h", time).substringBefore("m").trim().toInt() else 0
+                        hours * 60 + mins
+                    }
+                    .take(5)
 
                 LauncherUiState(
                     page0Tiles = p0,
@@ -382,10 +451,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     aiResponse = aiResp,
                     isAiLoading = aiLoading,
                     focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
-                    focusTimeMillis = settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime),
                     focusStreak = settings.focusStreak,
-                    isPremium = isPremiumStatus,
-                    isUpgradeAvailable = storeBridge.isUpgradeAvailable
+                    isPremium = settings.isPremium || isPremiumStatus,
+                    isUpgradeAvailable = storeBridge.isUpgradeAvailable,
+                    isLiteVersion = storeBridge.isLiteVersion,
+                    topApps = topApps
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -427,9 +497,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private fun formatDuration(millis: Long): String {
         val totalMinutes = millis / 60000
+        if (totalMinutes < 1) return "<1m"
         val hours = totalMinutes / 60
         val minutes = totalMinutes % 60
-        return "${hours}h ${minutes}m"
+        return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
     }
 
     private fun updateActiveController(controllers: List<MediaController>?) {
@@ -484,6 +555,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ── System Toggles ────────────────────────────────────────────────────────
 
     fun toggleWifi() {
+        val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        getApplication<Application>().startActivity(intent)
+    }
+
+    fun toggleWifiDirect() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val intent = Intent(Settings.Panel.ACTION_WIFI)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -498,6 +575,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         getApplication<Application>().startActivity(intent)
+    }
+
+    fun toggleBluetoothDirect() {
+        try {
+            val isEnabled = bluetoothAdapter?.isEnabled == true
+            if (isEnabled) {
+                bluetoothAdapter?.disable()
+            } else {
+                bluetoothAdapter?.enable()
+            }
+        } catch (_: SecurityException) {
+            // If permission is missing, opening settings is the only fallback
+            toggleBluetooth()
+        } catch (_: Exception) {
+            toggleBluetooth()
+        }
     }
 
     fun toggleSilentMode() {
@@ -545,10 +638,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         getApplication<Application>().startActivity(intent)
     }
 
+    fun toggleAirplaneModeDirect() {
+        toggleAirplaneMode() // Always requires settings on modern Android
+    }
+
     fun toggleDarkMode() {
         val intent = Intent(Settings.ACTION_DISPLAY_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         getApplication<Application>().startActivity(intent)
+    }
+
+    fun toggleDarkModeDirect() {
+        setIsLightMode(!uiState.value.settings.isLightMode)
     }
 
     // ── Media Controls ────────────────────────────────────────────────────────
@@ -615,31 +716,25 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun openMobileDataSettings() {
         val app = getApplication<Application>()
-        Log.d("DotzAction", "openMobileDataSettings triggered")
-        
-        // Strategy: Try the most direct intent, then fall back to the most general ones.
-        // On some devices, opening a specific settings sub-page without proper permissions
-        // or if it doesn't exist can cause a SecurityException or ActivityNotFoundException.
-        
-        val actions = listOf(
-            Settings.ACTION_DATA_ROAMING_SETTINGS,
-            "android.settings.DATA_ROAMING_SETTINGS",
-            "android.settings.NETWORK_OPERATOR_SETTINGS",
-            Settings.ACTION_WIRELESS_SETTINGS,
-            Settings.ACTION_SETTINGS
-        )
+        val intent = Intent(Settings.ACTION_DATA_ROAMING_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            app.startActivity(intent)
+        } catch (_: Exception) {
+            val fallback = Intent(Settings.ACTION_SETTINGS)
+            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(fallback)
+        }
+    }
 
-        for (action in actions) {
-            try {
-                Log.d("DotzAction", "Trying action: $action")
-                val intent = Intent(action)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                app.startActivity(intent)
-                Log.d("DotzAction", "Success with action: $action")
-                return
-            } catch (e: Exception) {
-                Log.w("DotzAction", "Failed action $action: ${e.message}")
-            }
+    fun toggleMobileDataDirect() {
+        val app = getApplication<Application>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val intent = Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(intent)
+        } else {
+            openMobileDataSettings()
         }
     }
 
@@ -692,53 +787,77 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun refreshWeather(force: Boolean = false) {
-        if (!force && !uiState.value.settings.showWeatherInfo) return
+        viewModelScope.launch {
+            val settings = prefs.settingsFlow.first()
+            if (!force && !settings.showWeatherInfo) return@launch
+            
+            val now = System.currentTimeMillis()
+            if (!force && (now - settings.lastWeatherFetchTime < WEATHER_REFRESH_INTERVAL)) return@launch
 
-        storeBridge.getCurrentLocation(
-            callback = { lat: Double, lon: Double -> fetchWeather(lat, lon) },
-            fallback = { fetchWeather() }
-        )
+            prefs.setLastWeatherFetchTime(now)
+            storeBridge.getCurrentLocation(
+                callback = { lat: Double, lon: Double -> fetchWeather(lat, lon) },
+                fallback = { fetchWeather() }
+            )
+        }
     }
 
     private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
         viewModelScope.launch {
             try {
-                // MET Norway (Yr.no) API requires a User-Agent.
-                val url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=$lat&lon=$lon"
+                // Using Open-Meteo API - Free, reliable, and no API key required
+                val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true"
                 
-                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                connection.setRequestProperty("User-Agent", "DotzLauncher/1.0 (github.com/amalsnair535/dotzlauncherPRO)")
+                val result = withContext(Dispatchers.IO) {
+                    val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
+                    
+                    val responseCode = connection.responseCode
+                    if (responseCode == 200) {
+                        connection.inputStream.bufferedReader().use { it.readText() }
+                    } else {
+                        throw Exception("HTTP $responseCode")
+                    }
+                }
                 
-                val result = connection.inputStream.bufferedReader().use { it.readText() }
                 val json = Gson().fromJson(result, JsonObject::class.java)
+                val current = json.getAsJsonObject("current_weather")
                 
-                val properties = json.getAsJsonObject("properties")
-                val timeseries = properties.getAsJsonArray("timeseries")
-                val latest = timeseries.get(0).asJsonObject
-                val data = latest.getAsJsonObject("data")
-                val instant = data.getAsJsonObject("instant")
-                val details = instant.getAsJsonObject("details")
-                val next1h = data.getAsJsonObject("next_1_hours")
-                val summary = next1h.getAsJsonObject("summary")
-                
-                val temp = details.get("air_temperature").getAsDouble()
-                val symbolCode = summary.get("symbol_code").asString
-                
-                _weatherTemp.value = "${temp.toInt()}°C"
-                _weatherCondition.value = formatSymbolCode(symbolCode)
+                if (current != null) {
+                    val temp = current.get("temperature").asDouble
+                    val weatherCode = current.get("weathercode").asInt
+                    
+                    _weatherTemp.value = "${temp.toInt()}°C"
+                    _weatherCondition.value = mapWmoCode(weatherCode)
+                }
             } catch (e: Exception) {
-                Log.e("DotzWeather", "Failed to fetch weather from MET Norway", e)
-                // Default fallback
-                _weatherTemp.value = "28°C"
-                _weatherCondition.value = "Cloudy"
+                Log.e("DotzWeather", "Failed to fetch weather: ${e.message}")
+                // Clear the cache time so we can retry sooner on error
+                prefs.setLastWeatherFetchTime(0L)
+                if (_weatherTemp.value == null) {
+                    _weatherTemp.value = "--°C"
+                    _weatherCondition.value = "Offline"
+                }
             }
         }
     }
 
-    private fun formatSymbolCode(code: String): String {
-        return code.split("_")
-            .first()
-            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+    private fun mapWmoCode(code: Int): String {
+        return when (code) {
+            0 -> "Clear"
+            1, 2, 3 -> "Partly Cloudy"
+            45, 48 -> "Foggy"
+            51, 53, 55 -> "Drizzle"
+            61, 63, 65 -> "Rain"
+            66, 67 -> "Freezing Rain"
+            71, 73, 75 -> "Snow"
+            77 -> "Snow grains"
+            80, 81, 82 -> "Rain Showers"
+            85, 86 -> "Snow Showers"
+            95, 96, 99 -> "Thunderstorm"
+            else -> "Cloudy"
+        }
     }
 
     private fun isDefaultLauncher(): Boolean {
@@ -769,15 +888,63 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // ── App Logic ─────────────────────────────────────────────────────────────
 
+    private fun getAllAppStatsToday(): Map<String, Pair<String?, Int>> {
+        val usm = getApplication<Application>().getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startTime = calendar.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        val statsMap = mutableMapOf<String, Long>()
+        val countMap = mutableMapOf<String, Int>()
+
+        try {
+            // Get Usage Time
+            val aggregateStats = usm.queryAndAggregateUsageStats(startTime, endTime)
+            aggregateStats?.forEach { (pkg, stat) ->
+                statsMap[pkg] = stat.totalTimeInForeground
+            }
+
+            // Get Launch Count
+            val events = usm.queryEvents(startTime, endTime)
+            val event = UsageEvents.Event()
+            while (events != null && events.hasNextEvent()) {
+                events.getNextEvent(event)
+                // Use only MOVE_TO_FOREGROUND to avoid double counting with ACTIVITY_RESUMED
+                if (event.packageName != null && event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    countMap[event.packageName] = (countMap[event.packageName] ?: 0) + 1
+                }
+            }
+        } catch (_: Exception) {}
+
+        return (statsMap.keys + countMap.keys).associateWith { pkg ->
+            val totalMillis = statsMap[pkg] ?: 0L
+            val timeStr = if (totalMillis > 60000) formatDuration(totalMillis) else null
+            val count = countMap[pkg] ?: 0
+            timeStr to count
+        }
+    }
+
     private fun buildTiles(
         defaults: List<AppTile>,
         settings: DotzSettings,
         notifCounts: Map<String, Int>
     ): List<AppTile> {
+        val allStats = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap()
+        
         return defaults.map { tile ->
             val pkg = settings.tileOverrides[tile.tileId] ?: resolvePackage(tile.packageName)
             val label = settings.tileLabels[tile.tileId] ?: tile.label
             val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
+            
+            val stats = allStats[pkg]
+            val usageTime = stats?.first
+            val launchCount = stats?.second ?: 0
+            
             val count = if (settings.showNotificationDots) {
                 val raw = notifCounts[pkg] ?: -1
                 // Show numerical counts for Dialer (0), WhatsApp (1), and Messaging (2) tiles, 
@@ -794,7 +961,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             } else {
                 -1
             }
-            tile.copy(packageName = pkg, label = label, badgeCount = count, isInstalled = installed)
+            tile.copy(
+                packageName = pkg, 
+                label = label, 
+                badgeCount = count, 
+                isInstalled = installed,
+                usageTime = usageTime,
+                launchCount = launchCount
+            )
         }
     }
 
@@ -811,14 +985,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         true
     } catch (_: PackageManager.NameNotFoundException) { false }
 
-    fun onTileTapped(tile: AppTile) {
-        DotzNotificationService.clearBadge(tile.packageName)
-        DotzNotificationService.cancelNotificationsForPackage(tile.packageName)
-    }
-
-    fun updateTileOverride(tileId: Int, packageName: String, label: String) {
+    fun moveTile(fromId: Int, toId: Int) {
         viewModelScope.launch {
-            prefs.setTileOverride(tileId, packageName, label)
+            val currentOrder = uiState.value.settings.tileOrder.toMutableList()
+            val fromIndex = currentOrder.indexOf(fromId)
+            val toIndex = currentOrder.indexOf(toId)
+            if (fromIndex != -1 && toIndex != -1) {
+                val item = currentOrder.removeAt(fromIndex)
+                currentOrder.add(toIndex, item)
+                prefs.setTileOrder(currentOrder)
+            }
         }
     }
 
@@ -837,10 +1013,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setIsLightMode(value: Boolean) = viewModelScope.launch {
         prefs.setIsLightMode(value)
         iconCache.clearCache() // Icons might need re-rendering for light mode if grayscale is on
-    }
-
-    fun setIs24HourFormat(value: Boolean) = viewModelScope.launch {
-        prefs.setIs24HourFormat(value)
     }
 
     fun setGrayscaleMode(value: Boolean) = viewModelScope.launch {
@@ -865,6 +1037,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (value) refreshWeather(force = true)
     }
 
+    fun setShowMindfulUsage(value: Boolean) = viewModelScope.launch {
+        prefs.setShowMindfulUsage(value)
+    }
+
+    fun hasUsageStatsPermission(): Boolean {
+        val appOps = getApplication<Application>().getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getApplication<Application>().packageName)
+        } else {
+            appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getApplication<Application>().packageName)
+        }
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
     fun setShowWallpaper(value: Boolean) = viewModelScope.launch {
         prefs.setShowWallpaper(value)
     }
@@ -879,6 +1065,43 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setLayoutStyle(value: String) = viewModelScope.launch {
         prefs.setLayoutStyle(value)
+    }
+
+    fun setUseCircadianTheming(value: Boolean) = viewModelScope.launch {
+        prefs.setUseCircadianTheming(value)
+    }
+
+    fun setEnableAppDrawer(value: Boolean) = viewModelScope.launch {
+        prefs.setEnableAppDrawer(value)
+    }
+
+    fun updateTileOverride(tileId: Int, pkg: String, label: String) = viewModelScope.launch {
+        prefs.setTileOverride(tileId, pkg, label)
+    }
+
+    fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
+        when (mode) {
+            ThemeMode.LIGHT -> {
+                prefs.setIsLightMode(true)
+                prefs.setUseCircadianTheming(false)
+                prefs.setShowWallpaper(false)
+            }
+            ThemeMode.DARK -> {
+                prefs.setIsLightMode(false)
+                prefs.setUseCircadianTheming(false)
+                prefs.setShowWallpaper(false)
+            }
+            ThemeMode.CIRCADIAN -> {
+                prefs.setIsLightMode(false)
+                prefs.setUseCircadianTheming(true)
+                prefs.setShowWallpaper(false)
+            }
+            ThemeMode.TRANSPARENT -> {
+                prefs.setIsLightMode(false)
+                prefs.setUseCircadianTheming(false)
+                prefs.setShowWallpaper(true)
+            }
+        }
     }
 
     fun setIconPackPackage(value: String?) = viewModelScope.launch {
@@ -902,6 +1125,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setHasAcceptedAppDisclosure(true)
     }
 
+    fun redeemPromoCode(code: String): Boolean {
+        return if (code.trim().uppercase() == "DOTZPRO2026") {
+            viewModelScope.launch {
+                prefs.setPremium(true)
+            }
+            true
+        } else {
+            false
+        }
+    }
+
     suspend fun exportSettings(): String {
         return prefs.exportSettings()
     }
@@ -910,18 +1144,26 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return prefs.importSettings(json)
     }
 
-    fun getInstalledApps(): List<Pair<String, String>> {
+    fun getInstalledApps(): List<DrawerApp> {
         val intent = Intent(Intent.ACTION_MAIN)
         intent.addCategory(Intent.CATEGORY_LAUNCHER)
+        
+        val allStats = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap()
+        
         return pm.queryIntentActivities(intent, 0)
             .asSequence()
-            .map { it.activityInfo.packageName to (it.loadLabel(pm).toString()) }
-            .distinctBy { it.first }
-            .sortedBy { it.second }
+            .map { 
+                val pkg = it.activityInfo.packageName
+                val label = it.loadLabel(pm).toString()
+                val stats = allStats[pkg]
+                DrawerApp(pkg, label, stats?.first, stats?.second ?: 0)
+            }
+            .distinctBy { it.packageName }
+            .sortedBy { it.label }
             .toList()
     }
 
-    fun getInstalledAppsForTile(tileId: Int): List<Pair<String, String>> {
+    fun getInstalledAppsForTile(tileId: Int): List<DrawerApp> {
         val allApps = getInstalledApps()
         
         val filtered = when (tileId) {
@@ -947,22 +1189,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             10 -> filterByKeywords(allApps, listOf("note", "keep", "memo", "todo", "sticky", "journal", "list", "writ"))
             11 -> filterByKeywords(allApps, listOf("settings", "config", "manage", "setup", "launcher", "dotz"))
             else -> return allApps // Tiles 12+ (Extra Page) can select any app
-        }.asSequence().distinctBy { it.first }.sortedBy { it.second }.toList()
+        }.asSequence().distinctBy { it.packageName }.sortedBy { it.label }.toList()
 
         // If for some reason the filtered list is empty (e.g., no matching app), 
         // allow all apps so the user isn't stuck with an unassignable tile.
         return if (filtered.isEmpty()) allApps else filtered
     }
 
-    private fun filterByIntent(apps: List<Pair<String, String>>, intent: Intent): List<Pair<String, String>> {
+    private fun filterByIntent(apps: List<DrawerApp>, intent: Intent): List<DrawerApp> {
         val resolved = pm.queryIntentActivities(intent, 0).map { it.activityInfo.packageName }.toSet()
-        return apps.filter { resolved.contains(it.first) }
+        return apps.filter { resolved.contains(it.packageName) }
     }
 
-    private fun filterByKeywords(apps: List<Pair<String, String>>, keywords: List<String>): List<Pair<String, String>> {
-        return apps.filter { (pkg, label) ->
+    private fun filterByKeywords(apps: List<DrawerApp>, keywords: List<String>): List<DrawerApp> {
+        return apps.filter { app ->
             keywords.any { kw -> 
-                label.contains(kw, ignoreCase = true) || pkg.contains(kw, ignoreCase = true)
+                app.label.contains(kw, ignoreCase = true) || app.packageName.contains(kw, ignoreCase = true)
             }
         }
     }

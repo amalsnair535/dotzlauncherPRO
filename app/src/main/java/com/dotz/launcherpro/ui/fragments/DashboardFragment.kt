@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -115,9 +117,23 @@ class DashboardFragment : Fragment() {
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
             ) {
-                FocusStatsCard(uiState = uiState, modifier = Modifier.weight(1f).fillMaxHeight())
-                Spacer(Modifier.width(16.dp))
-                AiSummaryCard(uiState = uiState, modifier = Modifier.weight(1f).fillMaxHeight())
+                AppUsageCard(
+                    uiState = uiState, 
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+                
+                if (!uiState.isLiteVersion) {
+                    Spacer(Modifier.width(16.dp))
+                    if (uiState.isPremium) {
+                        AiSummaryCard(uiState = uiState, modifier = Modifier.weight(1f).fillMaxHeight())
+                    } else {
+                        LockedDashboardCard(
+                            title = "AI SUMMARY",
+                            icon = Icons.Default.AutoAwesome,
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -130,14 +146,24 @@ class DashboardFragment : Fragment() {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(16.dp))
+            if (!uiState.isLiteVersion) {
+                Spacer(Modifier.height(16.dp))
 
-            AiAssistantCard(
-                uiState = uiState,
-                onAsk = { viewModel.askAi(it) },
-                onClear = { viewModel.clearAi() },
-                modifier = Modifier.fillMaxWidth()
-            )
+                if (uiState.isPremium) {
+                    AiAssistantCard(
+                        uiState = uiState,
+                        onAsk = { viewModel.askAi(it) },
+                        onClear = { viewModel.clearAi() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LockedDashboardCard(
+                        title = "DOTZ AI",
+                        icon = Icons.Default.AutoAwesome,
+                        modifier = Modifier.fillMaxWidth().height(120.dp)
+                    )
+                }
+            }
             
             Spacer(Modifier.height(48.dp))
         }

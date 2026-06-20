@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DotzLauncherPRO"
+rootProject.name = "Dotz Launcher"
 include(":app")
