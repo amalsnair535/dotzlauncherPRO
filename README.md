@@ -1,6 +1,6 @@
 # Dotz Launcher PRO
 
-<img width="512" height="512" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
+<img width="250" height="250" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
 
 
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
@@ -8,11 +8,11 @@ Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, D
 
 ## 📱 Screenshots
 
-<img width="1216" height="2640" alt="Screenshot_20260528_185227" src="https://github.com/user-attachments/assets/8e61b238-2c68-4a21-b280-aaad62f926ed" />
-<img width="1216" height="2640" alt="Screenshot_20260528_185236" src="https://github.com/user-attachments/assets/bf43ca8a-c1d8-4e97-995f-bf335f333160" />
-<img width="1216" height="2640" alt="Screenshot_20260528_185243" src="https://github.com/user-attachments/assets/1232f336-f964-4065-a45f-49854bf40dd2" />
-<img width="1216" height="2640" alt="Screenshot_20260528_185213" src="https://github.com/user-attachments/assets/bfe07841-ba61-481f-a305-6eeed14253e8" />
-<img width="1216" height="2640" alt="Screenshot_20260528_185221" src="https://github.com/user-attachments/assets/f0bd87dd-f994-4395-a28c-e122092e1b0f" />
+<img width="1920" height="1080" alt="LIGHT_20260621_002632_0000" src="https://github.com/user-attachments/assets/073609d8-3262-471f-b19c-cd0a600e36ee" />
+<img width="1920" height="1080" alt="LIGHT_20260621_002951_0000" src="https://github.com/user-attachments/assets/d0437a42-fd82-4958-b988-593773fbfa1e" />
+<img width="1615" height="974" alt="file_000000008fb4720b944af88ccb91f6e5" src="https://github.com/user-attachments/assets/ad25bae7-e8fe-4023-95dd-640183a5676a" />
+<img width="1678" height="937" alt="file_000000004d5c720b963e08ec84d72b38" src="https://github.com/user-attachments/assets/ebd632d9-64cc-4e0f-b8ed-2deed5050220" />
+
 
 
 ## 🧠 Core Philosophy
