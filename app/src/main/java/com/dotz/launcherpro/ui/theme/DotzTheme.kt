@@ -3,12 +3,10 @@ package com.dotz.launcherpro.ui.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.data.DotzSettings
 import com.dotz.launcherpro.data.ThemePresets
@@ -118,6 +116,26 @@ fun DotzTheme(
         dateText = text.copy(alpha = 0.6f)
     )
 
+    // Font Handling
+    val fontFamily = remember(settings.fontId) { DotzType.getFontFamily(settings.fontId) }
+    val materialTypography = Typography(
+        displayLarge = TextStyle(fontFamily = fontFamily),
+        displayMedium = TextStyle(fontFamily = fontFamily),
+        displaySmall = TextStyle(fontFamily = fontFamily),
+        headlineLarge = TextStyle(fontFamily = fontFamily),
+        headlineMedium = TextStyle(fontFamily = fontFamily),
+        headlineSmall = TextStyle(fontFamily = fontFamily),
+        titleLarge = TextStyle(fontFamily = fontFamily),
+        titleMedium = TextStyle(fontFamily = fontFamily),
+        titleSmall = TextStyle(fontFamily = fontFamily),
+        bodyLarge = TextStyle(fontFamily = fontFamily),
+        bodyMedium = TextStyle(fontFamily = fontFamily),
+        bodySmall = TextStyle(fontFamily = fontFamily),
+        labelLarge = TextStyle(fontFamily = fontFamily),
+        labelMedium = TextStyle(fontFamily = fontFamily),
+        labelSmall = TextStyle(fontFamily = fontFamily)
+    )
+
     val materialColorScheme = if (darkTheme) {
         darkColorScheme(
             primary = accent,
@@ -141,6 +159,7 @@ fun DotzTheme(
     CompositionLocalProvider(LocalDotzColors provides dotzColors) {
         MaterialTheme(
             colorScheme = materialColorScheme,
+            typography = materialTypography,
             content = content
         )
     }

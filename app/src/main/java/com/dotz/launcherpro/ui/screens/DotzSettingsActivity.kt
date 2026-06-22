@@ -158,7 +158,8 @@ class DotzSettingsActivity : ComponentActivity() {
                     },
                     onCreateProfile = viewModel::createProfile,
                     onDeleteProfile = viewModel::deleteProfile,
-                    onSwitchProfile = viewModel::switchProfile
+                    onSwitchProfile = viewModel::switchProfile,
+                    onFontChange      = viewModel::setFontId
                 )
             }
         }
@@ -200,8 +201,10 @@ private fun DotzSettingsScreen(
     onCreateProfile: (String) -> Unit,
     onDeleteProfile: (String) -> Unit,
     onSwitchProfile: (String) -> Unit,
+    onFontChange: (String) -> Unit,
 ) {
     var showIconPackDialog by remember { mutableStateOf(value = false) }
+    var showFontDialog by remember { mutableStateOf(false) }
     var showExperimentalDashboardDialog by remember { mutableStateOf(false) }
     var showAppDrawerWarningDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
@@ -266,9 +269,14 @@ private fun DotzSettingsScreen(
                 ProfileManagementCard(
                     activeId = settings.activeProfileId,
                     profiles = settings.profiles,
+                    isPremium = settings.isPremium,
+                    isUpgradeAvailable = isUpgradeAvailable,
                     onSwitch = onSwitchProfile,
                     onDelete = onDeleteProfile,
-                    onAddClick = { showCreateProfileDialog = true }
+                    onAddClick = { 
+                        if (!isUpgradeAvailable || settings.isPremium) showCreateProfileDialog = true
+                        else showPremiumDialog = true
+                    }
                 )
             }
 
@@ -552,6 +560,18 @@ private fun DotzSettingsScreen(
                 )
             }
 
+            item {
+                FontSelectionRow(
+                    currentFontId = settings.fontId,
+                    isPremium = settings.isPremium,
+                    isUpgradeAvailable = isUpgradeAvailable,
+                    onClick = { 
+                        if (!isUpgradeAvailable || settings.isPremium) showFontDialog = true
+                        else showPremiumDialog = true
+                    }
+                )
+            }
+
             // ── Section: Backup & Restore ─────────────────────────────────
             item { Spacer(Modifier.height(8.dp)); SectionHeader("BACKUP & RESTORE") }
             item {
@@ -594,6 +614,17 @@ private fun DotzSettingsScreen(
                 showIconPackDialog = false
             },
             onDismiss = { showIconPackDialog = false },
+        )
+    }
+
+    if (showFontDialog) {
+        FontSelectionDialog(
+            currentFontId = settings.fontId,
+            onSelect = { 
+                onFontChange(it)
+                showFontDialog = false
+            },
+            onDismiss = { showFontDialog = false }
         )
     }
 
@@ -704,6 +735,8 @@ private fun DotzSettingsScreen(
 private fun ProfileManagementCard(
     activeId: String,
     profiles: List<com.dotz.launcherpro.data.LauncherProfile>,
+    isPremium: Boolean,
+    isUpgradeAvailable: Boolean,
     onSwitch: (String) -> Unit,
     onDelete: (String) -> Unit,
     onAddClick: () -> Unit
@@ -727,12 +760,17 @@ private fun ProfileManagementCard(
         )
         
         customProfiles.forEach { profile ->
+            val isLocked = isUpgradeAvailable && !isPremium
             ProfileRow(
                 name = profile.name.uppercase(),
                 isActive = activeId == profile.id,
                 canDelete = true,
-                onClick = { onSwitch(profile.id) },
-                onDelete = { onDelete(profile.id) }
+                isLocked = isLocked,
+                onClick = { 
+                    if (!isLocked) onSwitch(profile.id) 
+                    else { /* Controlled by parent showPremiumDialog via onAddClick logic if needed, or handled here */ }
+                },
+                onDelete = { if (!isLocked) onDelete(profile.id) }
             )
         }
         
@@ -742,9 +780,13 @@ private fun ProfileManagementCard(
             onClick = onAddClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.Add, null, tint = DotzTheme.colors.text, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Add, null, tint = if (isUpgradeAvailable && !isPremium) DotzTheme.colors.text.copy(alpha = 0.4f) else DotzTheme.colors.text, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text("CREATE NEW PROFILE", color = DotzTheme.colors.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("CREATE NEW PROFILE", color = if (isUpgradeAvailable && !isPremium) DotzTheme.colors.text.copy(alpha = 0.4f) else DotzTheme.colors.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            if (isUpgradeAvailable && !isPremium) {
+                Spacer(Modifier.width(8.dp))
+                PremiumBadge()
+            }
         }
     }
 }
@@ -754,6 +796,7 @@ private fun ProfileRow(
     name: String,
     isActive: Boolean,
     canDelete: Boolean,
+    isLocked: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -768,16 +811,22 @@ private fun ProfileRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = name,
-            color = if (isActive) Color.Black else DotzTheme.colors.text,
-            fontSize = 13.sp,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-            letterSpacing = 1.sp
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = name,
+                color = if (isActive) Color.Black else if (isLocked) DotzTheme.colors.text.copy(alpha = 0.4f) else DotzTheme.colors.text,
+                fontSize = 13.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                letterSpacing = 1.sp
+            )
+            if (isLocked && !isActive) {
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.Lock, null, tint = DotzTheme.colors.text.copy(alpha = 0.4f), modifier = Modifier.size(12.dp))
+            }
+        }
         
         if (canDelete) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp), enabled = !isLocked) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = null,
@@ -787,6 +836,119 @@ private fun ProfileRow(
             }
         }
     }
+}
+
+@Composable
+private fun FontSelectionRow(
+    currentFontId: String,
+    isPremium: Boolean,
+    isUpgradeAvailable: Boolean,
+    onClick: () -> Unit
+) {
+    val fonts = listOf(
+        "default" to "System Default",
+        "inter" to "Inter",
+        "manrope" to "Manrope",
+        "roboto" to "Roboto",
+        "ibm_plex_sans" to "IBM Plex Sans",
+        "space_grotesk" to "Space Grotesk",
+        "outfit" to "Outfit",
+        "jakarta" to "Plus Jakarta Sans",
+        "sora" to "Sora",
+        "jetbrains_mono" to "JetBrains Mono",
+        "ibm_plex_mono" to "IBM Plex Mono",
+        "space_mono" to "Space Mono",
+        "dm_sans" to "DM Sans",
+        "instrument" to "Instrument Sans",
+        "work_sans" to "Work Sans"
+    )
+    
+    val displayName = fonts.find { it.first == currentFontId }?.second ?: "System Default"
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("App Font", color = if (isUpgradeAvailable && !isPremium) DotzTheme.colors.text.copy(alpha = 0.4f) else DotzTheme.colors.text, fontSize = 14.sp)
+                if (isUpgradeAvailable) {
+                    Spacer(Modifier.width(8.dp))
+                    PremiumBadge()
+                }
+            }
+            Text(
+                displayName,
+                color    = DotzTheme.colors.text.copy(alpha = 0.35f),
+                fontSize = 11.sp,
+                maxLines = 1
+            )
+        }
+        Icon(
+            if (isUpgradeAvailable && !isPremium) Icons.Default.Lock else Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = DotzTheme.colors.text.copy(alpha = 0.4f),
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+private fun FontSelectionDialog(
+    currentFontId: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val fonts = listOf(
+        "default" to "System Default",
+        "inter" to "Inter",
+        "manrope" to "Manrope",
+        "roboto" to "Roboto",
+        "ibm_plex_sans" to "IBM Plex Sans",
+        "space_grotesk" to "Space Grotesk",
+        "outfit" to "Outfit",
+        "jakarta" to "Plus Jakarta Sans",
+        "sora" to "Sora",
+        "jetbrains_mono" to "JetBrains Mono",
+        "ibm_plex_mono" to "IBM Plex Mono",
+        "space_mono" to "Space Mono",
+        "dm_sans" to "DM Sans",
+        "instrument" to "Instrument Sans",
+        "work_sans" to "Work Sans"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = DotzTheme.colors.tile,
+        title = { Text("Select App Font", color = DotzTheme.colors.text, fontSize = 16.sp) },
+        text = {
+            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                items(fonts.size) { index ->
+                    val (id, name) = fonts[index]
+                    Text(
+                        name,
+                        color = if (currentFontId == id) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(id) }
+                            .padding(vertical = 12.dp),
+                        fontSize = 14.sp,
+                        fontFamily = com.dotz.launcherpro.ui.theme.DotzType.getFontFamily(id)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CANCEL", color = DotzTheme.colors.text, fontSize = 13.sp)
+            }
+        }
+    )
 }
 
 @Composable

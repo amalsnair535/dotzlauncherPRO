@@ -1199,6 +1199,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setEnableAppDrawer(value)
     }
 
+    fun setFontId(value: String) = viewModelScope.launch {
+        prefs.setFontId(value)
+    }
+
     fun updateTileOverride(tileId: Int, pkg: String, label: String) = viewModelScope.launch {
         prefs.setTileOverride(tileId, pkg, label)
     }
@@ -1298,7 +1302,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun getInstalledAppsForTile(tileId: Int): List<DrawerApp> {
         val allApps = getInstalledApps()
+        val currentProfileId = uiState.value.settings.activeProfileId
         
+        // If it's a custom profile, allow all apps for all tiles
+        if (currentProfileId != "default") return allApps
+        
+        // Smart suggestions only for the Default profile
         val filtered = when (tileId) {
             0 -> filterByIntent(allApps, Intent(Intent.ACTION_DIAL)) + 
                  filterByIntent(allApps, Intent(Intent.ACTION_VIEW).apply { data = "tel:".toUri() }) +
