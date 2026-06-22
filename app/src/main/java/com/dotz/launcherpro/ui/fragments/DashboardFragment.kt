@@ -119,6 +119,7 @@ class DashboardFragment : Fragment() {
             ) {
                 AppUsageCard(
                     uiState = uiState, 
+                    onClick = { viewModel.openDigitalWellbeing() },
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 

@@ -13,8 +13,8 @@ android {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "5.5.3"
+        versionCode = 20
+        versionName = "5.5.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -65,20 +65,20 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            
+
             ndk {
                 debugSymbolLevel = "FULL"
             }
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
 
             val releaseSigningConfig = signingConfigs.getByName("release")
             if (releaseSigningConfig.storeFile != null && releaseSigningConfig.storePassword != null && releaseSigningConfig.keyPassword != null) {
                 signingConfig = releaseSigningConfig
             }
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            signingConfig = signingConfigs.getByName("release")
         }
     }
 

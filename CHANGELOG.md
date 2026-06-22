@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.5] - 2026-06-28
+
+### Added
+- **Stability & Maintenance:** Improved backend tracking of screen time for 100% accuracy.
+- **Enhanced Debugging:** Integrated native debug symbol generation to improve crash analysis in Google Play Console.
+
+### Fixed
+- **Screen Time Accuracy:** Resolved a final discrepancy in total usage time by refining foreground event tracking.
+- **Optimized UI:** Further reduced lag on transition between home and dashboard.
+
+## [5.5.4] - 2026-06-27
+
+### Added
+- **A-Z App Drawer:** The "All Apps" drawer is now alphabetically grouped with section headers (A, B, C...) for faster navigation.
+- **Improved Usage Accuracy:** Screen time calculation has been rewritten to perfectly match system Digital Wellbeing metrics by excluding launcher and system UI time.
+- **Background Optimization:** Computation of app lists and usage stats now runs on a dedicated background thread, eliminating lag in settings and menus.
+
+### Fixed
+- **App Selection Stability:** Fixed an issue where apps would occasionally not show up in the selection window during remapping.
+- **Weather Reliability:** Fully migrated to Open-Meteo for more robust and accurate weather fetching without the need for API keys.
+
 ## [5.5.3] - 2026-06-26
 
 ### Added
@@ -12,8 +33,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Navigation Conflict:** Implemented a gesture dead zone at the bottom of the screen to prevent the app drawer from interfering with system navigation (Home/Recents).
-- **Accuracy Improvements:** Overhauled launch counting logic to ensure precise tracking of app openings by eliminating double-counted events.
+- **Accuracy Overhaul:** Rewrote usage tracking logic to match system Digital Wellbeing metrics exactly. Fixed a bug that caused "random" high screen time numbers.
 - **Permission Flow:** Added a guided prompt to help users easily grant the required "Usage Access" permission.
+- **App Usage Link:** Tapping the App Usage card on the dashboard now opens the system Digital Wellbeing settings.
 
 ## [5.5.2] - 2026-06-25
 

@@ -2,6 +2,7 @@ package com.dotz.launcherpro.ui.components
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -118,11 +119,11 @@ fun LockedDashboardCard(
 }
 
 @Composable
-fun AppUsageCard(uiState: LauncherUiState, modifier: Modifier = Modifier) {
+fun AppUsageCard(uiState: LauncherUiState, onClick: () -> Unit, modifier: Modifier = Modifier) {
     DashboardCard(
         title = "APP USAGE",
         icon = Icons.Default.BarChart,
-        modifier = modifier
+        modifier = modifier.clickable { onClick() }
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

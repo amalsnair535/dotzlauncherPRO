@@ -130,6 +130,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _aiResponse = MutableStateFlow<String?>(null)
     private val _isAiLoading = MutableStateFlow(false)
     private val _refreshTrigger = MutableStateFlow(Unit)
+    private val _usageStats = MutableStateFlow<Pair<Map<String, Pair<String?, Int>>, Long>>(emptyMap<String, Pair<String?, Int>>() to 0L)
+    private val _installedAppsCache = MutableStateFlow<List<DrawerApp>>(emptyList())
 
     private val _isDashboardVisible = MutableStateFlow(false)
     fun setDashboardVisible(visible: Boolean) {
@@ -335,6 +337,24 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        // Heavy data updates (Apps & Usage)
+        viewModelScope.launch(Dispatchers.IO) {
+            _refreshTrigger.collect {
+                val usage = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap<String, Pair<String?, Int>>() to 0L
+                _usageStats.value = usage
+
+                val apps = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }, 0)
+                    .map {
+                        val pkg = it.activityInfo.packageName
+                        val label = it.loadLabel(pm).toString()
+                        val stats = usage.first[pkg]
+                        DrawerApp(pkg, label, stats?.first, stats?.second ?: 0)
+                    }
+                    .distinctBy { it.packageName }
+                _installedAppsCache.value = apps
+            }
+        }
+
         // Main UI State combination
         viewModelScope.launch {
             combine(
@@ -357,7 +377,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _aiResponse,
                 _isAiLoading,
                 storeBridge.isPremium,
-                _refreshTrigger
+                _usageStats,
+                _installedAppsCache
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
@@ -382,11 +403,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val aiResp = args[16] as String?
                 val aiLoading = args[17] as Boolean
                 val isPremiumStatus = args[18] as Boolean
-                // args[19] is _refreshTrigger
+                @Suppress("UNCHECKED_CAST")
+                val usageResult = args[19] as Pair<Map<String, Pair<String?, Int>>, Long>
+                @Suppress("UNCHECKED_CAST")
+                val allApps = args[20] as List<DrawerApp>
 
                 val isDefault = isDefaultLauncher()
+                val allUsage = usageResult.first
+                val totalTimeMillis = usageResult.second
 
-                val allTilesUnordered = buildTiles(DefaultApps.allDefaults, settings, notifCounts)
+                val allTilesUnordered = buildTilesFast(DefaultApps.allDefaults, settings, notifCounts, allUsage)
                 val allTiles = settings.tileOrder.mapNotNull { id ->
                     allTilesUnordered.find { it.tileId == id }
                 }
@@ -401,17 +427,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     showWallpaper = false,
                     useCircadianTheming = false
                 )
-
-                val allUsage = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap()
-
-                val allApps = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }, 0)
-                        .map { 
-                            val pkg = it.activityInfo.packageName
-                            val label = it.loadLabel(pm).toString()
-                            val stats = allUsage[pkg]
-                            DrawerApp(pkg, label, stats?.first, stats?.second ?: 0)
-                        }
-                        .distinctBy { it.packageName }
 
                 val topApps = allApps
                     .filter { it.usageTime != null }
@@ -450,7 +465,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     playbackDuration = playback.third,
                     aiResponse = aiResp,
                     isAiLoading = aiLoading,
-                    focusTimeToday = formatDuration(settings.focusTimeToday + (System.currentTimeMillis() - sessionStartTime)),
+                    focusTimeToday = formatDuration(totalTimeMillis),
                     focusStreak = settings.focusStreak,
                     isPremium = settings.isPremium || isPremiumStatus,
                     isUpgradeAvailable = storeBridge.isUpgradeAvailable,
@@ -786,6 +801,24 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun openDigitalWellbeing() {
+        val app = getApplication<Application>()
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            component = ComponentName("com.google.android.apps.wellbeing", "com.google.android.apps.wellbeing.home.TopLevelSettingsActivity")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            app.startActivity(intent)
+        } catch (_: Exception) {
+            // Fallback for non-pixel/Google devices
+            try {
+                val fallback = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                app.startActivity(fallback)
+            } catch (_: Exception) {}
+        }
+    }
+
     fun refreshWeather(force: Boolean = false) {
         viewModelScope.launch {
             val settings = prefs.settingsFlow.first()
@@ -888,7 +921,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // ── App Logic ─────────────────────────────────────────────────────────────
 
-    private fun getAllAppStatsToday(): Map<String, Pair<String?, Int>> {
+    private fun getAllAppStatsToday(): Pair<Map<String, Pair<String?, Int>>, Long> {
         val usm = getApplication<Application>().getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -901,31 +934,121 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         val statsMap = mutableMapOf<String, Long>()
         val countMap = mutableMapOf<String, Int>()
+        
+        // Accurate total usage tracking using events
+        var totalScreenTime = 0L
+        val myPackage = getApplication<Application>().packageName
 
         try {
-            // Get Usage Time
+            // 1. Get Per-App Foreground Time
             val aggregateStats = usm.queryAndAggregateUsageStats(startTime, endTime)
             aggregateStats?.forEach { (pkg, stat) ->
-                statsMap[pkg] = stat.totalTimeInForeground
-            }
-
-            // Get Launch Count
-            val events = usm.queryEvents(startTime, endTime)
-            val event = UsageEvents.Event()
-            while (events != null && events.hasNextEvent()) {
-                events.getNextEvent(event)
-                // Use only MOVE_TO_FOREGROUND to avoid double counting with ACTIVITY_RESUMED
-                if (event.packageName != null && event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                    countMap[event.packageName] = (countMap[event.packageName] ?: 0) + 1
+                val time = stat.totalTimeInForeground
+                if (time > 0) {
+                    statsMap[pkg] = time
                 }
             }
+
+            // 2. Get Accurate Total Screen Time & Launch Counts from Events
+            val events = usm.queryEvents(startTime, endTime)
+            val event = UsageEvents.Event()
+            
+            var currentForegroundPackage: String? = null
+            var foregroundStartTime = 0L
+
+            while (events != null && events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val pkg = event.packageName ?: continue
+                
+                when (event.eventType) {
+                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                        // Launch Count: only count apps with launcher icons
+                        if (pm.getLaunchIntentForPackage(pkg) != null) {
+                            countMap[pkg] = (countMap[pkg] ?: 0) + 1
+                        }
+                        
+                        // Total usage calculation:
+                        // Digital Wellbeing typically excludes the launcher and system UI.
+                        val isCountedApp = pkg != myPackage && 
+                                          pkg != "com.android.systemui" && 
+                                          pm.getLaunchIntentForPackage(pkg) != null
+
+                        if (isCountedApp) {
+                            if (currentForegroundPackage == null) {
+                                foregroundStartTime = event.timeStamp
+                            }
+                            currentForegroundPackage = pkg
+                        } else {
+                            // If we switch to launcher or system UI, stop the timer for the previous app
+                            if (currentForegroundPackage != null) {
+                                totalScreenTime += (event.timeStamp - foregroundStartTime)
+                                currentForegroundPackage = null
+                            }
+                        }
+                    }
+                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                        if (currentForegroundPackage == pkg) {
+                            totalScreenTime += (event.timeStamp - foregroundStartTime)
+                            currentForegroundPackage = null
+                        }
+                    }
+                }
+            }
+            
+            // If an app is still in foreground and it's not the launcher
+            if (currentForegroundPackage != null && currentForegroundPackage != myPackage) {
+                totalScreenTime += (endTime - foregroundStartTime)
+            }
+
         } catch (_: Exception) {}
 
-        return (statsMap.keys + countMap.keys).associateWith { pkg ->
+        val appStats = (statsMap.keys + countMap.keys).associateWith { pkg ->
             val totalMillis = statsMap[pkg] ?: 0L
             val timeStr = if (totalMillis > 60000) formatDuration(totalMillis) else null
             val count = countMap[pkg] ?: 0
             timeStr to count
+        }
+        
+        // Safeguard: Total screen time cannot exceed actual elapsed time since midnight
+        val elapsedToday = endTime - startTime
+        val finalTotal = totalScreenTime.coerceIn(0L, elapsedToday)
+        
+        return appStats to finalTotal
+    }
+
+    private fun buildTilesFast(
+        defaults: List<AppTile>,
+        settings: DotzSettings,
+        notifCounts: Map<String, Int>,
+        allUsage: Map<String, Pair<String?, Int>>
+    ): List<AppTile> {
+        return defaults.map { tile ->
+            val pkg = settings.tileOverrides[tile.tileId] ?: resolvePackage(tile.packageName)
+            val label = settings.tileLabels[tile.tileId] ?: tile.label
+            val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
+            
+            val stats = allUsage[pkg]
+            val usageTime = stats?.first
+            val launchCount = stats?.second ?: 0
+            
+            val count = if (settings.showNotificationDots) {
+                val raw = notifCounts[pkg] ?: -1
+                val isNumericAllowed = tile.tileId in 0..2 || DefaultApps.numericBadgePackages.contains(pkg)
+                
+                if (raw > 0 && settings.showNumericalCounts && isNumericAllowed) raw
+                else if (raw >= 0) 0
+                else -1
+            } else {
+                -1
+            }
+            tile.copy(
+                packageName = pkg, 
+                label = label, 
+                badgeCount = count, 
+                isInstalled = installed,
+                usageTime = usageTime,
+                launchCount = launchCount
+            )
         }
     }
 
@@ -934,7 +1057,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         settings: DotzSettings,
         notifCounts: Map<String, Int>
     ): List<AppTile> {
-        val allStats = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap()
+        val usageResult = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap<String, Pair<String?, Int>>() to 0L
+        val allStats = usageResult.first
         
         return defaults.map { tile ->
             val pkg = settings.tileOverrides[tile.tileId] ?: resolvePackage(tile.packageName)
@@ -1145,22 +1269,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun getInstalledApps(): List<DrawerApp> {
-        val intent = Intent(Intent.ACTION_MAIN)
-        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+        val cached = _installedAppsCache.value
+        if (cached.isNotEmpty()) return cached
         
-        val allStats = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap()
-        
+        // Simple synchronous fallback (no usage stats) to ensure list isn't empty
+        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
         return pm.queryIntentActivities(intent, 0)
-            .asSequence()
             .map { 
                 val pkg = it.activityInfo.packageName
                 val label = it.loadLabel(pm).toString()
-                val stats = allStats[pkg]
-                DrawerApp(pkg, label, stats?.first, stats?.second ?: 0)
+                DrawerApp(pkg, label, null, 0)
             }
             .distinctBy { it.packageName }
             .sortedBy { it.label }
-            .toList()
     }
 
     fun getInstalledAppsForTile(tileId: Int): List<DrawerApp> {

@@ -42,6 +42,13 @@ fun AppDrawerSheet(
             else apps.filter { it.label.contains(query, ignoreCase = true) }
         }
 
+        val grouped = remember(filtered) {
+            filtered
+                .sortedBy { it.label.uppercase() }
+                .groupBy { it.label.trim().firstOrNull()?.uppercaseChar() ?: '#' }
+                .toSortedMap()
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -75,40 +82,50 @@ fun AppDrawerSheet(
 
             Spacer(Modifier.height(8.dp))
 
-            // Pure Text List
+            // Grouped Text List
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 40.dp)
             ) {
-                items(filtered) { app ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onLaunch(app.packageName) }
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                grouped.forEach { (initial, appsInGroup) ->
+                    item {
                         Text(
-                            text = app.label.uppercase(),
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Light,
-                            modifier = Modifier.weight(1f)
+                            text = initial.toString(),
+                            color = Color.White.copy(alpha = 0.2f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp, start = 4.dp)
                         )
-                        
-                        if (app.usageTime != null) {
-                            Text(
-                                text = app.usageTime,
-                                color = Color.White.copy(alpha = 0.3f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
                     }
-                    // Optional subtle divider
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+                    items(appsInGroup) { app ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onLaunch(app.packageName) }
+                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = app.label.uppercase(),
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Light,
+                                modifier = Modifier.weight(1f)
+                            )
+                            
+                            if (app.usageTime != null) {
+                                Text(
+                                    text = app.usageTime,
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        // Optional subtle divider
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+                    }
                 }
             }
         }

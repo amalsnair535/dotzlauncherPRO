@@ -74,8 +74,9 @@ private fun AppSelectionScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = remember(query, apps) {
-        if (query.isBlank()) apps
+        val list = if (query.isBlank()) apps
         else apps.filter { it.label.contains(query, ignoreCase = true) }
+        list.sortedBy { it.label.uppercase() }
     }
 
     Scaffold(
