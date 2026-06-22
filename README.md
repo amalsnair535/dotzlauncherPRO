@@ -2,6 +2,8 @@
 
 <img width="200" height="200" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
 
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
+
 
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
 Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, Dotz Launcher transforms your device into a tool rather than a distraction. It retains instant access to core daily workflows—like payments, music, and communication—while eliminating the visual noise that triggers mindless scrolling.
@@ -27,6 +29,7 @@ The development of Dotz Launcher is driven by a vision of reclaiming our focus i
 
 ### 0. Website & Community
 * **Official Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
+* **Google Play:** [Get it on Google Play](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
 * **GitHub Repository:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
 * **Indus Appstore:** [Download on Indus Appstore](https://indusapp.store/u6nshrvm)
 
