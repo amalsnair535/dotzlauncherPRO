@@ -1,6 +1,6 @@
 # Dotz Launcher
 
-<img width="250" height="250" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
+<img width="200" height="200" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
 
 
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
