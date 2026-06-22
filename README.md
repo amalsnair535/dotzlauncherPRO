@@ -30,42 +30,45 @@ The development of Dotz Launcher is driven by a vision of reclaiming our focus i
 * **GitHub Repository:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
 * **Indus Appstore:** [Download on Indus Appstore](https://indusapp.store/u6nshrvm)
 
-### 1. The "Detox" Control Panel & Live Weather
-A fixed header on the home screen that provides quick access to system utilities and environment awareness:
-* **Time & Date:** Large, minimalist digital clock and date display.
-* **Live Weather:** Real-time temperature and condition display powered by Open-Meteo.
-* **Live Status:** Real-time Battery percentage and Network status (WiFi/LTE/Eth).
-* **Smart Toggles:** Fast actions for WiFi, Bluetooth, Dark Mode, Silent, and Torch. Long-press to open full settings.
-* **Connectivity Panel:** Direct access to modern system network controls.
+### 1. The "Detox" Control Panel (Fixed Header)
+A permanent command center at the top of your home screen providing quick access to system utilities:
+* **Minimalist Awareness:** Large digital clock, date, and real-time battery/network status.
+* **Smart Toggles:** Fast actions for WiFi, Bluetooth, Silent, Torch, and Dark Mode. Tap for direct toggle, long-press for full system settings.
+* **Open-Meteo Weather:** Reliable, zero-tracking live temperature and condition display.
+* **Connectivity Panel:** One-tap access to modern system network controls on Android 12+.
 
-### 2. Digital Balance Dashboard (Swipe Right - Optional)
+### 2. Digital Balance & Mindfulness
+Designed to neutralize triggers and build intentional habits:
+* **Real-Time Usage Tracking:** See exactly how much time you’ve spent in each app today directly on home screen tiles and in the app drawer.
+* **Selective Mindfulness Prompt:** A "Mindful Check" appears when opening social media apps for the 11th time in a day, showing usage stats before proceeding.
+* **Accurate Screen Time:** Recalculated usage engine that matches system Digital Wellbeing metrics exactly.
+* **Digital Wellbeing Link:** Quick access to your phone’s official wellbeing dashboard directly from the app usage card.
+
+### 3. Pro Dashboard (Swipe Right - Optional)
 A dedicated minimalist workspace featuring essential mindful insights:
-* **App Usage Stats:** Visualize your daily habits with a real-time list of your Top 5 most-used apps and total screen time.
-* **AI Summary:** Categorization of notifications to reduce notification shade anxiety.
-* **Now Playing:** Full media controls for your active music or podcasts.
-* **Dotz AI Assistant:** Integrated generative AI for quick, focused queries.
+* **Digital Balance Card:** Breakdown of your **Top 5** most-used apps and total daily screen time.
+* **Now Playing:** Full media controls with metadata, sleek progress bar, and transport buttons.
+* **AI Summary:** Intelligent categorization of notifications to reduce notification shade clutter.
+* **Dotz AI Assistant:** Integrated generative AI for quick, focused queries and support.
 
-### 3. Dynamic Tile System (Expandable)
-* **Permanent Grid:** 12 tiles (2 pages) are permanently available for your essential daily workflows.
-* **Modern Layouts:** Choose between the classic **Grid Layout** or the new **List Layout** (Premium), optimized for 6 tiles per screen.
-* **Tile Transparency:** Full control over tile background opacity (Premium) to showcase your wallpaper.
-* **Extra Capacity:** Support for an optional 3rd page with adjustable tile counts (1-6).
-* **Universal Remapping:** Every single slot can be assigned to any app installed on your device.
-* **Intelligent Suggestions:** The app picker suggests relevant apps (e.g., Phone apps for the "CALL" tile) but allows you to scroll and pick anything else.
+### 4. Dynamic Tile System (Expandable)
+* **Customizable Grid:** Up to **18 tiles** across three pages for your daily workflows.
+* **Movable Tiles:** Rearrange your home screen by long-pressing to "lift" and swapping positions.
+* **Universal Remapping:** Every slot can be assigned to any app with intelligent categorized suggestions.
+* **Layout Modes:** Choose between a high-impact **Grid Layout** or a focused **List Layout** (Premium).
 
-### 4. Visual & Aesthetic Customization
-* **Monochrome UI:** A grayscale-first interface that eliminates colorful app badges.
-* **Grayscale Mode:** Toggle to force all app icons into beautiful black-and-white.
+### 5. Visual & Aesthetic Customization
+* **Hardware Aesthetic:** Geometric, monochrome design language inspired by minimalist industrial design.
+* **Grayscale Mode:** Force all app icons into beautiful black-and-white to neutralize eye-catching branding.
+* **Circadian Theme (Premium):** Dynamic UI that shifts tones from cool morning blues to warm evening ambers.
+* **Tile Transparency:** Premium control over tile opacity to showcase your wallpaper.
 * **Icon Pack Support:** Full compatibility with professional third-party icon packs.
-* **Scroll Orientation:** Choose between Horizontal (classic) or Vertical (modern) page scrolling for tiles.
 
-### 5. Mindful Management & Privacy
-* **Mindful Usage Tracking:** Real-time indicators of time spent on each app on tiles and in the drawer.
-* **Mindfulness Prompt:** Selective check-ins when opening social media apps too frequently.
-* **Notification Management:** Toggle dots, numerical counts, and a smart "Distraction Filter".
-* **Weather Toggle:** Show or hide live weather info on the home screen.
-* **Data Portability:** Full Backup & Restore via JSON files.
-* **Privacy Focused:** No data collection. [Privacy Policy](PRIVACY_POLICY.md) | [Terms and Conditions](TERMS_AND_CONDITIONS.md).
+### 6. Performance & Privacy
+* **Privacy First:** 100% local processing. No data collection, no trackers, and no hidden algorithms.
+* **Zero-Lag Optimization:** Heavy data computations run on background threads for a fluid, stutter-free experience.
+* **Navigation Dead Zone:** Intelligent gesture zone to prevent conflicts with system Home/Recents gestures.
+* **JSON Portability:** One-click Export/Import for your entire configuration.
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
