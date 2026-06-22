@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.6] - 2026-06-29
+
+### Added
+- **Multiple Home Screen Profiles:** Create and switch between different launcher setups (e.g., Work, Home, Focused). Each profile saves its own tile layout, app assignments, grayscale settings, and layout styles.
+- **Dynamic Profile Management:** Easily create new profiles by cloning your current setup or delete unused ones directly from Settings.
+
+### Fixed
+- **State Persistence:** Optimized the profile switching logic to ensure "Default" settings are preserved and never overwritten by custom profile data.
+
 ## [5.5.5] - 2026-06-28
 
 ### Added

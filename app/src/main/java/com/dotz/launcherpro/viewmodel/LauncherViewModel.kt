@@ -1203,6 +1203,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setTileOverride(tileId, pkg, label)
     }
 
+    fun createProfile(name: String) = viewModelScope.launch {
+        prefs.createProfile(name)
+    }
+
+    fun deleteProfile(id: String) = viewModelScope.launch {
+        prefs.deleteProfile(id)
+    }
+
+    fun switchProfile(id: String) = viewModelScope.launch {
+        prefs.switchProfile(id)
+    }
+
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
         when (mode) {
             ThemeMode.LIGHT -> {

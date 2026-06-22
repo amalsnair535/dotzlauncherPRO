@@ -155,7 +155,10 @@ class DotzSettingsActivity : ComponentActivity() {
                     },
                     onAppSelectionClick = {
                         startActivity(Intent(this, AppSelectionListActivity::class.java))
-                    }
+                    },
+                    onCreateProfile = viewModel::createProfile,
+                    onDeleteProfile = viewModel::deleteProfile,
+                    onSwitchProfile = viewModel::switchProfile
                 )
             }
         }
@@ -194,11 +197,15 @@ private fun DotzSettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     onEnableAppDrawerToggle: (Boolean) -> Unit,
     onShowMindfulUsageToggle: (Boolean) -> Unit,
+    onCreateProfile: (String) -> Unit,
+    onDeleteProfile: (String) -> Unit,
+    onSwitchProfile: (String) -> Unit,
 ) {
     var showIconPackDialog by remember { mutableStateOf(value = false) }
     var showExperimentalDashboardDialog by remember { mutableStateOf(false) }
     var showAppDrawerWarningDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
+    var showCreateProfileDialog by remember { mutableStateOf(false) }
 
     val currentThemeMode = remember(settings.isLightMode, settings.useCircadianTheming, settings.showWallpaper) {
         when {
@@ -251,6 +258,18 @@ private fun DotzSettingsScreen(
             item { SectionHeader("APP SELECTION") }
             item {
                 AppSelectionMenuRow(onClick = onAppSelectionClick)
+            }
+
+            // ── Section: Profiles ─────────────────────────────────────────
+            item { Spacer(Modifier.height(8.dp)); SectionHeader("HOME SCREEN PROFILES") }
+            item {
+                ProfileManagementCard(
+                    activeId = settings.activeProfileId,
+                    profiles = settings.profiles,
+                    onSwitch = onSwitchProfile,
+                    onDelete = onDeleteProfile,
+                    onAddClick = { showCreateProfileDialog = true }
+                )
             }
 
             // ── Section: General ──────────────────────────────────────────
@@ -633,6 +652,140 @@ private fun DotzSettingsScreen(
                 }
             }
         )
+    }
+
+    if (showCreateProfileDialog) {
+        var profileName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCreateProfileDialog = false },
+            containerColor = Color.Black,
+            title = { Text("NEW PROFILE", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Enter a name for this profile (e.g. Work, Home). It will clone your current setup.", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = profileName,
+                        onValueChange = { profileName = it },
+                        placeholder = { Text("Profile Name", color = Color.White.copy(alpha = 0.2f)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (profileName.isNotBlank()) {
+                            onCreateProfile(profileName)
+                            showCreateProfileDialog = false
+                        }
+                    }
+                ) {
+                    Text("CREATE", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateProfileDialog = false }) {
+                    Text("CANCEL", color = Color.White.copy(alpha = 0.4f))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ProfileManagementCard(
+    activeId: String,
+    profiles: List<com.dotz.launcherpro.data.LauncherProfile>,
+    onSwitch: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onAddClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DotzTheme.colors.tile, RoundedCornerShape(16.dp))
+            .padding(8.dp)
+    ) {
+        // Filter out "default" from the dynamic list as we show it specially at the top
+        val customProfiles = profiles.filter { it.id != "default" }
+
+        // Default Profile
+        ProfileRow(
+            name = "DEFAULT",
+            isActive = activeId == "default",
+            canDelete = false,
+            onClick = { onSwitch("default") },
+            onDelete = {}
+        )
+        
+        customProfiles.forEach { profile ->
+            ProfileRow(
+                name = profile.name.uppercase(),
+                isActive = activeId == profile.id,
+                canDelete = true,
+                onClick = { onSwitch(profile.id) },
+                onDelete = { onDelete(profile.id) }
+            )
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        TextButton(
+            onClick = onAddClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Add, null, tint = DotzTheme.colors.text, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("CREATE NEW PROFILE", color = DotzTheme.colors.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun ProfileRow(
+    name: String,
+    isActive: Boolean,
+    canDelete: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isActive) Color.White else Color.Transparent)
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = name,
+            color = if (isActive) Color.Black else DotzTheme.colors.text,
+            fontSize = 13.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+            letterSpacing = 1.sp
+        )
+        
+        if (canDelete) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = if (isActive) Color.Black.copy(alpha = 0.4f) else DotzTheme.colors.text.copy(alpha = 0.2f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
     }
 }
 

@@ -9,6 +9,18 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.util.UUID
+
+data class LauncherProfile(
+    val id: String,
+    val name: String,
+    val tileOverrides: Map<Int, String>,
+    val tileLabels: Map<Int, String>,
+    val tileOrder: List<Int>,
+    val grayscaleMode: Boolean,
+    val notificationFilterEnabled: Boolean,
+    val layoutStyle: String
+)
 
 data class DotzSettings(
     val showNotificationDots: Boolean = true,
@@ -40,6 +52,8 @@ data class DotzSettings(
     val enableAppDrawer: Boolean = false,
     val hasAcceptedAppDisclosure: Boolean = false,
     val tileOrder: List<Int> = (0..17).toList(),
+    val activeProfileId: String = "default",
+    val profiles: List<LauncherProfile> = emptyList(),
 )
 
 object PrefsKeys {
@@ -73,6 +87,8 @@ object PrefsKeys {
     val ENABLE_APP_DRAWER      = booleanPreferencesKey("enable_app_drawer")
     val HAS_ACCEPTED_APP_DISCLOSURE = booleanPreferencesKey("has_accepted_app_disclosure")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
+    val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
+    val PROFILES_JSON           = stringPreferencesKey("profiles_json")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -97,6 +113,16 @@ class DotzPreferencesRepository(private val context: Context) {
                 } catch (e: Exception) { (0..17).toList() }
             } else {
                 (0..17).toList()
+            }
+
+            val profilesJson = prefs[PrefsKeys.PROFILES_JSON]
+            val profilesList = if (profilesJson != null) {
+                try {
+                    val type = object : com.google.gson.reflect.TypeToken<List<LauncherProfile>>() {}.type
+                    Gson().fromJson<List<LauncherProfile>>(profilesJson, type)
+                } catch (e: Exception) { emptyList<LauncherProfile>() }
+            } else {
+                emptyList<LauncherProfile>()
             }
 
             DotzSettings(
@@ -127,7 +153,9 @@ class DotzPreferencesRepository(private val context: Context) {
                 useCircadianTheming  = prefs[PrefsKeys.USE_CIRCADIAN_THEMING] ?: false,
                 enableAppDrawer      = prefs[PrefsKeys.ENABLE_APP_DRAWER]      ?: false,
                 hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false,
-                tileOrder            = order
+                tileOrder            = order,
+                activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
+                profiles             = profilesList
             )
         }
 
@@ -231,6 +259,94 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setTileOrder(order: List<Int>) {
         context.dataStore.edit { it[PrefsKeys.TILE_ORDER] = order.joinToString(",") }
+    }
+
+    suspend fun createProfile(name: String) {
+        val current = settingsFlow.first()
+        val newProfile = LauncherProfile(
+            id = UUID.randomUUID().toString(),
+            name = name,
+            tileOverrides = current.tileOverrides,
+            tileLabels = current.tileLabels,
+            tileOrder = current.tileOrder,
+            grayscaleMode = current.grayscaleMode,
+            notificationFilterEnabled = current.notificationFilterEnabled,
+            layoutStyle = current.layoutStyle
+        )
+        val newList = current.profiles + newProfile
+        context.dataStore.edit { prefs ->
+            prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(newList)
+        }
+    }
+
+    suspend fun deleteProfile(id: String) {
+        val current = settingsFlow.first()
+        if (current.activeProfileId == id) {
+            switchProfile("default")
+        }
+        val newList = current.profiles.filter { it.id != id }
+        context.dataStore.edit { prefs ->
+            prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(newList)
+        }
+    }
+
+    suspend fun switchProfile(targetId: String) {
+        val current = settingsFlow.first()
+        val oldId = current.activeProfileId
+        
+        context.dataStore.edit { prefs ->
+            // 1. Prepare profiles list (ensure old profile is updated)
+            val updatedProfiles = current.profiles.toMutableList()
+            
+            // Capture current state
+            val currentState = LauncherProfile(
+                id = oldId,
+                name = if (oldId == "default") "Default" else (current.profiles.find { it.id == oldId }?.name ?: "Unknown"),
+                tileOverrides = current.tileOverrides,
+                tileLabels = current.tileLabels,
+                tileOrder = current.tileOrder,
+                grayscaleMode = current.grayscaleMode,
+                notificationFilterEnabled = current.notificationFilterEnabled,
+                layoutStyle = current.layoutStyle
+            )
+
+            // Update or add the old profile state to the list
+            val oldIndex = updatedProfiles.indexOfFirst { it.id == oldId }
+            if (oldIndex != -1) {
+                updatedProfiles[oldIndex] = currentState
+            } else {
+                updatedProfiles.add(currentState)
+            }
+
+            // 2. Load the target profile values into top-level keys
+            val targetProfile = updatedProfiles.find { it.id == targetId }
+            
+            if (targetProfile != null) {
+                // Apply target profile values to individual keys
+                prefs[PrefsKeys.GRAYSCALE_MODE] = targetProfile.grayscaleMode
+                prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = targetProfile.notificationFilterEnabled
+                prefs[PrefsKeys.LAYOUT_STYLE] = targetProfile.layoutStyle
+                prefs[PrefsKeys.TILE_ORDER] = targetProfile.tileOrder.joinToString(",")
+                
+                // Clear and apply overrides
+                (0..17).forEach { id ->
+                    prefs.remove(PrefsKeys.tileOverride(id))
+                    prefs.remove(PrefsKeys.tileLabel(id))
+                }
+                targetProfile.tileOverrides.forEach { (id, pkg) ->
+                    prefs[PrefsKeys.tileOverride(id)] = pkg
+                }
+                targetProfile.tileLabels.forEach { (id, label) ->
+                    prefs[PrefsKeys.tileLabel(id)] = label
+                }
+                
+                // Update active ID
+                prefs[PrefsKeys.ACTIVE_PROFILE_ID] = targetId
+            }
+            
+            // Save the updated list (Always including all profiles including default)
+            prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(updatedProfiles)
+        }
     }
 
     suspend fun updateFocusStats(streak: Int, lastDate: Long, timeToday: Long) {
