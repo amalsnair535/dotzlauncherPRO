@@ -5,6 +5,7 @@
 [![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
 
 
+**Built by a smartphone addict, for addicts.**
 A minimalist, high-intentionality Android launcher designed to reduce digital clutter and foster calm, mindful smartphone usage.
 Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, Dotz Launcher transforms your device into a tool rather than a distraction. It retains instant access to core daily workflows—like payments, music, and communication—while eliminating the visual noise that triggers mindless scrolling.
 
