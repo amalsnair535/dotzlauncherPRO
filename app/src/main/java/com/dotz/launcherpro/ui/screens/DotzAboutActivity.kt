@@ -72,9 +72,9 @@ private fun AboutScreen(
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "5.5.6"
+            packageInfo.versionName ?: "5.5.8"
         } catch (_: Exception) {
-            "5.5.6"
+            "5.5.8"
         }
     }
 
@@ -194,18 +194,6 @@ private fun AboutScreen(
                     icon = Icons.Default.Code,
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/DotzLauncherPRO".toUri())
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                AboutActionRow(
-                    label = "Indus Appstore",
-                    subLabel = "Download from India's Appstore",
-                    icon = Icons.Default.Download,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://indusapp.store/u6nshrvm".toUri())
                         context.startActivity(intent)
                     }
                 )

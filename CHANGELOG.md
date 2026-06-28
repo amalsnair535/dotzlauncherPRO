@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.5.8] - 2026-06-28
+## [5.5.8] - 2026-07-01
 
 ### Added
+- **Unified Build Architecture**: Removed `google` and `indus` flavors. Unified billing and location logic into a single, maintainable codebase.
+- **Redesigned Dashboard Widgets**:
+    - **Music Widget**: Enhanced with a progress bar, album art placeholder, and centered playback controls for better aesthetics and usability.
+    - **Focus Stats**: Now features a circular progress indicator for the Focus Score, providing a clearer visual of daily mindfulness.
 - **Material You Settings Overhaul**: A complete redesign of the Settings screen using Material 3 components. It now features a collapsible Large Top App Bar, grouped settings categories, and a cleaner visual hierarchy.
-- **Home Screen "Now Playing" Widget**: Replaced the legacy AI header with a modern, Material You-style music widget with tactile Play/Pause and Skip controls.
 - **Actionable Fastlane (Quick Reply)**: You can now reply to incoming messages (WhatsApp, Telegram, SMS) directly from the Fastlane timeline.
 - **Dynamic Icon Dimming**: App icons now automatically fade to 20% opacity after 30 minutes of usage today.
 - **Grayscale Auto-Schedule (PRO)**: Automate your bedtime routine by scheduling grayscale mode between 10 PM and 6 AM.
@@ -110,12 +113,10 @@ All notable changes to this project will be documented in this file.
 ## [5.5.0] - 2026-06-15
 
 ### Added
-- **Multi-Flavor Build System:** Now supporting `google` (Play Store) and `indus` (Lite/Standalone) variants.
-- **Indus Appstore Support:** Fully optimized for the Indus Appstore with targeted SDK 36 support.
 - **Modern List Layout:** New alternative layout for home screen tiles with optimized 72dp height and 8dp spacing, fitting 6 tiles perfectly.
 - **Tile Transparency:** Added premium control for tile background opacity, allowing wallpapers to blend seamlessly.
 - **Accurate Weather:** Migrated to Open-Meteo API for higher reliability and no-key access. Weather is now OFF by default for better privacy.
-- **Enhanced Subscription UI:** Dynamic pricing for Google Play variant with improved "Dotz Upgrade" screen.
+- **Enhanced Subscription UI:** Improved "Dotz Upgrade" screen with dynamic pricing.
 - **Compliance & Privacy:** Added mandatory "QUERY_ALL_PACKAGES" and Location disclosures for store compliance.
 
 ### Fixed
@@ -124,8 +125,8 @@ All notable changes to this project will be documented in this file.
 - **Weather Permissions:** Weather logic now only requests location permissions when explicitly enabled by the user.
 
 ### Changed
-- **Removed Self-Updater:** Offline update logic removed for the `google` flavor to comply with Play Store policies.
-- **SDK Target:** Updated `targetSdk` to 36 (Android 16 DP) to meet the latest store requirements.
+- **Removed Self-Updater:** Offline update logic removed to comply with store policies.
+- **SDK Target:** Updated `targetSdk` to 35 to meet the latest requirements.
 
 ## [5.4.1] - 2026-06-02
 

@@ -232,27 +232,33 @@ fun NowPlayingWidget(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .height(140.dp)
             .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = DotzTheme.colors.tile.copy(alpha = 0.8f) // Theme-aware background
+        shape = RoundedCornerShape(28.dp),
+        color = DotzTheme.colors.tile.copy(alpha = 0.7f)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Settings button
-                IconButton(
-                    onClick = onSettingsClick,
+                // Music Icon / Album Art Placeholder
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(DotzTheme.colors.text.copy(alpha = 0.1f))
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(DotzTheme.colors.text.copy(alpha = 0.05f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = DotzTheme.colors.accent,
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
 
                 Spacer(Modifier.width(16.dp))
@@ -261,7 +267,7 @@ fun NowPlayingWidget(
                     Text(
                         text = if (title == "Not Playing") "Nothing Playing" else title,
                         color = DotzTheme.colors.text,
-                        fontSize = 14.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -269,49 +275,63 @@ fun NowPlayingWidget(
                     Text(
                         text = if (artist.isBlank()) "Play something to see info" else artist,
                         color = DotzTheme.colors.text.copy(alpha = 0.5f),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                Spacer(Modifier.width(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onSkipPrevious, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.SkipPrevious, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
-                    }
-                    IconButton(
-                        onClick = onPlayPause,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(DotzTheme.colors.accent)
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = DotzTheme.colors.solidBackground, // Contrasts with accent
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    IconButton(onClick = onSkipNext, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.SkipNext, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
-                    }
+                
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.offset(x = 8.dp, y = (-8).dp)
+                ) {
+                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(16.dp))
                 }
             }
 
-            if (title != "Not Playing" && duration > 0) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape),
-                    color = DotzTheme.colors.accent,
-                    trackColor = DotzTheme.colors.text.copy(alpha = 0.1f),
-                    strokeCap = StrokeCap.Round
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (title != "Not Playing") {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(CircleShape),
+                        color = DotzTheme.colors.accent,
+                        trackColor = DotzTheme.colors.text.copy(alpha = 0.1f),
+                        strokeCap = StrokeCap.Round
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onSkipPrevious) {
+                        Icon(Icons.Default.SkipPrevious, null, tint = DotzTheme.colors.text, modifier = Modifier.size(28.dp))
+                    }
+                    
+                    Surface(
+                        onClick = onPlayPause,
+                        shape = CircleShape,
+                        color = DotzTheme.colors.text,
+                        modifier = Modifier.size(54.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = DotzTheme.colors.solidBackground,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = onSkipNext) {
+                        Icon(Icons.Default.SkipNext, null, tint = DotzTheme.colors.text, modifier = Modifier.size(28.dp))
+                    }
+                }
             }
         }
     }
@@ -326,69 +346,71 @@ fun FocusStatsWidget(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .height(140.dp)
             .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = DotzTheme.colors.tile.copy(alpha = 0.8f)
+        shape = RoundedCornerShape(28.dp),
+        color = DotzTheme.colors.tile.copy(alpha = 0.7f)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Settings button (consistent with music widget)
-            IconButton(
-                onClick = onSettingsClick,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(DotzTheme.colors.text.copy(alpha = 0.1f))
-            ) {
-                Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
-            }
-
-            Spacer(Modifier.width(16.dp))
-
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "DOTZ",
-                    color = DotzTheme.colors.text,
-                    fontSize = 10.sp,
+                    text = "FOCUS SCORE",
+                    color = DotzTheme.colors.accent,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.5.sp
                 )
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = "Unlocked: $unlockCount times",
-                    color = DotzTheme.colors.text.copy(alpha = 0.7f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "Keep going.",
-                    color = DotzTheme.colors.accent,
-                    fontSize = 11.sp,
+                    color = DotzTheme.colors.text,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
+                Text(
+                    text = if (focusScore >= 80) "Doing great! Keep it up." else "Stay mindful of usage.",
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+                
+                Spacer(Modifier.weight(1f))
+                
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(32.dp).offset(x = (-8).dp, y = 8.dp)
+                ) {
+                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(16.dp))
+                }
             }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Focus Score",
-                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+            Box(
+                modifier = Modifier.size(90.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    progress = { focusScore / 100f },
+                    modifier = Modifier.fillMaxSize(),
+                    color = DotzTheme.colors.accent,
+                    strokeWidth = 8.dp,
+                    trackColor = DotzTheme.colors.text.copy(alpha = 0.05f),
+                    strokeCap = StrokeCap.Round
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "$focusScore",
                         color = DotzTheme.colors.text,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black
                     )
                     Text(
                         text = "/100",
                         color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 4.dp)
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

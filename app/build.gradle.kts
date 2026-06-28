@@ -19,20 +19,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions += "store"
-    productFlavors {
-        create("google") {
-            dimension = "store"
-            applicationId = "com.dotz.launcherpro"
-            versionNameSuffix = "-google"
-        }
-        create("indus") {
-            dimension = "store"
-            applicationId = "com.dotz.launcherpro"
-            versionNameSuffix = "-indus"
-        }
-    }
-
     signingConfigs {
         create("release") {
             val keystorePath = "C:/Users/USER/Downloads/DOTZLAUNCHERPRO KEYSTORE/KEYSTORE"
@@ -118,8 +104,8 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.session)
-    "googleImplementation"(libs.google.billing)
-    "googleImplementation"("com.google.android.gms:play-services-location:21.3.0")
+    implementation(libs.google.billing)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
     implementation(libs.okhttp)
     debugImplementation(libs.androidx.ui.tooling)

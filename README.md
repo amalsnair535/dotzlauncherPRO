@@ -32,7 +32,6 @@ The development of Dotz Launcher is driven by a vision of reclaiming our focus i
 * **Official Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
 * **Google Play:** [Get it on Google Play](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
 * **GitHub Repository:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
-* **Indus Appstore:** [Download on Indus Appstore](https://indusapp.store/u6nshrvm)
 
 ### 1. The "Detox" Control Panel (Fixed Header)
 A permanent command center at the top of your home screen providing quick access to system utilities:
@@ -76,8 +75,7 @@ A dedicated minimalist workspace featuring essential mindful insights:
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `5.5.5`
-* **Build Flavors:** `google` (Play Store) and `indus` (Indus Appstore / Lite)
+* **Version:** `5.5.8`
 * **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 26 (Android 8.0)
