@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
-import com.dotz.launcherpro.ui.theme.DotzColors
+import com.dotz.launcherpro.ui.components.DotzAlertDialog
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
@@ -80,38 +80,37 @@ private fun AboutScreen(
 
     if (showPromoDialog) {
         var codeText by remember { mutableStateOf("") }
-        AlertDialog(
+        DotzAlertDialog(
             onDismissRequest = { showPromoDialog = false },
-            containerColor = DotzTheme.colors.tile,
-            title = { Text("Redeem Code", color = DotzTheme.colors.text) },
-            text = {
+            title = "Redeem Code",
+            content = {
                 OutlinedTextField(
                     value = codeText,
                     onValueChange = { codeText = it },
                     label = { Text("Enter Code") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = DotzTheme.colors.text,
-                        unfocusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.3f),
-                        cursorColor = DotzTheme.colors.text
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                        cursorColor = Color.White,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedLabelColor = Color.White.copy(alpha = 0.7f),
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.4f)
                     )
                 )
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (viewModel.redeemPromoCode(codeText)) {
-                        Toast.makeText(context, "PRO Unlocked!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Invalid Code", Toast.LENGTH_SHORT).show()
-                    }
-                    showPromoDialog = false
-                }) { Text("REDEEM", color = DotzTheme.colors.text) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPromoDialog = false }) {
-                    Text("CANCEL", color = DotzTheme.colors.text.copy(alpha = 0.4f))
+            confirmButtonText = "REDEEM",
+            onConfirm = {
+                if (viewModel.redeemPromoCode(codeText)) {
+                    Toast.makeText(context, "PRO Unlocked!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Invalid Code", Toast.LENGTH_SHORT).show()
                 }
-            }
+                showPromoDialog = false
+            },
+            dismissButtonText = "CANCEL",
+            onDismiss = { showPromoDialog = false }
         )
     }
 
@@ -121,9 +120,7 @@ private fun AboutScreen(
                 title = {
                     Text(
                         text = "ABOUT",
-                        fontSize = 14.sp,
-                        letterSpacing = 2.sp,
-                        fontWeight = FontWeight.Normal,
+                        style = MaterialTheme.typography.labelLarge,
                         color = DotzTheme.colors.text,
                     )
                 },

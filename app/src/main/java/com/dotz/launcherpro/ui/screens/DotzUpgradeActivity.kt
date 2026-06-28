@@ -127,7 +127,7 @@ private fun UpgradeScreen(
                 FeatureRow("Circadian Theming (Dynamic UI Colors)")
                 FeatureRow("Tile Transparency Control")
                 FeatureRow("Modern List Layout")
-                FeatureRow("Premium Dashboard Experience")
+                FeatureRow("Premium Fastlane Experience")
                 Spacer(Modifier.height(40.dp))
             }
 

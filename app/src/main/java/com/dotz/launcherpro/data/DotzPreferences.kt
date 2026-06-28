@@ -19,7 +19,9 @@ data class LauncherProfile(
     val tileOrder: List<Int>,
     val grayscaleMode: Boolean,
     val notificationFilterEnabled: Boolean,
-    val layoutStyle: String
+    val layoutStyle: String,
+    val extraTileCount: Int = 6,
+    val enableExtraPage: Boolean = true
 )
 
 data class DotzSettings(
@@ -37,7 +39,8 @@ data class DotzSettings(
     val showWeatherInfo: Boolean = false,
     val showMindfulUsage: Boolean = true,
     val showWallpaper: Boolean = false,
-    val enableDashboard: Boolean = false,
+    val enableFastlane: Boolean = false,
+    val homeHeaderMode: String = "toggles", // "toggles", "music", or "stats"
     val tileTransparency: Float = 1.0f,
     val layoutStyle: String = "classic",
     /** JSON-serialized map of tileId -> packageName overrides */
@@ -49,11 +52,14 @@ data class DotzSettings(
     val lastWeatherFetchTime: Long = 0,
     val isPremium: Boolean = false,
     val useCircadianTheming: Boolean = false,
+    val autoGrayscale: Boolean = false,
     val enableAppDrawer: Boolean = false,
+    val appDrawerEnabledAt: Long = 0,
+    val appDrawerOpenCount: Int = 0,
+    val lastAppDrawerOpenDate: Long = 0,
     val hasAcceptedAppDisclosure: Boolean = false,
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
-    val fontId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
 )
 
@@ -71,7 +77,8 @@ object PrefsKeys {
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
     val SHOW_WEATHER_INFO       = booleanPreferencesKey("show_weather_info")
     val SHOW_WALLPAPER          = booleanPreferencesKey("show_wallpaper")
-    val ENABLE_DASHBOARD        = booleanPreferencesKey("enable_dashboard")
+    val ENABLE_FASTLANE         = booleanPreferencesKey("enable_fastlane")
+    val HOME_HEADER_MODE        = stringPreferencesKey("home_header_mode")
     val TILE_TRANSPARENCY       = floatPreferencesKey("tile_transparency")
     val LAYOUT_STYLE            = stringPreferencesKey("layout_style")
     // Tile overrides stored as individual keys: tile_override_0, tile_override_1, …
@@ -85,11 +92,14 @@ object PrefsKeys {
     val SHOW_MINDFUL_USAGE = booleanPreferencesKey("show_mindful_usage")
     val IS_PREMIUM = booleanPreferencesKey("is_premium")
     val USE_CIRCADIAN_THEMING = booleanPreferencesKey("use_circadian_theming")
+    val AUTO_GRAYSCALE        = booleanPreferencesKey("auto_grayscale")
     val ENABLE_APP_DRAWER      = booleanPreferencesKey("enable_app_drawer")
+    val APP_DRAWER_ENABLED_AT  = longPreferencesKey("app_drawer_enabled_at")
+    val APP_DRAWER_OPEN_COUNT  = intPreferencesKey("app_drawer_open_count")
+    val LAST_APP_DRAWER_OPEN_DATE = longPreferencesKey("last_app_drawer_open_date")
     val HAS_ACCEPTED_APP_DISCLOSURE = booleanPreferencesKey("has_accepted_app_disclosure")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
-    val FONT_ID                 = stringPreferencesKey("font_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
 }
 
@@ -142,7 +152,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: false,
                 showMindfulUsage     = prefs[PrefsKeys.SHOW_MINDFUL_USAGE]       ?: true,
                 showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: false,
-                enableDashboard      = prefs[PrefsKeys.ENABLE_DASHBOARD]         ?: false,
+                enableFastlane       = prefs[PrefsKeys.ENABLE_FASTLANE]          ?: false,
+                homeHeaderMode       = prefs[PrefsKeys.HOME_HEADER_MODE]         ?: "toggles",
                 tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
                 layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
                 tileOverrides        = overrides,
@@ -153,11 +164,14 @@ class DotzPreferencesRepository(private val context: Context) {
                 lastWeatherFetchTime = prefs[PrefsKeys.LAST_WEATHER_FETCH_TIME] ?: 0,
                 isPremium            = prefs[PrefsKeys.IS_PREMIUM] ?: false,
                 useCircadianTheming  = prefs[PrefsKeys.USE_CIRCADIAN_THEMING] ?: false,
+                autoGrayscale        = prefs[PrefsKeys.AUTO_GRAYSCALE]        ?: false,
                 enableAppDrawer      = prefs[PrefsKeys.ENABLE_APP_DRAWER]      ?: false,
+                appDrawerEnabledAt   = prefs[PrefsKeys.APP_DRAWER_ENABLED_AT]   ?: 0L,
+                appDrawerOpenCount   = prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT]   ?: 0,
+                lastAppDrawerOpenDate = prefs[PrefsKeys.LAST_APP_DRAWER_OPEN_DATE] ?: 0L,
                 hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
-                fontId               = prefs[PrefsKeys.FONT_ID] ?: "default",
                 profiles             = profilesList
             )
         }
@@ -221,8 +235,12 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.SHOW_WALLPAPER] = value }
     }
 
-    suspend fun setEnableDashboard(value: Boolean) {
-        context.dataStore.edit { it[PrefsKeys.ENABLE_DASHBOARD] = value }
+    suspend fun setEnableFastlane(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.ENABLE_FASTLANE] = value }
+    }
+
+    suspend fun setHomeHeaderMode(value: String) {
+        context.dataStore.edit { it[PrefsKeys.HOME_HEADER_MODE] = value }
     }
 
     suspend fun setShowMindfulUsage(value: Boolean) {
@@ -237,8 +255,41 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.USE_CIRCADIAN_THEMING] = value }
     }
 
+    suspend fun setAutoGrayscale(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.AUTO_GRAYSCALE] = value }
+    }
+
     suspend fun setEnableAppDrawer(value: Boolean) {
-        context.dataStore.edit { it[PrefsKeys.ENABLE_APP_DRAWER] = value }
+        context.dataStore.edit { prefs ->
+            prefs[PrefsKeys.ENABLE_APP_DRAWER] = value
+            if (value) {
+                prefs[PrefsKeys.APP_DRAWER_ENABLED_AT] = System.currentTimeMillis()
+            } else {
+                prefs[PrefsKeys.APP_DRAWER_ENABLED_AT] = 0L
+            }
+        }
+    }
+
+    suspend fun incrementAppDrawerOpenCount() {
+        val now = System.currentTimeMillis()
+        val calendar = java.util.Calendar.getInstance().apply { timeInMillis = now }
+        val today = calendar.get(java.util.Calendar.DAY_OF_YEAR)
+        val year = calendar.get(java.util.Calendar.YEAR)
+
+        context.dataStore.edit { prefs ->
+            val lastDate = prefs[PrefsKeys.LAST_APP_DRAWER_OPEN_DATE] ?: 0L
+            val lastCalendar = java.util.Calendar.getInstance().apply { timeInMillis = lastDate }
+            val lastDay = lastCalendar.get(java.util.Calendar.DAY_OF_YEAR)
+            val lastYear = lastCalendar.get(java.util.Calendar.YEAR)
+
+            if (today != lastDay || year != lastYear) {
+                prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT] = 1
+            } else {
+                val current = prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT] ?: 0
+                prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT] = current + 1
+            }
+            prefs[PrefsKeys.LAST_APP_DRAWER_OPEN_DATE] = now
+        }
     }
 
     suspend fun setHasAcceptedAppDisclosure(value: Boolean) {
@@ -253,10 +304,6 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.LAYOUT_STYLE] = value }
     }
 
-    suspend fun setFontId(value: String) {
-        context.dataStore.edit { it[PrefsKeys.FONT_ID] = value }
-    }
-
     suspend fun setTileOverride(tileId: Int, packageName: String, label: String) {
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.tileOverride(tileId)] = packageName
@@ -268,22 +315,26 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.TILE_ORDER] = order.joinToString(",") }
     }
 
-    suspend fun createProfile(name: String) {
+    suspend fun createProfile(name: String): String {
         val current = settingsFlow.first()
+        val newId = UUID.randomUUID().toString()
         val newProfile = LauncherProfile(
-            id = UUID.randomUUID().toString(),
+            id = newId,
             name = name,
             tileOverrides = current.tileOverrides,
             tileLabels = current.tileLabels,
             tileOrder = current.tileOrder,
             grayscaleMode = current.grayscaleMode,
             notificationFilterEnabled = current.notificationFilterEnabled,
-            layoutStyle = current.layoutStyle
+            layoutStyle = current.layoutStyle,
+            extraTileCount = current.extraTileCount,
+            enableExtraPage = current.enableExtraPage
         )
         val newList = current.profiles + newProfile
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(newList)
         }
+        return newId
     }
 
     suspend fun deleteProfile(id: String) {
@@ -314,7 +365,9 @@ class DotzPreferencesRepository(private val context: Context) {
                 tileOrder = current.tileOrder,
                 grayscaleMode = current.grayscaleMode,
                 notificationFilterEnabled = current.notificationFilterEnabled,
-                layoutStyle = current.layoutStyle
+                layoutStyle = current.layoutStyle,
+                extraTileCount = current.extraTileCount,
+                enableExtraPage = current.enableExtraPage
             )
 
             // Update or add the old profile state to the list
@@ -334,6 +387,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.NOTIFICATION_FILTER_ENABLED] = targetProfile.notificationFilterEnabled
                 prefs[PrefsKeys.LAYOUT_STYLE] = targetProfile.layoutStyle
                 prefs[PrefsKeys.TILE_ORDER] = targetProfile.tileOrder.joinToString(",")
+                prefs[PrefsKeys.EXTRA_TILE_COUNT] = targetProfile.extraTileCount
+                prefs[PrefsKeys.ENABLE_EXTRA_PAGE] = targetProfile.enableExtraPage
                 
                 // Clear and apply overrides
                 (0..17).forEach { id ->
@@ -356,11 +411,14 @@ class DotzPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun updateFocusStats(streak: Int, lastDate: Long, timeToday: Long) {
+    suspend fun updateFocusStats(streak: Int, lastDate: Long, timeToday: Long, resetDrawerCount: Boolean = false) {
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.FOCUS_STREAK] = streak
             prefs[PrefsKeys.LAST_USED_DATE] = lastDate
             prefs[PrefsKeys.FOCUS_TIME_TODAY] = timeToday
+            if (resetDrawerCount) {
+                prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT] = 0
+            }
         }
     }
 
@@ -394,12 +452,16 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount
                 prefs[PrefsKeys.SHOW_WEATHER_INFO] = settings.showWeatherInfo
                 prefs[PrefsKeys.SHOW_WALLPAPER] = settings.showWallpaper
-                prefs[PrefsKeys.ENABLE_DASHBOARD] = settings.enableDashboard
+                prefs[PrefsKeys.ENABLE_FASTLANE] = settings.enableFastlane
+                prefs[PrefsKeys.HOME_HEADER_MODE] = settings.homeHeaderMode
                 prefs[PrefsKeys.TILE_TRANSPARENCY] = settings.tileTransparency
                 prefs[PrefsKeys.LAYOUT_STYLE] = settings.layoutStyle
                 prefs[PrefsKeys.USE_CIRCADIAN_THEMING] = settings.useCircadianTheming
+                prefs[PrefsKeys.AUTO_GRAYSCALE] = settings.autoGrayscale
                 prefs[PrefsKeys.ENABLE_APP_DRAWER] = settings.enableAppDrawer
                 prefs[PrefsKeys.TILE_ORDER] = settings.tileOrder.joinToString(",")
+                prefs[PrefsKeys.ACTIVE_PROFILE_ID] = settings.activeProfileId
+                prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(settings.profiles)
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

@@ -1,13 +1,10 @@
 package com.dotz.launcherpro.ui.theme
 
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.data.DotzSettings
 import com.dotz.launcherpro.data.ThemePresets
 import java.util.Calendar
@@ -117,24 +114,7 @@ fun DotzTheme(
     )
 
     // Font Handling
-    val fontFamily = remember(settings.fontId) { DotzType.getFontFamily(settings.fontId) }
-    val materialTypography = Typography(
-        displayLarge = TextStyle(fontFamily = fontFamily),
-        displayMedium = TextStyle(fontFamily = fontFamily),
-        displaySmall = TextStyle(fontFamily = fontFamily),
-        headlineLarge = TextStyle(fontFamily = fontFamily),
-        headlineMedium = TextStyle(fontFamily = fontFamily),
-        headlineSmall = TextStyle(fontFamily = fontFamily),
-        titleLarge = TextStyle(fontFamily = fontFamily),
-        titleMedium = TextStyle(fontFamily = fontFamily),
-        titleSmall = TextStyle(fontFamily = fontFamily),
-        bodyLarge = TextStyle(fontFamily = fontFamily),
-        bodyMedium = TextStyle(fontFamily = fontFamily),
-        bodySmall = TextStyle(fontFamily = fontFamily),
-        labelLarge = TextStyle(fontFamily = fontFamily),
-        labelMedium = TextStyle(fontFamily = fontFamily),
-        labelSmall = TextStyle(fontFamily = fontFamily)
-    )
+    val materialTypography = DotzType.getTypography(androidx.compose.ui.text.font.FontFamily.Default)
 
     val materialColorScheme = if (darkTheme) {
         darkColorScheme(
@@ -156,7 +136,9 @@ fun DotzTheme(
         )
     }
 
-    CompositionLocalProvider(LocalDotzColors provides dotzColors) {
+    CompositionLocalProvider(
+        LocalDotzColors provides dotzColors
+    ) {
         MaterialTheme(
             colorScheme = materialColorScheme,
             typography = materialTypography,

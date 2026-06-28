@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 21,
-      "versionName": "5.5.6-google",
+      "versionCode": 23,
+      "versionName": "5.5.8-google",
       "outputFile": "app-google-release.apk"
     }
   ],

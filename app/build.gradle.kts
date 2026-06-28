@@ -13,8 +13,8 @@ android {
         applicationId = "com.dotz.launcherpro"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "5.5.6"
+        versionCode = 23
+        versionName = "5.5.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -121,7 +121,6 @@ dependencies {
     "googleImplementation"(libs.google.billing)
     "googleImplementation"("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
-    implementation(libs.generativeai)
     implementation(libs.okhttp)
     debugImplementation(libs.androidx.ui.tooling)
 }

@@ -1,6 +1,7 @@
 package com.dotz.launcherpro.ui.fragments
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -23,20 +24,13 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.dotz.launcherpro.data.AppTile
-import com.dotz.launcherpro.ui.components.AppDrawerSheet
+import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.screens.AppSelectionActivity
 import com.dotz.launcherpro.ui.screens.DotzHomeScreen
 import com.dotz.launcherpro.ui.screens.DotzSettingsActivity
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
-
-data class MindfulnessInfo(
-    val pkg: String,
-    val label: String,
-    val usageTime: String?,
-    val launchCount: Int
-)
 
 class HomeFragment : Fragment() {
 
@@ -72,6 +66,7 @@ class HomeFragment : Fragment() {
                     var swapSourceTile by remember { mutableStateOf<AppTile?>(null) }
                     var mindfulnessApp by remember { mutableStateOf<MindfulnessInfo?>(null) }
                     var showUsageStatsDialog by remember { mutableStateOf(false) }
+                    var showAppDrawerConfirmDialog by remember { mutableStateOf(false) }
 
                     // Stable initialization for disclosures and permissions
                     LaunchedEffect(Unit) {
@@ -103,7 +98,8 @@ class HomeFragment : Fragment() {
                                     swapSourceTile = null
                                 } else {
                                     val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(tile.packageName)
-                                    if (uiState.settings.showMindfulUsage && tile.launchCount >= 10 && isSocial) {
+                                    // Lower threshold to 3 launches to make mindfulness more effective and visible
+                                    if (uiState.settings.showMindfulUsage && tile.launchCount >= 3 && isSocial) {
                                         mindfulnessApp = MindfulnessInfo(tile.packageName, tile.label, tile.usageTime, tile.launchCount)
                                     } else {
                                         handleTileClick(tile.packageName) {
@@ -136,11 +132,12 @@ class HomeFragment : Fragment() {
                             onDarkModeLongClick = { hapticPulse(); viewModel.toggleDarkMode() },
                             onPageChanged = viewModel::setInnerPage,
                             onOpenDrawer = {
-                                if (uiState.settings.enableAppDrawer) {
-                                    hapticPulse()
-                                    showAppDrawer = true
-                                }
+                                hapticPulse()
+                                showAppDrawerConfirmDialog = true
                             },
+                            onPlayPause = { viewModel.mediaPlayPause() },
+                            onSkipNext = { viewModel.mediaSkipNext() },
+                            onSkipPrevious = { viewModel.mediaSkipPrevious() },
                             highlightedTileId = swapSourceTile?.tileId
                         )
 
@@ -152,12 +149,28 @@ class HomeFragment : Fragment() {
                                 onLaunch = { pkg ->
                                     val app = installedApps.find { it.packageName == pkg }
                                     val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
-                                    if (app != null && uiState.settings.showMindfulUsage && app.launchCount >= 10 && isSocial) {
+                                    if (app != null && uiState.settings.showMindfulUsage && app.launchCount >= 3 && isSocial) {
                                         showAppDrawer = false
                                         mindfulnessApp = MindfulnessInfo(pkg, app.label, app.usageTime, app.launchCount)
                                     } else {
                                         showAppDrawer = false
                                         launchApp(pkg)
+                                    }
+                                }
+                            )
+                        }
+
+                        if (showAppDrawerConfirmDialog) {
+                            AppDrawerConfirmDialog(
+                                openCount = uiState.settings.appDrawerOpenCount,
+                                onDismiss = { showAppDrawerConfirmDialog = false },
+                                onConfirm = {
+                                    showAppDrawerConfirmDialog = false
+                                    if (uiState.settings.appDrawerOpenCount < 5) {
+                                        viewModel.incrementAppDrawerCount()
+                                        showAppDrawer = true
+                                    } else {
+                                        android.widget.Toast.makeText(requireContext(), "Daily limit reached (5/5).", android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             )
@@ -182,10 +195,17 @@ class HomeFragment : Fragment() {
                                 onDismiss = { showNotifPermDialog = false },
                                 onGoToSettings = {
                                     showNotifPermDialog = false
+                                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                                        data = Uri.fromParts("package", requireContext().packageName, null)
+                                    }
                                     try {
-                                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                        startActivity(intent)
                                     } catch (_: Exception) {
-                                        startActivity(Intent(Settings.ACTION_SETTINGS))
+                                        try {
+                                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                        } catch (_: Exception) {
+                                            startActivity(Intent(Settings.ACTION_SETTINGS))
+                                        }
                                     }
                                 },
                             )
@@ -215,7 +235,14 @@ class HomeFragment : Fragment() {
                                 onDismiss = { showUsageStatsDialog = false },
                                 onGoToSettings = {
                                     showUsageStatsDialog = false
-                                    startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", requireContext().packageName, null)
+                                    }
+                                    try {
+                                        startActivity(intent)
+                                    } catch (_: Exception) {
+                                        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                    }
                                 }
                             )
                         }
@@ -277,126 +304,149 @@ class HomeFragment : Fragment() {
 }
 
 @Composable
-private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    AlertDialog(
+private fun AppDrawerConfirmDialog(openCount: Int, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val remaining = (5 - openCount).coerceAtLeast(0)
+    DotzAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
-        title = { Text("Mindful Usage", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) },
-        text = { Text("Enable usage stats to see how much time you spend in apps and set mindful limits.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
-        confirmButton = {
-            TextButton(onClick = onGoToSettings) { Text("ENABLE", color = Color.White, fontWeight = FontWeight.Bold) }
+        title = "Open All Apps?",
+        content = {
+            Column {
+                Text(
+                    "Are you sure you want to open all apps?",
+                    color = Color.White.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "This gesture is for emergency access only.",
+                    color = Color.White.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "REMAINING TODAY: $remaining/5",
+                    color = if (remaining > 0) Color.White else Color.Red.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("NOT NOW", color = Color.White.copy(alpha = 0.4f)) }
-        }
+        confirmButtonText = if (remaining > 0) "OPEN" else "LOCKED",
+        onConfirm = { if (remaining > 0) onConfirm() else onDismiss() },
+        dismissButtonText = "CANCEL",
+        onDismiss = onDismiss
     )
 }
 
 @Composable
-private fun MindfulnessDialog(label: String, usageTime: String, launchCount: Int, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
+private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
+    DotzAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
-        title = {
-            Text(
-                "Mindful Check",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            androidx.compose.foundation.layout.Column {
+        title = "Mindful Usage",
+        content = {
+            Column {
                 Text(
-                    "You've opened $label $launchCount times today.",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp
+                    "Enable usage stats to see how much time you spend in apps and set mindful limits.",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium
                 )
-                androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
-                Text(
-                    "Total time spent: $usageTime",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black
-                )
-                androidx.compose.foundation.layout.Spacer(Modifier.height(16.dp))
-                Text(
-                    "Do you really want to open it again?",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 12.sp
-                )
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Tip: If the toggle is greyed out, go to Dotz App Info > Three dots (top right) > 'Allow restricted settings'.",
+                        color = Color.White.copy(alpha = 0.4f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("YES, PROCEED", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("NO, STAY FOCUSED", color = Color.White.copy(alpha = 0.4f))
-            }
-        }
+        confirmButtonText = "ENABLE",
+        onConfirm = onGoToSettings,
+        dismissButtonText = "NOT NOW",
+        onDismiss = onDismiss
     )
 }
 
 @Composable
 private fun NotificationPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    AlertDialog(
+    DotzAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
-        title = { Text("Enable Notifications", color = Color.White, fontSize = 16.sp) },
-        text = { Text("Allow Dotz to read notifications for badges.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
-        confirmButton = {
-            TextButton(onClick = onGoToSettings) { Text("ENABLE", color = Color.White) }
+        title = "Enable Notifications",
+        content = {
+            Column {
+                Text(
+                    "Allow Dotz to read notifications for badges.",
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Tip: If the toggle is greyed out, go to Dotz App Info > Three dots (top right) > 'Allow restricted settings'.",
+                        color = Color.White.copy(alpha = 0.4f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("SKIP", color = Color.White.copy(alpha = 0.4f)) }
-        }
+        confirmButtonText = "ENABLE",
+        onConfirm = onGoToSettings,
+        dismissButtonText = "SKIP",
+        onDismiss = onDismiss
     )
 }
 
 @Composable
 private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    AlertDialog(
+    DotzAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
-        title = { Text("Set as Default Launcher", color = Color.White, fontSize = 16.sp) },
-        text = { Text("Use Dotz as your main home screen.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
-        confirmButton = {
-            TextButton(onClick = onGoToSettings) { Text("SET DEFAULT", color = Color.White) }
+        title = "Set as Default Launcher",
+        content = {
+            Text(
+                "Use Dotz as your main home screen.",
+                color = Color.White.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("SKIP", color = Color.White.copy(alpha = 0.4f)) }
-        }
+        confirmButtonText = "SET DEFAULT",
+        onConfirm = onGoToSettings,
+        dismissButtonText = "SKIP",
+        onDismiss = onDismiss
     )
 }
 
 @Composable
 private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = { /* Dismiss not allowed to ensure acceptance */ },
-        containerColor = Color.Black,
-        title = { Text("App Visibility", color = Color.White, fontSize = 16.sp) },
-        text = { Text("To function as a launcher, Dotz needs to see your installed apps so you can assign them to tiles. We only use this list locally and never share it.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
-        confirmButton = {
-            TextButton(onClick = onAccept) { Text("I UNDERSTAND", color = Color.White) }
-        }
+    DotzAlertDialog(
+        onDismissRequest = { /* Dismiss not allowed */ },
+        title = "App Visibility",
+        content = {
+            Text(
+                "To function as a launcher, Dotz needs to see your installed apps so you can assign them to tiles. We only use this list locally and never share it.",
+                color = Color.White.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButtonText = "I UNDERSTAND",
+        onConfirm = onAccept
     )
 }
 
 @Composable
 private fun UnassignedTileDialog(tileLabel: String, onDismiss: () -> Unit, onSelectApp: () -> Unit) {
-    AlertDialog(
+    DotzAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
-        title = { Text("Unassigned Tile", color = Color.White, fontSize = 16.sp) },
-        text = { Text("Assign an app to $tileLabel?", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp) },
-        confirmButton = {
-            TextButton(onClick = onSelectApp) { Text("SELECT APP", color = Color.White) }
+        title = "Unassigned Tile",
+        content = {
+            Text(
+                "Assign an app to $tileLabel?",
+                color = Color.White.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium
+            )
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("CANCEL", color = Color.White.copy(alpha = 0.4f)) }
-        }
+        confirmButtonText = "SELECT APP",
+        onConfirm = onSelectApp,
+        dismissButtonText = "CANCEL",
+        onDismiss = onDismiss
     )
 }

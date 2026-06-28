@@ -25,6 +25,20 @@ data class AppTile(
     val launchCount: Int = 0
 )
 
+enum class TimelineType { CALL, MESSAGE, PHOTO, MUSIC, APP_LAUNCH, CALENDAR }
+
+data class TimelineItem(
+    val id: String,
+    val type: TimelineType,
+    val title: String,
+    val subtitle: String,
+    val timestamp: Long,
+    val packageName: String? = null,
+    val extra: String? = null,
+    val canReply: Boolean = false,
+    val notificationKey: String? = null
+)
+
 data class DrawerApp(
     val packageName: String,
     val label: String,
@@ -35,6 +49,27 @@ data class DrawerApp(
 enum class TileType {
     CALL, WHATSAPP, MESSAGE, MAPS, MUSIC, PAY,
     CAMERA, CALCULATOR, CLOCK, CALENDAR, NOTES, SETTINGS
+}
+
+object AppFonts {
+    val allFonts = listOf(
+        "default" to "System Default",
+        "nokia" to "Nokia Sans",
+        "inter" to "Inter",
+        "manrope" to "Manrope",
+        "roboto" to "Roboto",
+        "ibm_plex_sans" to "IBM Plex Sans",
+        "space_grotesk" to "Space Grotesk",
+        "outfit" to "Outfit",
+        "jakarta" to "Plus Jakarta Sans",
+        "sora" to "Sora",
+        "jetbrains_mono" to "JetBrains Mono",
+        "ibm_plex_mono" to "IBM Plex Mono",
+        "space_mono" to "Space Mono",
+        "dm_sans" to "DM Sans",
+        "instrument" to "Instrument Sans",
+        "work_sans" to "Work Sans"
+    )
 }
 
 object DefaultApps {
@@ -89,8 +124,8 @@ object DefaultApps {
     val distractingPackages = setOf(
         "facebook", "instagram", "twitter", "x.android", "snapchat", "tiktok", "musically",
         "reddit", "linkedin", "pinterest", "youtube", "netflix", "disney", "primevideo",
-        "bumble", "tinder", "okcupid", "badoo", "threads", "bluesky", "whatsapp", "telegram", "messenger",
-        "discord", "signal", "viber", "line.android", "wechat"
+        "bumble", "tinder", "okcupid", "badoo", "threads", "bluesky", "whatsapp", "com.whatsapp",
+        "telegram", "messenger", "discord", "signal", "viber", "line.android", "wechat"
     )
 
     /** Fallback package names for common OEM variants */

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
@@ -13,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.ui.theme.DotzColors
@@ -46,8 +48,11 @@ fun DetoxPanel(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(32.dp))
+            .background(DotzTheme.colors.tile.copy(alpha = transparency.coerceAtLeast(0.3f)))
+            .padding(vertical = 16.dp, horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Row 1: WiFi, BT, Mobile Data, Airplane
@@ -131,11 +136,12 @@ private fun DetoxIcon(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {}
 ) {
+    val contentColor = DotzTheme.colors.text
     Box(
         modifier = Modifier
-            .size(42.dp) // Slightly smaller for better fit in 2 rows
+            .size(44.dp)
             .clip(CircleShape)
-            .background(if (isActive) DotzTheme.colors.text.copy(alpha = 0.2f * transparency) else DotzTheme.colors.tile.copy(alpha = transparency.coerceAtLeast(0.4f)))
+            .background(if (isActive) contentColor.copy(alpha = 0.25f * transparency) else contentColor.copy(alpha = 0.1f * transparency))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -145,7 +151,7 @@ private fun DetoxIcon(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (isActive) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.7f),
+            tint = contentColor,
             modifier = Modifier.size(20.dp)
         )
     }

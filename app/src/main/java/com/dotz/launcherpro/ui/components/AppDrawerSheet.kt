@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.data.DrawerApp
 import com.dotz.launcherpro.ui.theme.DotzTheme
+import com.dotz.launcherpro.ui.theme.DotzType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,49 +83,70 @@ fun AppDrawerSheet(
 
             Spacer(Modifier.height(8.dp))
 
-            // Grouped Text List
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 40.dp)
-            ) {
-                grouped.forEach { (initial, appsInGroup) ->
-                    item {
+            if (query.isBlank()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = initial.toString(),
+                            "TYPE TO SEARCH",
                             color = Color.White.copy(alpha = 0.2f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp, start = 4.dp)
+                            style = DotzType.timeStyle().copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraLight, letterSpacing = 4.sp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Mindful access only",
+                            color = Color.White.copy(alpha = 0.1f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    items(appsInGroup) { app ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onLaunch(app.packageName) }
-                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                }
+            } else {
+                // Grouped Text List
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 40.dp)
+                ) {
+                    grouped.forEach { (initial, appsInGroup) ->
+                        item {
                             Text(
-                                text = app.label.uppercase(),
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Light,
-                                modifier = Modifier.weight(1f)
+                                text = initial.toString(),
+                                color = Color.White.copy(alpha = 0.2f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 16.dp, bottom = 4.dp, start = 4.dp)
                             )
-                            
-                            if (app.usageTime != null) {
-                                Text(
-                                    text = app.usageTime,
-                                    color = Color.White.copy(alpha = 0.3f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
                         }
-                        // Optional subtle divider
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+                        items(appsInGroup) { app ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onLaunch(app.packageName) }
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = app.label.uppercase(),
+                                    color = Color.White,
+                                    style = DotzType.timeStyle().copy(fontSize = 18.sp, fontWeight = FontWeight.Light),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                
+                                if (app.usageTime != null) {
+                                    Text(
+                                        text = app.usageTime,
+                                        color = Color.White.copy(alpha = 0.3f),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            // Optional subtle divider
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+                        }
                     }
                 }
             }

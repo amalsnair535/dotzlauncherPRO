@@ -33,21 +33,37 @@ class AppSelectionListActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // Hide system bars for consistent immersive look
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            DotzTheme(settings = uiState.settings) {
-                AppSelectionListScreen(
-                    page0 = uiState.page0Tiles,
-                    page1 = uiState.page1Tiles,
-                    page2 = uiState.page2Tiles,
-                    onBack = { finish() },
-                ) { tile ->
-                    startActivity(
-                        Intent(this, AppSelectionActivity::class.java)
-                            .putExtra("tileId", tile.tileId)
-                            .putExtra("tileLabel", tile.label),
-                    )
+            
+            // Force solid background to prevent transparency glitching
+            val selectionSettings = remember(uiState.settings) {
+                uiState.settings.copy(showWallpaper = false)
+            }
+            
+            DotzTheme(settings = selectionSettings) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = DotzTheme.colors.background
+                ) {
+                    AppSelectionListScreen(
+                        page0 = uiState.page0Tiles,
+                        page1 = uiState.page1Tiles,
+                        page2 = uiState.page2Tiles,
+                        onBack = { finish() },
+                    ) { tile ->
+                        startActivity(
+                            Intent(this, AppSelectionActivity::class.java)
+                                .putExtra("tileId", tile.tileId)
+                                .putExtra("tileLabel", tile.label),
+                        )
+                    }
                 }
             }
         }
@@ -92,7 +108,7 @@ private fun AppSelectionListScreen(
             contentPadding      = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(allTiles.size) { index ->
+            items(allTiles.size, key = { index -> allTiles[index].tileId }) { index ->
                 val tile = allTiles[index]
                 TileRemapRow(
                     label    = tile.label,

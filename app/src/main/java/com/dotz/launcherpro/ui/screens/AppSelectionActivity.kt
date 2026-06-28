@@ -24,15 +24,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.WindowCompat
 import com.dotz.launcherpro.data.DrawerApp
-import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AppSelectionActivity : ComponentActivity() {
 
@@ -41,23 +40,41 @@ class AppSelectionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // Hide system bars for consistent immersive look
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
 
         val tileId = intent.getIntExtra("tileId", -1)
         val tileLabel = intent.getStringExtra("tileLabel") ?: "APP"
         if (tileId == -1) { finish(); return }
 
-        val installedApps = viewModel.getInstalledAppsForTile(tileId)
-
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            DotzTheme(settings = uiState.settings) {
-                AppSelectionScreen(
-                    apps    = installedApps,
-                    title   = "SELECT $tileLabel APP",
-                    onBack  = { finish() }
-                ) { pkg, label ->
-                    viewModel.updateTileOverride(tileId, pkg, label.uppercase())
-                    finish()
+            
+            // Force a solid background for selection screen to prevent UI ghosting/glitching
+            val selectionSettings = remember(uiState.settings) {
+                uiState.settings.copy(showWallpaper = false)
+            }
+
+            val installedApps = remember(uiState.settings.activeProfileId, tileId) {
+                viewModel.getInstalledAppsForTile(tileId, uiState.settings.activeProfileId)
+            }
+
+            DotzTheme(settings = selectionSettings) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = DotzTheme.colors.background
+                ) {
+                    AppSelectionScreen(
+                        apps    = installedApps,
+                        title   = "SELECT $tileLabel APP",
+                        onBack  = { finish() }
+                    ) { pkg, label ->
+                        viewModel.updateTileOverride(tileId, pkg, label.uppercase())
+                        finish()
+                    }
                 }
             }
         }
@@ -85,9 +102,7 @@ private fun AppSelectionScreen(
                 title = {
                     Text(
                         text = title,
-                        fontSize = 14.sp,
-                        letterSpacing = 2.sp,
-                        fontWeight = FontWeight.Normal,
+                        style = MaterialTheme.typography.labelLarge,
                         color = DotzTheme.colors.text,
                     )
                 },
@@ -124,8 +139,11 @@ private fun AppSelectionScreen(
                 )
             )
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filtered) { app ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filtered, key = { it.packageName }) { app ->
                     AppRow(
                         pkg = app.packageName, 
                         label = app.label, 
@@ -142,7 +160,13 @@ private fun AppSelectionScreen(
 @Composable
 private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
     val context = LocalContext.current
-    val icon = remember(pkg) { loadIcon(context, pkg) }
+    var icon by remember(pkg) { mutableStateOf<Drawable?>(null) }
+    
+    LaunchedEffect(pkg) {
+        withContext(Dispatchers.IO) {
+            icon = loadIcon(context, pkg)
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -153,20 +177,20 @@ private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (icon != null) {
-            val bmp = remember(icon) { icon.toBitmap().asImageBitmap() }
-            Image(
-                bitmap             = bmp,
-                contentDescription = label,
-                modifier           = Modifier.size(36.dp)
-            )
-        } else {
-            Spacer(Modifier.size(36.dp))
+        Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+            icon?.let { drawable ->
+                val bmp = remember(drawable) { drawable.toBitmap().asImageBitmap() }
+                Image(
+                    bitmap             = bmp,
+                    contentDescription = label,
+                    modifier           = Modifier.fillMaxSize()
+                )
+            }
         }
         Spacer(Modifier.width(16.dp))
         Column {
-            Text(label, color = DotzTheme.colors.text, fontSize = 14.sp)
-            Text(pkg, color = DotzTheme.colors.text.copy(alpha = 0.35f), fontSize = 10.sp)
+            Text(label, color = DotzTheme.colors.text, style = MaterialTheme.typography.bodyLarge)
+            Text(pkg, color = DotzTheme.colors.text.copy(alpha = 0.35f), style = MaterialTheme.typography.labelSmall)
         }
     }
 }

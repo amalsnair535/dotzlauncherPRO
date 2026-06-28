@@ -1,53 +1,32 @@
 package com.dotz.launcherpro.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.data.DotzSettings
-import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
-
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
-@Composable
-fun PreviewStaticHeader() {
-    DotzTheme(settings = DotzSettings()) {
-        StaticHeader(
-            batteryLevel = 85,
-            networkStatus = "WiFi",
-            weatherTemp = "18°C",
-            weatherCondition = "Clearsky",
-            showWeatherInfo = true,
-            isWifiEnabled = true,
-            isBluetoothEnabled = true,
-            isSilentMode = false,
-            isTorchOn = false,
-            isAirplaneModeOn = false,
-            isDarkModeOn = true,
-            onLauncherSettingsTap = {},
-            onWifiToggle = {},
-            onBluetoothToggle = {},
-            onSilentToggle = {},
-            onTorchToggle = {},
-            onAirplaneToggle = {},
-            onDarkModeToggle = {},
-            onDataClick = {},
-            onWeatherClick = {}
-        )
-    }
-}
 
 @Composable
 fun StaticHeader(
@@ -63,6 +42,17 @@ fun StaticHeader(
     isAirplaneModeOn: Boolean,
     isDarkModeOn: Boolean,
     transparency: Float = 1.0f,
+    headerMode: String = "toggles",
+    nowPlayingTitle: String = "Not Playing",
+    nowPlayingArtist: String = "",
+    isPlaying: Boolean = false,
+    playbackPosition: Long = 0,
+    playbackDuration: Long = 0,
+    unlockCount: Int = 0,
+    focusScore: Int = 100,
+    onPlayPause: () -> Unit = {},
+    onSkipNext: () -> Unit = {},
+    onSkipPrevious: () -> Unit = {},
     onLauncherSettingsTap: () -> Unit,
     onWifiToggle: () -> Unit,
     onBluetoothToggle: () -> Unit,
@@ -108,7 +98,7 @@ fun StaticHeader(
             ) {
                 Text(
                     text = weatherTemp ?: "...",
-                    style = DotzType.DateStyle.copy(
+                    style = DotzType.dateStyle().copy(
                         fontSize = 20.sp, 
                         fontWeight = FontWeight.Normal,
                         letterSpacing = 0.sp
@@ -117,7 +107,7 @@ fun StaticHeader(
                 )
                 Text(
                     text = weatherCondition ?: "Searching",
-                    style = DotzType.DateStyle.copy(
+                    style = DotzType.dateStyle().copy(
                         fontSize = 12.sp,
                         letterSpacing = 0.sp
                     ),
@@ -135,7 +125,7 @@ fun StaticHeader(
                 // Network Info
                 Text(
                     text = networkStatus,
-                    style = DotzType.DateStyle.copy(fontSize = 11.sp),
+                    style = DotzType.dateStyle().copy(fontSize = 11.sp),
                     color = DotzTheme.colors.text.copy(alpha = 0.5f),
                     modifier = Modifier.width(50.dp),
                     textAlign = TextAlign.End
@@ -148,7 +138,7 @@ fun StaticHeader(
                 ) {
                     Text(
                         text      = timeText,
-                        style     = DotzType.TimeStyle,
+                        style     = DotzType.timeStyle(),
                         color     = DotzTheme.colors.text,
                         textAlign = TextAlign.Center
                     )
@@ -156,7 +146,7 @@ fun StaticHeader(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text      = dateText,
-                        style     = DotzType.DateStyle,
+                        style     = DotzType.dateStyle(),
                         color     = DotzTheme.colors.text.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
                     )
@@ -167,7 +157,7 @@ fun StaticHeader(
                 // Battery Info
                 Text(
                     text = if (batteryLevel >= 0) "$batteryLevel%" else "--%",
-                    style = DotzType.DateStyle.copy(fontSize = 11.sp),
+                    style = DotzType.dateStyle().copy(fontSize = 11.sp),
                     color = DotzTheme.colors.text.copy(alpha = 0.5f),
                     modifier = Modifier.width(50.dp),
                     textAlign = TextAlign.Start
@@ -176,31 +166,232 @@ fun StaticHeader(
 
             Spacer(Modifier.height(16.dp))
 
-            DetoxPanel(
-                isWifiEnabled = isWifiEnabled,
-                isBluetoothEnabled = isBluetoothEnabled,
-                isSilentMode = isSilentMode,
-                isTorchOn = isTorchOn,
-                isAirplaneModeOn = isAirplaneModeOn,
-                isDarkModeOn = isDarkModeOn,
-                transparency = transparency,
-                onWifiToggle = onWifiToggle,
-                onBluetoothToggle = onBluetoothToggle,
-                onSilentToggle = onSilentToggle,
-                onTorchToggle = onTorchToggle,
-                onAirplaneToggle = onAirplaneToggle,
-                onDarkModeToggle = onDarkModeToggle,
-                onSettingsClick = onLauncherSettingsTap,
-                onDataClick = onDataClick,
-                onWifiLongClick = onWifiLongClick,
-                onBluetoothLongClick = onBluetoothLongClick,
-                onDataLongClick = onDataLongClick,
-                onAirplaneLongClick = onAirplaneLongClick,
-                onSilentLongClick = onSilentLongClick,
-                onTorchLongClick = onTorchLongClick,
-                onDarkModeLongClick = onDarkModeLongClick,
-                modifier = Modifier.padding(bottom = 0.dp)
-            )
+            if (headerMode == "music") {
+                NowPlayingWidget(
+                    title = nowPlayingTitle,
+                    artist = nowPlayingArtist,
+                    isPlaying = isPlaying,
+                    position = playbackPosition,
+                    duration = playbackDuration,
+                    onPlayPause = onPlayPause,
+                    onSkipNext = onSkipNext,
+                    onSkipPrevious = onSkipPrevious,
+                    onSettingsClick = onLauncherSettingsTap
+                )
+            } else if (headerMode == "stats") {
+                FocusStatsWidget(
+                    unlockCount = unlockCount,
+                    focusScore = focusScore,
+                    onSettingsClick = onLauncherSettingsTap
+                )
+            } else {
+                DetoxPanel(
+                    isWifiEnabled = isWifiEnabled,
+                    isBluetoothEnabled = isBluetoothEnabled,
+                    isSilentMode = isSilentMode,
+                    isTorchOn = isTorchOn,
+                    isAirplaneModeOn = isAirplaneModeOn,
+                    isDarkModeOn = isDarkModeOn,
+                    transparency = transparency,
+                    onWifiToggle = onWifiToggle,
+                    onBluetoothToggle = onBluetoothToggle,
+                    onSilentToggle = onSilentToggle,
+                    onTorchToggle = onTorchToggle,
+                    onAirplaneToggle = onAirplaneToggle,
+                    onDarkModeToggle = onDarkModeToggle,
+                    onSettingsClick = onLauncherSettingsTap,
+                    onDataClick = onDataClick,
+                    onWifiLongClick = onWifiLongClick,
+                    onBluetoothLongClick = onBluetoothLongClick,
+                    onDataLongClick = onDataLongClick,
+                    onAirplaneLongClick = onAirplaneLongClick,
+                    onSilentLongClick = onSilentLongClick,
+                    onTorchLongClick = onTorchLongClick,
+                    onDarkModeLongClick = onDarkModeLongClick,
+                    modifier = Modifier.padding(bottom = 0.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NowPlayingWidget(
+    title: String,
+    artist: String,
+    isPlaying: Boolean,
+    position: Long,
+    duration: Long,
+    onPlayPause: () -> Unit,
+    onSkipNext: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    val progress = if (duration > 0) position.toFloat() / duration else 0f
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = DotzTheme.colors.tile.copy(alpha = 0.8f) // Theme-aware background
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Settings button
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(DotzTheme.colors.text.copy(alpha = 0.1f))
+                ) {
+                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (title == "Not Playing") "Nothing Playing" else title,
+                        color = DotzTheme.colors.text,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = if (artist.isBlank()) "Play something to see info" else artist,
+                        color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onSkipPrevious, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.SkipPrevious, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(
+                        onClick = onPlayPause,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(DotzTheme.colors.accent)
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = DotzTheme.colors.solidBackground, // Contrasts with accent
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    IconButton(onClick = onSkipNext, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.SkipNext, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+
+            if (title != "Not Playing" && duration > 0) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape),
+                    color = DotzTheme.colors.accent,
+                    trackColor = DotzTheme.colors.text.copy(alpha = 0.1f),
+                    strokeCap = StrokeCap.Round
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FocusStatsWidget(
+    unlockCount: Int,
+    focusScore: Int,
+    onSettingsClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = DotzTheme.colors.tile.copy(alpha = 0.8f)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Settings button (consistent with music widget)
+            IconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(DotzTheme.colors.text.copy(alpha = 0.1f))
+            ) {
+                Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "DOTZ",
+                    color = DotzTheme.colors.text,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp
+                )
+                Text(
+                    text = "Unlocked: $unlockCount times",
+                    color = DotzTheme.colors.text.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Keep going.",
+                    color = DotzTheme.colors.accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Focus Score",
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$focusScore",
+                        color = DotzTheme.colors.text,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "/100",
+                        color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
         }
     }
 }

@@ -148,7 +148,7 @@ fun AppTileCard(
 
             Text(
                 text      = tile.label,
-                style     = DotzType.TileLabelStyle,
+                style     = DotzType.tileLabelStyle(),
                 color     = DotzTheme.colors.text,
                 textAlign = TextAlign.Center,
                 maxLines  = 1,

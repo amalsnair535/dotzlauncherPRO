@@ -161,7 +161,7 @@ private fun AppListTile(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = tile.label,
-                style = DotzType.TileLabelStyle.copy(fontSize = 18.sp),
+                style = DotzType.tileLabelStyle().copy(fontSize = 18.sp),
                 color = DotzTheme.colors.text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

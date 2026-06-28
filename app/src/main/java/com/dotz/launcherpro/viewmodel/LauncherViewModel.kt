@@ -28,7 +28,6 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -40,11 +39,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -71,8 +68,6 @@ data class LauncherUiState(
     val isPlaying: Boolean = false,
     val playbackPosition: Long = 0,
     val playbackDuration: Long = 0,
-    val aiResponse: String? = null,
-    val isAiLoading: Boolean = false,
     val focusTimeToday: String = "0h 0m",
     val focusTimeMillis: Long = 0,
     val focusStreak: Int = 0,
@@ -80,10 +75,22 @@ data class LauncherUiState(
     val isPremium: Boolean = false,
     val isUpgradeAvailable: Boolean = true,
     val isLiteVersion: Boolean = false,
+    val isFastlaneVisible: Boolean = false,
+    val unlockCount: Int = 0,
+    val notificationsReceivedToday: Int = 0,
+    val focusScore: Int = 100,
     val topApps: List<DrawerApp> = emptyList(),
+    val timelineItems: List<TimelineItem> = emptyList(),
 )
 
 enum class ThemeMode { LIGHT, DARK, CIRCADIAN, TRANSPARENT }
+
+data class UsageStatsResult(
+    val appStats: Map<String, Pair<String?, Int>>,
+    val totalScreenTime: Long,
+    val unlockCount: Int,
+    val notificationsReceived: Int
+)
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -127,15 +134,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _weatherCondition = MutableStateFlow<String?>(null)
     private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
-    private val _aiResponse = MutableStateFlow<String?>(null)
-    private val _isAiLoading = MutableStateFlow(false)
     private val _refreshTrigger = MutableStateFlow(Unit)
-    private val _usageStats = MutableStateFlow<Pair<Map<String, Pair<String?, Int>>, Long>>(emptyMap<String, Pair<String?, Int>>() to 0L)
+    private val _usageStats = MutableStateFlow(UsageStatsResult(emptyMap(), 0L, 0, 0))
     private val _installedAppsCache = MutableStateFlow<List<DrawerApp>>(emptyList())
 
-    private val _isDashboardVisible = MutableStateFlow(false)
-    fun setDashboardVisible(visible: Boolean) {
-        _isDashboardVisible.value = visible
+    private val _isFastlaneVisible = MutableStateFlow(false)
+    fun setFastlaneVisible(visible: Boolean) {
+        _isFastlaneVisible.value = visible
     }
 
     private val _currentInnerPage = MutableStateFlow(0)
@@ -222,7 +227,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val newStreak = if (isNextDay) settings.focusStreak + 1 else if (isSameDay) settings.focusStreak else 1
             val newFocusTime = if (isSameDay) settings.focusTimeToday else 0L
             
-            prefs.updateFocusStats(newStreak, now, newFocusTime)
+            prefs.updateFocusStats(newStreak, now, newFocusTime, resetDrawerCount = !isSameDay)
+            if (!isSameDay) {
+                _refreshTrigger.value = Unit
+            }
         }
 
         // Periodic update of focus time
@@ -298,21 +306,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             while (true) {
                 kotlinx.coroutines.delay(1000)
                 val current = _playbackState.value
-                val dashboardEnabled = _uiState.value.settings.enableDashboard
-                val dashboardVisible = _isDashboardVisible.value
+                val fastlaneEnabled = _uiState.value.settings.enableFastlane
+                val fastlaneVisible = _isFastlaneVisible.value
 
-                // Only update position if something is playing AND dashboard is actually visible to user
-                if (current.first && dashboardEnabled && dashboardVisible) {
-                    val newPos = activeController?.playbackState?.position ?: current.second
-                    if (newPos != current.second) {
-                        _playbackState.value = Triple(current.first, newPos, current.third)
+                // Only update position if something is playing AND fastlane is actually visible to user
+                if (current.component1() && fastlaneEnabled && fastlaneVisible) {
+                    val newPos = activeController?.playbackState?.position ?: current.component2()
+                    if (newPos != current.component2()) {
+                        _playbackState.value = Triple(current.component1(), newPos, current.component3())
                     }
                 }
 
                 // If no active controller, or current one is not playing, check for other playing sessions
                 // but do this less frequently (e.g. every 5 seconds) to save battery
                 if (System.currentTimeMillis() % 5000 < 1000) {
-                    if (activeController == null || !current.first) {
+                    if (activeController == null || !current.component1()) {
                         val componentName = ComponentName(app, DotzNotificationService::class.java)
                         try {
                             val sessions = mediaSessionManager.getActiveSessions(componentName)
@@ -340,15 +348,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Heavy data updates (Apps & Usage)
         viewModelScope.launch(Dispatchers.IO) {
             _refreshTrigger.collect {
-                val usage = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap<String, Pair<String?, Int>>() to 0L
+                val usage = if (hasUsageStatsPermission()) getAllAppStatsToday() else UsageStatsResult(emptyMap(), 0L, 0, 0)
                 _usageStats.value = usage
 
                 val apps = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }, 0)
                     .map {
                         val pkg = it.activityInfo.packageName
                         val label = it.loadLabel(pm).toString()
-                        val stats = usage.first[pkg]
-                        DrawerApp(pkg, label, stats?.first, stats?.second ?: 0)
+                        val stats = usage.appStats[pkg]
+                        DrawerApp(pkg, label, stats?.component1(), stats?.component2() ?: 0)
                     }
                     .distinctBy { it.packageName }
                 _installedAppsCache.value = apps
@@ -374,11 +382,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 DotzNotificationService.blockedCount,
                 _nowPlaying,
                 _playbackState,
-                _aiResponse,
-                _isAiLoading,
                 storeBridge.isPremium,
                 _usageStats,
-                _installedAppsCache
+                _installedAppsCache,
+                _isFastlaneVisible
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
@@ -400,33 +407,53 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val nowPlaying = args[14] as Triple<String, String, String>
                 @Suppress("UNCHECKED_CAST")
                 val playback = args[15] as Triple<Boolean, Long, Long>
-                val aiResp = args[16] as String?
-                val aiLoading = args[17] as Boolean
-                val isPremiumStatus = args[18] as Boolean
+                val isPremiumStatus = args[16] as Boolean
                 @Suppress("UNCHECKED_CAST")
-                val usageResult = args[19] as Pair<Map<String, Pair<String?, Int>>, Long>
+                val usageResult = args[17] as UsageStatsResult
                 @Suppress("UNCHECKED_CAST")
-                val allApps = args[20] as List<DrawerApp>
+                val allApps = args[18] as List<DrawerApp>
+                val fastlaneVisible = args[19] as Boolean
 
                 val isDefault = isDefaultLauncher()
-                val allUsage = usageResult.first
-                val totalTimeMillis = usageResult.second
+                val allUsage = usageResult.appStats
+                val totalTimeMillis = usageResult.totalScreenTime
 
+                val isCustomProfile = settings.activeProfileId != "default"
                 val allTilesUnordered = buildTilesFast(DefaultApps.allDefaults, settings, notifCounts, allUsage)
                 val allTiles = settings.tileOrder.mapNotNull { id ->
                     allTilesUnordered.find { it.tileId == id }
                 }
 
+                // Calculate Focus Score
+                // 100 points base. 
+                // Deduct 1 point for every unlock above 20.
+                // Deduct 1 point for every 10 minutes of screen time.
+                val unlockPenalty = ((usageResult.unlockCount - 20).coerceAtLeast(0)) * 1
+                val minutesUsed = totalTimeMillis / 60000
+                val screenTimePenalty = minutesUsed / 10
+                val calculatedScore = (100 - unlockPenalty - screenTimePenalty).toInt().coerceIn(0, 100)
+
                 val p0 = allTiles.take(6)
                 val p1 = allTiles.drop(6).take(6)
-                val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(settings.extraTileCount) else emptyList()
+                val p2 = if (settings.enableExtraPage || isCustomProfile) allTiles.drop(12).take(if (isCustomProfile) 6 else settings.extraTileCount) else emptyList()
                 
-                val effectiveSettings = if (settings.isPremium || isPremiumStatus) settings else settings.copy(
-                    tileTransparency = 1.0f,
-                    layoutStyle = "classic",
-                    showWallpaper = false,
-                    useCircadianTheming = false
-                )
+                // Auto Grayscale Check (10 PM to 6 AM)
+                val calendar = Calendar.getInstance()
+                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                val isNightTime = hour >= 22 || hour < 6
+                val effectiveGrayscale = settings.grayscaleMode || (settings.autoGrayscale && isNightTime)
+
+                val effectiveSettings = if (settings.isPremium || isPremiumStatus) {
+                    settings.copy(grayscaleMode = effectiveGrayscale)
+                } else {
+                    settings.copy(
+                        tileTransparency = 1.0f,
+                        layoutStyle = "classic",
+                        showWallpaper = false,
+                        useCircadianTheming = false,
+                        grayscaleMode = effectiveGrayscale
+                    )
+                }
 
                 val topApps = allApps
                     .filter { it.usageTime != null }
@@ -437,6 +464,58 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         hours * 60 + mins
                     }
                     .take(5)
+
+                // Calculate Timeline Items within combine to ensure they have the latest data
+                val timeline = mutableListOf<TimelineItem>()
+                
+                // 1. Notifications
+                notifications.forEach { notif ->
+                    val type = when {
+                        notif.packageName.contains("dialer") || notif.packageName.contains("telecom") -> TimelineType.CALL
+                        notif.packageName.contains("message") || notif.packageName.contains("whatsapp") || notif.packageName.contains("telegram") -> TimelineType.MESSAGE
+                        else -> TimelineType.MESSAGE
+                    }
+                    timeline.add(TimelineItem(
+                        id = notif.key,
+                        type = type,
+                        title = notif.title ?: "Notification",
+                        subtitle = notif.text ?: "",
+                        timestamp = notif.postTime,
+                        packageName = notif.packageName,
+                        canReply = notif.canReply,
+                        notificationKey = notif.key
+                    ))
+                }
+
+                // 2. Music
+                if (nowPlaying.component1() != "Not Playing" && nowPlaying.component1().isNotBlank()) {
+                    timeline.add(TimelineItem(
+                        id = "music_${nowPlaying.component1()}",
+                        type = TimelineType.MUSIC,
+                        title = nowPlaying.component1(),
+                        subtitle = nowPlaying.component2(),
+                        timestamp = System.currentTimeMillis(),
+                        packageName = activeController?.packageName
+                    ))
+                }
+
+                // 3. App Launches (Fallback to primary tiles if usage stats are missing)
+                val appsToRecommend = if (topApps.isNotEmpty()) {
+                    topApps.take(3)
+                } else {
+                    p0.take(3).map { DrawerApp(it.packageName, it.label, it.usageTime, it.launchCount) }
+                }
+
+                appsToRecommend.forEach { app ->
+                    timeline.add(TimelineItem(
+                        id = "app_${app.packageName}",
+                        type = TimelineType.APP_LAUNCH,
+                        title = app.label,
+                        subtitle = if (app.usageTime != null) "Used for ${app.usageTime}" else "Frequent activity",
+                        timestamp = System.currentTimeMillis() - 10000,
+                        packageName = app.packageName
+                    ))
+                }
 
                 LauncherUiState(
                     page0Tiles = p0,
@@ -457,25 +536,31 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     weatherCondition = condition,
                     activeNotifications = notifications,
                     blockedNotificationsCount = blocked,
-                    nowPlayingTitle = nowPlaying.first,
-                    nowPlayingArtist = nowPlaying.second,
-                    nowPlayingAlbum = nowPlaying.third,
-                    isPlaying = playback.first,
-                    playbackPosition = playback.second,
-                    playbackDuration = playback.third,
-                    aiResponse = aiResp,
-                    isAiLoading = aiLoading,
+                    nowPlayingTitle = nowPlaying.component1(),
+                    nowPlayingArtist = nowPlaying.component2(),
+                    nowPlayingAlbum = nowPlaying.component3(),
+                    isPlaying = playback.component1(),
+                    playbackPosition = playback.component2(),
+                    playbackDuration = playback.component3(),
                     focusTimeToday = formatDuration(totalTimeMillis),
                     focusStreak = settings.focusStreak,
                     isPremium = settings.isPremium || isPremiumStatus,
                     isUpgradeAvailable = storeBridge.isUpgradeAvailable,
                     isLiteVersion = storeBridge.isLiteVersion,
-                    topApps = topApps
+                    isFastlaneVisible = fastlaneVisible,
+                    unlockCount = usageResult.unlockCount,
+                    notificationsReceivedToday = usageResult.notificationsReceived,
+                    focusScore = calculatedScore,
+                    topApps = topApps,
+                    timelineItems = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id }
                 )
             }.collect { state ->
                 _uiState.value = state
             }
         }
+        
+        // Initial refresh
+        refreshState()
     }
 
     fun checkForUpdates() {
@@ -506,7 +591,24 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         sessionStartTime = now
         viewModelScope.launch {
             val settings = prefs.settingsFlow.first()
-            prefs.updateFocusStats(settings.focusStreak, now, settings.focusTimeToday + duration)
+            val lastDate = settings.lastUsedDate
+            
+            val calendarNow = Calendar.getInstance().apply { timeInMillis = now }
+            val calendarLast = Calendar.getInstance().apply { timeInMillis = lastDate }
+            
+            val isSameDay = calendarNow[Calendar.DAY_OF_YEAR] == calendarLast[Calendar.DAY_OF_YEAR] &&
+                           calendarNow[Calendar.YEAR] == calendarLast[Calendar.YEAR]
+            
+            if (isSameDay) {
+                prefs.updateFocusStats(settings.focusStreak, now, settings.focusTimeToday + duration)
+            } else {
+                // New day reset
+                val isNextDay = (now - lastDate < 48 * 60 * 60 * 1000)
+                val newStreak = if (isNextDay) settings.focusStreak + 1 else 1
+                prefs.updateFocusStats(newStreak, now, duration, resetDrawerCount = true)
+                // Force a full usage stats refresh immediately on day change
+                _refreshTrigger.value = Unit
+            }
         }
     }
 
@@ -547,6 +649,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val position = state?.position ?: 0L
         val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         
+        _nowPlaying.value = Triple(title, artist, album)
         _playbackState.value = Triple(isPlaying, position, duration)
     }
 
@@ -670,7 +773,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // ── Media Controls ────────────────────────────────────────────────────────
 
     fun mediaPlayPause() {
-        if (_playbackState.value.first) activeController?.transportControls?.pause()
+        if (_playbackState.value.component1()) activeController?.transportControls?.pause()
         else activeController?.transportControls?.play()
     }
 
@@ -682,51 +785,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         activeController?.transportControls?.skipToPrevious()
     }
 
-    // ── DOTZ AI (Cloud Powered) ──────────────────────────────────────────
-
-    private val client = OkHttpClient()
-    private val CLOUDFLARE_WORKER_URL = "https://dotzai.amalsnair535.workers.dev/"
-
-    fun askAi(prompt: String) {
-        if (prompt.isBlank()) return
-        viewModelScope.launch {
-            _isAiLoading.value = true
-            _aiResponse.value = "Thinking..."
-            try {
-                val responseText = withContext(Dispatchers.IO) {
-                    val requestBody = Gson().toJson(mapOf("prompt" to prompt))
-                        .toRequestBody("application/json".toMediaType())
-
-                    val request = Request.Builder()
-                        .url(CLOUDFLARE_WORKER_URL)
-                        .post(requestBody)
-                        .header("User-Agent", "DotzLauncher/1.0")
-                        .build()
-
-                    client.newCall(request).execute().use { response ->
-                        val body = response.body?.string() ?: throw Exception("Empty body")
-                        val json = Gson().fromJson(body, JsonObject::class.java)
-                        
-                        if (!response.isSuccessful) {
-                            val errorMsg = json.get("text")?.asString ?: "Unknown server error (Code ${response.code})"
-                            throw Exception(errorMsg)
-                        }
-
-                        json.get("text").asString
-                    }
-                }
-                _aiResponse.value = responseText
-            } catch (e: Exception) {
-                _aiResponse.value = "Error: ${e.localizedMessage}"
-                e.printStackTrace()
-            } finally {
-                _isAiLoading.value = false
-            }
+    fun launchApp(packageName: String?) {
+        if (packageName == null) return
+        val app = getApplication<Application>()
+        val intent = app.packageManager.getLaunchIntentForPackage(packageName)
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(intent)
+        } else {
+            Toast.makeText(app, "Could not open app", Toast.LENGTH_SHORT).show()
         }
     }
 
-    fun clearAi() {
-        _aiResponse.value = null
+    fun sendReply(notificationKey: String, message: String) {
+        DotzNotificationService.sendReply(notificationKey, message)
     }
 
     fun openMobileDataSettings() {
@@ -919,9 +991,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         } catch (_: Exception) {}
     }
 
+    fun refreshTimeline() {
+        // Timeline is now computed reactively in the combine block
+        refreshState()
+    }
+
     // ── App Logic ─────────────────────────────────────────────────────────────
 
-    private fun getAllAppStatsToday(): Pair<Map<String, Pair<String?, Int>>, Long> {
+    private fun getAllAppStatsToday(): UsageStatsResult {
         val usm = getApplication<Application>().getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -935,8 +1012,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val statsMap = mutableMapOf<String, Long>()
         val countMap = mutableMapOf<String, Int>()
         
-        // Accurate total usage tracking using events
         var totalScreenTime = 0L
+        var unlockCount = 0
+        var notificationsReceived = 0
         val myPackage = getApplication<Application>().packageName
 
         try {
@@ -949,7 +1027,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
             }
 
-            // 2. Get Accurate Total Screen Time & Launch Counts from Events
+            // 2. Get Accurate Total Screen Time, Launch Counts, Unlocks & Notifications from Events
             val events = usm.queryEvents(startTime, endTime)
             val event = UsageEvents.Event()
             
@@ -962,13 +1040,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 
                 when (event.eventType) {
                     UsageEvents.Event.MOVE_TO_FOREGROUND -> {
-                        // Launch Count: only count apps with launcher icons
                         if (pm.getLaunchIntentForPackage(pkg) != null) {
                             countMap[pkg] = (countMap[pkg] ?: 0) + 1
                         }
                         
-                        // Total usage calculation:
-                        // Digital Wellbeing typically excludes the launcher and system UI.
                         val isCountedApp = pkg != myPackage && 
                                           pkg != "com.android.systemui" && 
                                           pm.getLaunchIntentForPackage(pkg) != null
@@ -979,7 +1054,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                             currentForegroundPackage = pkg
                         } else {
-                            // If we switch to launcher or system UI, stop the timer for the previous app
                             if (currentForegroundPackage != null) {
                                 totalScreenTime += (event.timeStamp - foregroundStartTime)
                                 currentForegroundPackage = null
@@ -992,10 +1066,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             currentForegroundPackage = null
                         }
                     }
+                    16 -> { // KEYGUARD_DISMISSED
+                        unlockCount++
+                    }
+                    12 -> { // NOTIFICATION_INTERRUPTION
+                        notificationsReceived++
+                    }
                 }
             }
             
-            // If an app is still in foreground and it's not the launcher
             if (currentForegroundPackage != null && currentForegroundPackage != myPackage) {
                 totalScreenTime += (endTime - foregroundStartTime)
             }
@@ -1009,11 +1088,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             timeStr to count
         }
         
-        // Safeguard: Total screen time cannot exceed actual elapsed time since midnight
         val elapsedToday = endTime - startTime
         val finalTotal = totalScreenTime.coerceIn(0L, elapsedToday)
         
-        return appStats to finalTotal
+        return UsageStatsResult(appStats, finalTotal, unlockCount, notificationsReceived)
     }
 
     private fun buildTilesFast(
@@ -1028,8 +1106,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
             
             val stats = allUsage[pkg]
-            val usageTime = stats?.first
-            val launchCount = stats?.second ?: 0
+            val usageTime = stats?.component1()
+            val launchCount = stats?.component2() ?: 0
             
             val count = if (settings.showNotificationDots) {
                 val raw = notifCounts[pkg] ?: -1
@@ -1057,8 +1135,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         settings: DotzSettings,
         notifCounts: Map<String, Int>
     ): List<AppTile> {
-        val usageResult = if (hasUsageStatsPermission()) getAllAppStatsToday() else emptyMap<String, Pair<String?, Int>>() to 0L
-        val allStats = usageResult.first
+        val usageResult = if (hasUsageStatsPermission()) getAllAppStatsToday() else UsageStatsResult(emptyMap(), 0L, 0, 0)
+        val allStats = usageResult.appStats
         
         return defaults.map { tile ->
             val pkg = settings.tileOverrides[tile.tileId] ?: resolvePackage(tile.packageName)
@@ -1066,8 +1144,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
             
             val stats = allStats[pkg]
-            val usageTime = stats?.first
-            val launchCount = stats?.second ?: 0
+            val usageTime = stats?.component1()
+            val launchCount = stats?.component2() ?: 0
             
             val count = if (settings.showNotificationDots) {
                 val raw = notifCounts[pkg] ?: -1
@@ -1144,6 +1222,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         iconCache.clearCache()
     }
 
+    fun setAutoGrayscale(value: Boolean) = viewModelScope.launch {
+        prefs.setAutoGrayscale(value)
+        iconCache.clearCache()
+    }
+
     fun setVerticalScrolling(value: Boolean) = viewModelScope.launch {
         prefs.setVerticalScrolling(value)
     }
@@ -1175,12 +1258,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return mode == android.app.AppOpsManager.MODE_ALLOWED
     }
 
-    fun setShowWallpaper(value: Boolean) = viewModelScope.launch {
-        prefs.setShowWallpaper(value)
+    fun setEnableFastlane(value: Boolean) = viewModelScope.launch {
+        prefs.setEnableFastlane(value)
     }
 
-    fun setEnableDashboard(value: Boolean) = viewModelScope.launch {
-        prefs.setEnableDashboard(value)
+    fun setHomeHeaderMode(value: String) = viewModelScope.launch {
+        prefs.setHomeHeaderMode(value)
     }
 
     fun setTileTransparency(value: Float) = viewModelScope.launch {
@@ -1191,16 +1274,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setLayoutStyle(value)
     }
 
-    fun setUseCircadianTheming(value: Boolean) = viewModelScope.launch {
-        prefs.setUseCircadianTheming(value)
-    }
-
-    fun setEnableAppDrawer(value: Boolean) = viewModelScope.launch {
-        prefs.setEnableAppDrawer(value)
-    }
-
-    fun setFontId(value: String) = viewModelScope.launch {
-        prefs.setFontId(value)
+    fun incrementAppDrawerCount() = viewModelScope.launch {
+        prefs.incrementAppDrawerOpenCount()
     }
 
     fun updateTileOverride(tileId: Int, pkg: String, label: String) = viewModelScope.launch {
@@ -1208,7 +1283,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun createProfile(name: String) = viewModelScope.launch {
-        prefs.createProfile(name)
+        val newId = prefs.createProfile(name)
+        prefs.switchProfile(newId)
     }
 
     fun deleteProfile(id: String) = viewModelScope.launch {
@@ -1281,7 +1357,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     suspend fun importSettings(json: String): Boolean {
-        return prefs.importSettings(json)
+        return try {
+            val success = prefs.importSettings(json)
+            if (success) {
+                refreshState()
+            }
+            success
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun getInstalledApps(): List<DrawerApp> {
@@ -1300,12 +1384,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             .sortedBy { it.label }
     }
 
-    fun getInstalledAppsForTile(tileId: Int): List<DrawerApp> {
+    fun getInstalledAppsForTile(tileId: Int, currentProfileId: String): List<DrawerApp> {
         val allApps = getInstalledApps()
-        val currentProfileId = uiState.value.settings.activeProfileId
         
         // If it's a custom profile, allow all apps for all tiles
-        if (currentProfileId != "default") return allApps
+        if (currentProfileId != "default") {
+            return allApps
+        }
         
         // Smart suggestions only for the Default profile
         val filtered = when (tileId) {
@@ -1363,7 +1448,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val adwInfos = pm.queryIntentActivities(adwIntent, 0)
         for (info in adwInfos) {
             val pkg = info.activityInfo.packageName
-            if (iconPacks.none { it.first == pkg }) {
+            if (iconPacks.none { it.component1() == pkg }) {
                 iconPacks.add(pkg to info.loadLabel(pm).toString())
             }
         }

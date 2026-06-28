@@ -1,32 +1,14 @@
 package com.dotz.launcherpro.ui.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.dotz.launcherpro.R
 
 object DotzType {
-    
-    fun getFontFamily(fontId: String?): FontFamily {
-        return when (fontId) {
-            "inter" -> FontFamily(Font(R.font.inter_regular, FontWeight.Normal), Font(R.font.inter_medium, FontWeight.Medium), Font(R.font.inter_bold, FontWeight.Bold))
-            "manrope" -> FontFamily(Font(R.font.manrope_regular, FontWeight.Normal), Font(R.font.manrope_medium, FontWeight.Medium), Font(R.font.manrope_bold, FontWeight.Bold))
-            "ibm_plex_sans" -> FontFamily(Font(R.font.ibm_plex_sans_regular, FontWeight.Normal), Font(R.font.ibm_plex_sans_medium, FontWeight.Medium), Font(R.font.ibm_plex_sans_bold, FontWeight.Bold))
-            "space_grotesk" -> FontFamily(Font(R.font.space_grotesk_regular, FontWeight.Normal), Font(R.font.space_grotesk_medium, FontWeight.Medium), Font(R.font.space_grotesk_bold, FontWeight.Bold))
-            "outfit" -> FontFamily(Font(R.font.outfit_regular, FontWeight.Normal), Font(R.font.outfit_medium, FontWeight.Medium), Font(R.font.outfit_bold, FontWeight.Bold))
-            "jakarta" -> FontFamily(Font(R.font.plus_jakarta_sans_regular, FontWeight.Normal), Font(R.font.plus_jakarta_sans_medium, FontWeight.Medium), Font(R.font.plus_jakarta_sans_bold, FontWeight.Bold))
-            "sora" -> FontFamily(Font(R.font.sora_regular, FontWeight.Normal), Font(R.font.sora_medium, FontWeight.Medium), Font(R.font.sora_bold, FontWeight.Bold))
-            "jetbrains_mono" -> FontFamily(Font(R.font.jetbrains_mono_regular, FontWeight.Normal), Font(R.font.jetbrains_mono_medium, FontWeight.Medium), Font(R.font.jetbrains_mono_bold, FontWeight.Bold))
-            "ibm_plex_mono" -> FontFamily(Font(R.font.ibm_plex_mono_regular, FontWeight.Normal), Font(R.font.ibm_plex_mono_medium, FontWeight.Medium), Font(R.font.ibm_plex_mono_bold, FontWeight.Bold))
-            "space_mono" -> FontFamily(Font(R.font.space_mono_regular, FontWeight.Normal), Font(R.font.space_mono_bold, FontWeight.Bold))
-            "dm_sans" -> FontFamily(Font(R.font.dm_sans_regular, FontWeight.Normal), Font(R.font.dm_sans_medium, FontWeight.Medium), Font(R.font.dm_sans_bold, FontWeight.Bold))
-            "instrument" -> FontFamily(Font(R.font.instrument_sans_regular, FontWeight.Normal), Font(R.font.instrument_sans_medium, FontWeight.Medium), Font(R.font.instrument_sans_bold, FontWeight.Bold))
-            "work_sans" -> FontFamily(Font(R.font.work_sans_regular, FontWeight.Normal), Font(R.font.work_sans_medium, FontWeight.Medium), Font(R.font.work_sans_bold, FontWeight.Bold))
-            else -> FontFamily.Default
-        }
-    }
 
     fun getTimeStyle(fontFamily: FontFamily) = TextStyle(
         fontFamily = fontFamily,
@@ -49,8 +31,36 @@ object DotzType {
         letterSpacing = 1.5.sp,
     )
 
-    // Legacy support for basic styles
-    val TimeStyle = getTimeStyle(FontFamily.Default)
-    val DateStyle = getDateStyle(FontFamily.Default)
-    val TileLabelStyle = getTileLabelStyle(FontFamily.Default)
+    fun getTypography(fontFamily: FontFamily): Typography {
+        val baseTimeStyle = getTimeStyle(fontFamily)
+        val baseDateStyle = getDateStyle(fontFamily)
+        val baseTileStyle = getTileLabelStyle(fontFamily)
+
+        return Typography(
+            displayLarge  = baseTimeStyle,
+            displayMedium = baseTimeStyle.copy(fontSize = 32.sp),
+            displaySmall  = baseTimeStyle.copy(fontSize = 24.sp),
+            headlineLarge = baseDateStyle.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+            headlineMedium = baseDateStyle.copy(fontSize = 18.sp),
+            headlineSmall = baseDateStyle.copy(fontSize = 16.sp),
+            titleLarge    = baseTileStyle.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold),
+            titleMedium   = baseTileStyle.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+            titleSmall    = baseTileStyle.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            bodyLarge     = baseTileStyle.copy(fontSize = 14.sp),
+            bodyMedium    = baseTileStyle.copy(fontSize = 12.sp),
+            bodySmall     = baseTileStyle.copy(fontSize = 11.sp),
+            labelLarge    = baseDateStyle.copy(fontSize = 14.sp),
+            labelMedium   = baseDateStyle.copy(fontSize = 12.sp),
+            labelSmall    = baseDateStyle.copy(fontSize = 11.sp)
+        )
+    }
+
+    @Composable
+    fun timeStyle() = MaterialTheme.typography.displayLarge
+    
+    @Composable
+    fun dateStyle() = MaterialTheme.typography.labelLarge
+    
+    @Composable
+    fun tileLabelStyle() = MaterialTheme.typography.bodySmall
 }

@@ -19,7 +19,8 @@ data class NotificationItem(
     val packageName: String,
     val title: String?,
     val text: String?,
-    val postTime: Long
+    val postTime: Long,
+    val canReply: Boolean = false
 )
 
 /**
@@ -71,6 +72,25 @@ class DotzNotificationService : NotificationListenerService() {
             instance?.cancelAllNotifications()
             _notifications.value = emptyList()
             _notificationCounts.value = emptyMap()
+        }
+
+        fun sendReply(notificationKey: String, message: String) {
+            val sbn = instance?.activeNotifications?.find { it.key == notificationKey } ?: return
+            val action = sbn.notification.actions?.find { it.remoteInputs?.isNotEmpty() == true } ?: return
+            val remoteInput = action.remoteInputs!![0]
+            
+            val intent = Intent().apply {
+                val bundle = android.os.Bundle()
+                bundle.putCharSequence(remoteInput.resultKey, message)
+                android.app.RemoteInput.addResultsToIntent(action.remoteInputs, this, bundle)
+            }
+            
+            try {
+                action.actionIntent.send(instance, 0, intent)
+                instance?.cancelNotification(notificationKey)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -133,12 +153,17 @@ class DotzNotificationService : NotificationListenerService() {
                     val title = extras.getCharSequence("android.title")?.toString()
                     val text = extras.getCharSequence("android.text")?.toString()
                     
+                    val canReply = sbn.notification.actions?.any { action ->
+                        action.remoteInputs?.isNotEmpty() == true
+                    } ?: false
+
                     items.add(NotificationItem(
                         key = sbn.key,
                         packageName = pkg,
                         title = title,
                         text = text,
-                        postTime = sbn.postTime
+                        postTime = sbn.postTime,
+                        canReply = canReply
                     ))
                 }
             }
@@ -147,6 +172,27 @@ class DotzNotificationService : NotificationListenerService() {
             _blockedCount.value = blocked
         } catch (_: Exception) {
             // Service not fully connected yet
+        }
+    }
+
+    /** Reply to a notification */
+    fun sendReply(notificationKey: String, message: String) {
+        val sbn = activeNotifications?.find { it.key == notificationKey } ?: return
+        val action = sbn.notification.actions?.find { it.remoteInputs?.isNotEmpty() == true } ?: return
+        val remoteInput = action.remoteInputs!![0]
+        
+        val intent = Intent().apply {
+            val bundle = android.os.Bundle()
+            bundle.putCharSequence(remoteInput.resultKey, message)
+            android.app.RemoteInput.addResultsToIntent(action.remoteInputs, this, bundle)
+        }
+        
+        try {
+            action.actionIntent.send(this, 0, intent)
+            // Auto-cancel/Dismiss notification after reply?
+            cancelNotification(notificationKey)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

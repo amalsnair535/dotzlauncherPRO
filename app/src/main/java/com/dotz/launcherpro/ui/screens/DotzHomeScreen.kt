@@ -12,7 +12,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.dotz.launcherpro.data.AppTile
@@ -20,7 +19,6 @@ import com.dotz.launcherpro.data.IconCacheManager
 import com.dotz.launcherpro.ui.components.AppGrid
 import com.dotz.launcherpro.ui.components.AppList
 import com.dotz.launcherpro.ui.components.StaticHeader
-import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 import kotlin.math.abs
@@ -49,6 +47,9 @@ fun DotzHomeScreen(
     onDarkModeLongClick: () -> Unit = {},
     onPageChanged: (Int) -> Unit,
     onOpenDrawer: () -> Unit,
+    onPlayPause: () -> Unit = {},
+    onSkipNext: () -> Unit = {},
+    onSkipPrevious: () -> Unit = {},
     highlightedTileId: Int? = null
 ) {
     val pages = listOfNotNull(
@@ -79,7 +80,9 @@ fun DotzHomeScreen(
             .then(backgroundModifier)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .pointerInput(uiState.settings.verticalScrolling) {
+            .pointerInput(uiState.settings.verticalScrolling, uiState.isFastlaneVisible) {
+                if (uiState.isFastlaneVisible) return@pointerInput
+
                 var totalDragX = 0f
                 var totalDragY = 0f
                 var hasTriggered = false
@@ -90,7 +93,7 @@ fun DotzHomeScreen(
                         totalDragX = 0f
                         totalDragY = 0f
                         hasTriggered = false
-                        // Ignore gestures starting from the bottom 15% of the screen to avoid conflict with Recents/Home gestures
+                        // Avoid system gesture conflict
                         isStartInDeadZone = offset.y > size.height * 0.85f
                     },
                     onDrag = { change, dragAmount ->
@@ -99,27 +102,35 @@ fun DotzHomeScreen(
                             totalDragY += dragAmount.y
 
                             if (uiState.settings.verticalScrolling) {
-                                // In vertical mode, swiping LEFT opens the drawer
-                                if (totalDragX < -150 && abs(totalDragX) > abs(totalDragY)) {
+                                // Vertical mode: Swipe LEFT (negative X) for drawer
+                                // Use a high slope check to ensure it's primarily horizontal
+                                if (totalDragX < -150 && abs(totalDragX) > abs(totalDragY) * 2f) {
                                     hasTriggered = true
                                     onOpenDrawer()
+                                    change.consume()
                                 }
                             } else {
-                                // In horizontal mode, swiping UP opens the drawer
-                                if (totalDragY < -150 && abs(totalDragY) > abs(totalDragX)) {
+                                // Horizontal mode: Swipe UP (negative Y) for drawer
+                                if (totalDragY < -150 && abs(totalDragY) > abs(totalDragX) * 2f) {
                                     hasTriggered = true
                                     onOpenDrawer()
+                                    change.consume()
                                 }
                             }
-                            if (hasTriggered) change.consume()
                         }
-                    },
-                    onDragEnd = { }
+                        
+                        // We ONLY consume the touch if we've successfully triggered the drawer action.
+                        // This allows natural horizontal swiping (for Dashboard) to be handled 
+                        // by the parent ViewPager2 when we aren't opening the drawer.
+                        if (hasTriggered) {
+                            change.consume()
+                        }
+                    }
                 )
             }
             .padding(bottom = 24.dp)
     ) {
-        // ── Fixed Header (Integrated with Detox Panel) ────────────────────
+        // Fixed Header
         StaticHeader(
             batteryLevel  = uiState.batteryLevel,
             networkStatus = uiState.networkStatus,
@@ -133,6 +144,17 @@ fun DotzHomeScreen(
             isAirplaneModeOn = uiState.isAirplaneModeOn,
             isDarkModeOn = uiState.isDarkModeOn,
             transparency = uiState.settings.tileTransparency,
+            headerMode = uiState.settings.homeHeaderMode,
+            nowPlayingTitle = uiState.nowPlayingTitle,
+            nowPlayingArtist = uiState.nowPlayingArtist,
+            isPlaying = uiState.isPlaying,
+            playbackPosition = uiState.playbackPosition,
+            playbackDuration = uiState.playbackDuration,
+            unlockCount = uiState.unlockCount,
+            focusScore = uiState.focusScore,
+            onPlayPause = onPlayPause,
+            onSkipNext = onSkipNext,
+            onSkipPrevious = onSkipPrevious,
             onLauncherSettingsTap = onLauncherSettingsTap,
             onWifiToggle = onWifiToggle,
             onBluetoothToggle = onBluetoothToggle,
@@ -154,73 +176,61 @@ fun DotzHomeScreen(
                 .weight(0.40f)
         )
 
-        // ── Pager (remaining area) ─────────────────────────────
-        if (uiState.settings.verticalScrolling) {
-            VerticalPager(
-                state    = pagerState,
-                modifier = Modifier.weight(0.60f)
-            ) { pageIndex ->
-                if (uiState.settings.layoutStyle == "list") {
-                    AppList(
-                        tiles = pages[pageIndex],
-                        iconCache = iconCache,
-                        grayscale = uiState.settings.grayscaleMode,
-                        iconPackPackage = uiState.settings.iconPackPackage,
-                        showBadges = uiState.settings.showNotificationDots,
-                        transparency = uiState.settings.tileTransparency,
-                        highlightedTileId = highlightedTileId,
-                        onTileTap = onTileTap,
-                        onTileLongPress = onTileLongPress,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    AppGrid(
-                        tiles = pages[pageIndex],
-                        iconCache = iconCache,
-                        grayscale = uiState.settings.grayscaleMode,
-                        iconPackPackage = uiState.settings.iconPackPackage,
-                        showBadges = uiState.settings.showNotificationDots,
-                        transparency = uiState.settings.tileTransparency,
-                        highlightedTileId = highlightedTileId,
-                        onTileTap = onTileTap,
-                        onTileLongPress = onTileLongPress,
-                        modifier = Modifier.fillMaxSize()
-                    )
+        // Pager
+        Box(modifier = Modifier.weight(0.60f)) {
+            if (uiState.settings.verticalScrolling) {
+                VerticalPager(
+                    state    = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { pageIndex ->
+                    PagerContent(uiState, pages[pageIndex], iconCache, highlightedTileId, onTileTap, onTileLongPress)
                 }
-            }
-        } else {
-            HorizontalPager(
-                state    = pagerState,
-                modifier = Modifier.weight(0.60f)
-            ) { pageIndex ->
-                if (uiState.settings.layoutStyle == "list") {
-                    AppList(
-                        tiles = pages[pageIndex],
-                        iconCache = iconCache,
-                        grayscale = uiState.settings.grayscaleMode,
-                        iconPackPackage = uiState.settings.iconPackPackage,
-                        showBadges = uiState.settings.showNotificationDots,
-                        transparency = uiState.settings.tileTransparency,
-                        highlightedTileId = highlightedTileId,
-                        onTileTap = onTileTap,
-                        onTileLongPress = onTileLongPress,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    AppGrid(
-                        tiles = pages[pageIndex],
-                        iconCache = iconCache,
-                        grayscale = uiState.settings.grayscaleMode,
-                        iconPackPackage = uiState.settings.iconPackPackage,
-                        showBadges = uiState.settings.showNotificationDots,
-                        transparency = uiState.settings.tileTransparency,
-                        highlightedTileId = highlightedTileId,
-                        onTileTap = onTileTap,
-                        onTileLongPress = onTileLongPress,
-                        modifier = Modifier.fillMaxSize()
-                    )
+            } else {
+                HorizontalPager(
+                    state    = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { pageIndex ->
+                    PagerContent(uiState, pages[pageIndex], iconCache, highlightedTileId, onTileTap, onTileLongPress)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PagerContent(
+    uiState: LauncherUiState,
+    tiles: List<AppTile>,
+    iconCache: IconCacheManager,
+    highlightedTileId: Int?,
+    onTileTap: (AppTile) -> Unit,
+    onTileLongPress: (AppTile) -> Unit
+) {
+    if (uiState.settings.layoutStyle == "list") {
+        AppList(
+            tiles = tiles,
+            iconCache = iconCache,
+            grayscale = uiState.settings.grayscaleMode,
+            iconPackPackage = uiState.settings.iconPackPackage,
+            showBadges = uiState.settings.showNotificationDots,
+            transparency = uiState.settings.tileTransparency,
+            highlightedTileId = highlightedTileId,
+            onTileTap = onTileTap,
+            onTileLongPress = onTileLongPress,
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        AppGrid(
+            tiles = tiles,
+            iconCache = iconCache,
+            grayscale = uiState.settings.grayscaleMode,
+            iconPackPackage = uiState.settings.iconPackPackage,
+            showBadges = uiState.settings.showNotificationDots,
+            transparency = uiState.settings.tileTransparency,
+            highlightedTileId = highlightedTileId,
+            onTileTap = onTileTap,
+            onTileLongPress = onTileLongPress,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.8] - 2026-06-28
+
+### Added
+- **Material You Settings Overhaul**: A complete redesign of the Settings screen using Material 3 components. It now features a collapsible Large Top App Bar, grouped settings categories, and a cleaner visual hierarchy.
+- **Home Screen "Now Playing" Widget**: Replaced the legacy AI header with a modern, Material You-style music widget with tactile Play/Pause and Skip controls.
+- **Actionable Fastlane (Quick Reply)**: You can now reply to incoming messages (WhatsApp, Telegram, SMS) directly from the Fastlane timeline.
+- **Dynamic Icon Dimming**: App icons now automatically fade to 20% opacity after 30 minutes of usage today.
+- **Grayscale Auto-Schedule (PRO)**: Automate your bedtime routine by scheduling grayscale mode between 10 PM and 6 AM.
+- **Tavily AI Search**: Upgraded the Dotz AI backend with real-time web search capabilities for more accurate and current answers.
+
+### Fixed
+- **Midnight Reset Accuracy**: Ensure all mindful limits and usage stats reset exactly at 00:00:00.
+- **UI Consistency**: Improved contrast for media controls in both Light Mode and Transparent Mode.
+- **Gesture Conflict Resolution**: Refined swiping logic to prevent conflicts between the App Drawer and Fastlane navigation.
+
+## [5.5.7] - 2026-06-28
+
+### Added
+- **Refined Navigation**: Dedicated Fastlane timeline for chronological activity tracking.
+- **Pro Feature Badging**: High-visibility [PRO] badges added to all premium settings for easier discovery.
+
+### Fixed
+- **State Flow Reliability**: Optimized data updates in the ViewModel to ensure real-time UI synchronization.
+
 ## [5.5.6] - 2026-06-29
 
 ### Added
