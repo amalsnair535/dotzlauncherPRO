@@ -51,8 +51,6 @@ Designed to neutralize triggers and build intentional habits:
 A dedicated minimalist workspace featuring essential mindful insights:
 * **Digital Balance Card:** Breakdown of your **Top 5** most-used apps and total daily screen time.
 * **Now Playing:** Full media controls with metadata, sleek progress bar, and transport buttons.
-* **AI Summary:** Intelligent categorization of notifications to reduce notification shade clutter.
-* **Dotz AI Assistant:** Integrated generative AI for quick, focused queries and support.
 
 ### 4. Dynamic Tile System (Expandable)
 * **Customizable Grid:** Up to **18 tiles** across three pages for your daily workflows.
@@ -75,10 +73,10 @@ A dedicated minimalist workspace featuring essential mindful insights:
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `5.5.8`
-* **Architecture:** Jetpack Compose + ViewPager2 + Fragment Architecture
+* **Version:** `5.5.9`
+* **Architecture:** Pure Jetpack Compose Navigation
 * **Language:** 100% Kotlin
-* **Minimum Android:** API 26 (Android 8.0)
+* **Minimum Android:** API 24 (Android 7.0)
 * **Target Android:** API 35 (Android 15)
 
 ## ☕ Support the Project

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.5.9] - 2026-07-02
+
+### Added
+- **Pure Compose Navigation**: Completely refactored the navigation architecture to remove legacy ViewPager2 and Fragments. The entire experience is now powered by a high-performance Compose engine for buttery-smooth page switching.
+- **Deep Digital Wellbeing Integration**: The Focus Header now pulls real-time data directly from the system's wellbeing engine.
+    - **Live Unlock Tracking**: See exactly how many times you've unlocked your device today.
+    - **Total Notification Count**: Tracks all incoming alerts to help you measure digital noise.
+- **Enhanced Legacy Support**: Lowered minimum requirements to **Android 24 (Nougat)**, allowing Dotz to run on a wider range of hardware.
+- **Redesigned Media Controller**: A new two-row layout for the Music Widget, featuring centered controls and a more professional "Matte" aesthetic.
+- **Sarcastic PRO Badge**: Added a touch of humor to the PRO upgrade screen (as requested by the community).
+
+### Fixed
+- **Persistent Compliance Popups**: Fixed a bug where the "App Visibility" disclosure and "Default Launcher" prompts would reappear on every launch.
+- **Animation Fluidity**: Optimized the Fastlane transition to use direct pager offset tracking, eliminating lag during swipes.
+- **Header Layout Overlaps**: Corrected a regression where status bar text could overlap with the central clock on certain screen aspect ratios.
+
 ## [5.5.8] - 2026-07-01
 
 ### Added
@@ -13,7 +29,6 @@ All notable changes to this project will be documented in this file.
 - **Actionable Fastlane (Quick Reply)**: You can now reply to incoming messages (WhatsApp, Telegram, SMS) directly from the Fastlane timeline.
 - **Dynamic Icon Dimming**: App icons now automatically fade to 20% opacity after 30 minutes of usage today.
 - **Grayscale Auto-Schedule (PRO)**: Automate your bedtime routine by scheduling grayscale mode between 10 PM and 6 AM.
-- **Tavily AI Search**: Upgraded the Dotz AI backend with real-time web search capabilities for more accurate and current answers.
 
 ### Fixed
 - **Midnight Reset Accuracy**: Ensure all mindful limits and usage stats reset exactly at 00:00:00.
@@ -99,7 +114,6 @@ All notable changes to this project will be documented in this file.
 - **Rebrand:** Officially renamed the app to **Dotz Launcher** for a cleaner, more minimalist identity.
 - **Circadian Theming (PRO):** Subtle, dynamic UI color shifts based on the time of day (Cool morning tones, warm evening amber).
 - **Unified Theme Selector:** Redesigned theme settings with a 4-way mode selector (Light, Dark, Circadian, Transparent).
-- **PRO Dashboard Experience:** AI Summary and Dotz AI Assistant are now premium features, creating a clear distinction between utility and intelligence.
 - **Exclusive Lifetime Offer:** Permanent PRO access now available for a limited-time promotional price of $0.99 / ₹110.
 
 ### Fixed
@@ -147,13 +161,11 @@ All notable changes to this project will be documented in this file.
 ## [5.3.0] - 2026-06-02
 
 ### Added
-- **Restored AI Features:** Re-implemented Dotz AI Assistant and AI Summary card on the dashboard.
-- **Improved AI Logic:** Backend logic now uses a dedicated Cloudflare Worker for faster and more reliable responses.
-- **Model Update:** Upgraded AI model to `llama-3.1-8b-instant` for improved reasoning and accuracy.
+- **Stability & Maintenance:** Improved backend tracking of screen time for 100% accuracy.
 
 ### Fixed
-- **AI Backend Stability:** Resolved model deprecation issues and infrastructure conflicts between website assets and API endpoints.
-- **Enhanced Error Reporting:** The dashboard now displays specific server-side errors to help troubleshoot AI connection issues.
+- **Screen Time Accuracy:** Resolved a final discrepancy in total usage time by refining foreground event tracking.
+- **Optimized UI:** Further reduced lag on transition between home and dashboard.
 
 ## [5.2.1] - 2026-05-27
 
@@ -175,7 +187,6 @@ All notable changes to this project will be documented in this file.
 ## [5.0.0] - 2026-05-25
 
 ### Added
-- **Cloud-Powered Dotz AI:** Integrated an AI assistant on the dashboard for intelligent queries, including an "AI Summary" card.
 - **Extended Tile Support:** Added an optional third page with 1-6 customizable extra app tiles.
 - **Vertical Navigation:** Introduced a "Vertical Scrolling" mode as an alternative to horizontal paging.
 - **Interactive Media Control:** New dashboard card with real-time metadata and transport controls (Play/Pause, Skip) for active media sessions.

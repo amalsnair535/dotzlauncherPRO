@@ -114,9 +114,11 @@ private fun UpgradeScreen(
                     letterSpacing = 2.sp
                 )
                 Text(
-                    "Elevate your experience",
-                    fontSize = 14.sp,
-                    color = DotzTheme.colors.text.copy(alpha = 0.5f)
+                    "PRO FEATURE THAT NO ONE WANTS 🙄",
+                    fontSize = 12.sp,
+                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
                 Spacer(Modifier.height(40.dp))
             }
@@ -137,7 +139,7 @@ private fun UpgradeScreen(
                     name = "Lifetime Access",
                     price = lifetimePrice,
                     isSelected = true,
-                    badge = "Limited Time Offer"
+                    badge = "PRO FEATURE THAT NO ONE WANTS 🙄"
                 ) { /* Only one plan available */ }
                 Spacer(Modifier.height(40.dp))
             }

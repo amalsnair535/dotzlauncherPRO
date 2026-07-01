@@ -6,9 +6,12 @@ import android.graphics.drawable.Drawable
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -55,6 +58,16 @@ fun AppTileCard(
 
     // Press animation
     val pressScale = remember { Animatable(1f) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            pressScale.animateTo(0.96f, tween(100, easing = FastOutLinearInEasing))
+        } else {
+            pressScale.animateTo(1f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow))
+        }
+    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val highlightScale by infiniteTransition.animateFloat(
@@ -89,8 +102,10 @@ fun AppTileCard(
             .clip(RoundedCornerShape(28.dp))
             .background(tileBackground)
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true, color = DotzTheme.colors.text.copy(alpha = 0.15f)),
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onTap()
                 },
                 onLongClick = onLongPress,

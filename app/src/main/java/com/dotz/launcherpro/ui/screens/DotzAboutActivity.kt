@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.ContentCopy
@@ -72,9 +74,9 @@ private fun AboutScreen(
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "5.5.8"
+            packageInfo.versionName ?: "5.5.9"
         } catch (_: Exception) {
-            "5.5.8"
+            "5.5.9"
         }
     }
 
@@ -210,6 +212,30 @@ private fun AboutScreen(
                         val clip = ClipData.newPlainText("Dotz Contact", "amalsnair535@gmail.com")
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "Email copied to clipboard", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
+                    label = "Telegram",
+                    subLabel = "Join our community",
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://t.me/+w_zs7VSQ3tllMGQ9".toUri())
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
+                    label = "Instagram",
+                    subLabel = "@dotzlauncher",
+                    icon = Icons.Default.CameraAlt,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://www.instagram.com/dotzlauncher?igsh=Znd3eXFxZWlpMzUw".toUri())
+                        context.startActivity(intent)
                     }
                 )
             }

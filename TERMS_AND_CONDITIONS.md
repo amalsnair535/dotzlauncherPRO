@@ -19,7 +19,7 @@ Your use of the App is also governed by our Privacy Policy. Please review our [P
 
 ## 3. Third-Party Services
 
-The App may contain links to or integrations with third-party services (e.g., Dotz AI via Cloudflare, Open-Meteo for weather). We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party services. You acknowledge and agree that we shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of such services.
+The App may contain links to or integrations with third-party services (e.g., Open-Meteo for weather). We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party services.ontent, privacy policies, or practices of any third-party services. You acknowledge and agree that we shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of such services.
 
 ## 4. Disclaimer of Warranties
 

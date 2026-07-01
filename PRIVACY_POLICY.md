@@ -15,8 +15,7 @@ Last updated: May 27, 2026
 
 While the App itself does not collect data, it utilizes certain third-party services to provide specific features:
 
-*   **Dotz AI:** When you use the AI assistant, your prompt is sent to a secure Cloudflare Worker to process the response. No personal identifiers are attached to these requests.
-*   **Weather Data:** The App uses the Open-Meteo API to fetch weather information. This requires sending your approximate location (latitude/longitude) to the service. Open-Meteo is a privacy-focused service that does not track users.
+*   **Weather Data:** The App uses the Open-Meteo API to fetch weather information. This requires sending your approximate location (latitude/longitude) to the service. Open-Meteo is a privacy-focused service that does not track users.oes not track users.
 
 ## 3. Data Security
 

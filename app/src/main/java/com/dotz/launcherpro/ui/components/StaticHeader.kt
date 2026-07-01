@@ -49,6 +49,7 @@ fun StaticHeader(
     playbackPosition: Long = 0,
     playbackDuration: Long = 0,
     unlockCount: Int = 0,
+    notificationsReceived: Int = 0,
     focusScore: Int = 100,
     onPlayPause: () -> Unit = {},
     onSkipNext: () -> Unit = {},
@@ -181,6 +182,7 @@ fun StaticHeader(
             } else if (headerMode == "stats") {
                 FocusStatsWidget(
                     unlockCount = unlockCount,
+                    notificationsReceived = notificationsReceived,
                     focusScore = focusScore,
                     onSettingsClick = onLauncherSettingsTap
                 )
@@ -340,6 +342,7 @@ fun NowPlayingWidget(
 @Composable
 fun FocusStatsWidget(
     unlockCount: Int,
+    notificationsReceived: Int,
     focusScore: Int,
     onSettingsClick: () -> Unit
 ) {
@@ -357,38 +360,47 @@ fun FocusStatsWidget(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "FOCUS SCORE",
+                    text = "DAILY INSIGHTS",
                     color = DotzTheme.colors.accent,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.5.sp
                 )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Unlocked: $unlockCount times",
-                    color = DotzTheme.colors.text,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (focusScore >= 80) "Doing great! Keep it up." else "Stay mindful of usage.",
-                    color = DotzTheme.colors.text.copy(alpha = 0.5f),
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LockOpen, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "$unlockCount Unlocks",
+                        color = DotzTheme.colors.text,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Notifications, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "$notificationsReceived Notifications",
+                        color = DotzTheme.colors.text,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 
                 Spacer(Modifier.weight(1f))
                 
                 IconButton(
                     onClick = onSettingsClick,
-                    modifier = Modifier.size(32.dp).offset(x = (-8).dp, y = 8.dp)
+                    modifier = Modifier.size(24.dp).offset(x = (-4).dp, y = 4.dp)
                 ) {
-                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(14.dp))
                 }
             }
 
             Box(
-                modifier = Modifier.size(90.dp),
+                modifier = Modifier.size(80.dp),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
@@ -403,13 +415,13 @@ fun FocusStatsWidget(
                     Text(
                         text = "$focusScore",
                         color = DotzTheme.colors.text,
-                        fontSize = 28.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Black
                     )
                     Text(
-                        text = "/100",
+                        text = "FOCUS",
                         color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                        fontSize = 12.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }

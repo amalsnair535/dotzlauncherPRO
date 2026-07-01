@@ -39,8 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import java.text.SimpleDateFormat
 import java.util.*
 
 data class LauncherUiState(
@@ -81,6 +79,7 @@ data class LauncherUiState(
     val focusScore: Int = 100,
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
+    val isLoaded: Boolean = false,
 )
 
 enum class ThemeMode { LIGHT, DARK, CIRCADIAN, TRANSPARENT }
@@ -119,7 +118,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         updateActiveController(controllers)
     }
 
-    private val _uiState = MutableStateFlow(LauncherUiState())
+    private val _uiState = MutableStateFlow(LauncherUiState(isDefaultLauncher = isDefaultLauncher()))
     val uiState: StateFlow<LauncherUiState> = _uiState.asStateFlow()
 
     private val _batteryLevel = MutableStateFlow(-1)
@@ -552,7 +551,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     notificationsReceivedToday = usageResult.notificationsReceived,
                     focusScore = calculatedScore,
                     topApps = topApps,
-                    timelineItems = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id }
+                    timelineItems = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id },
+                    isLoaded = true
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -648,7 +648,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val isPlaying = state?.state == PlaybackState.STATE_PLAYING
         val position = state?.position ?: 0L
         val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
-        
+
+        // Contextual Header: Auto-switch to music mode when playback starts
+        if (isPlaying && !_playbackState.value.first && title != "Not Playing") {
+            viewModelScope.launch {
+                val currentSettings = prefs.settingsFlow.first()
+                if (currentSettings.homeHeaderMode != "music") {
+                    prefs.setHomeHeaderMode("music")
+                }
+            }
+        }
+
         _nowPlaying.value = Triple(title, artist, album)
         _playbackState.value = Triple(isPlaying, position, duration)
     }
@@ -968,16 +978,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun isDefaultLauncher(): Boolean {
         val intent = Intent(Intent.ACTION_MAIN)
         intent.addCategory(Intent.CATEGORY_HOME)
-        val res = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-        val currentDefault = res?.activityInfo?.packageName
+        val res = pm.resolveActivity(intent, 0) // Check all, not just default
+        if (res == null) return false
+        
+        val currentDefault = res.activityInfo.packageName
         val myPackage = getApplication<Application>().packageName
         
-        return if (currentDefault == "android" || currentDefault == "com.android.settings" || currentDefault == "com.google.android.permissioncontroller") {
-            // It's the system resolver, not a specific launcher
-            false
-        } else {
-            currentDefault == myPackage
+        // If it's the system resolver or settings, we are definitely NOT the default
+        if (currentDefault == "android" || 
+            currentDefault == "com.android.settings" || 
+            currentDefault == "com.google.android.permissioncontroller" ||
+            currentDefault == "com.android.internal.app.ResolverActivity") {
+            return false
         }
+        
+        return currentDefault == myPackage
     }
 
     // ── Logic ────────────────────────────────────────────────────────────

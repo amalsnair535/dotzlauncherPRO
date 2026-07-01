@@ -19,6 +19,9 @@ build/
 !release/*.apk
 *.aar
 *.jar
+/app/indus/
+/app/google/
+/app/release/
 
 # Logs
 *.log
