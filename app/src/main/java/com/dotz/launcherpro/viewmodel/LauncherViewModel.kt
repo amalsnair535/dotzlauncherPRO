@@ -572,18 +572,26 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     ))
                 }
 
-                // 4. Sponsored Item (Once per 24h, non-premium only)
+                // 4. Final List Processing & Sponsored Insertion (Once per 24h, non-premium only)
+                val finalTimeline = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id }.toMutableList()
+                
                 val now = System.currentTimeMillis()
                 val dayMillis = 24 * 60 * 60 * 1000L
                 if (!isCurrentlyPremium && (now - settings.lastSponsoredShowTime > dayMillis)) {
-                    timeline.add(TimelineItem(
+                    val adItem = TimelineItem(
                         id = "sponsored_discovery",
                         type = TimelineType.SPONSORED,
                         title = "Featured Tool",
                         subtitle = "Check out this minimalist weather companion for Dotz.",
                         timestamp = now,
-                        packageName = "com.google.android.apps.magellan" // Placeholder
-                    ))
+                        packageName = "com.google.android.apps.magellan"
+                    )
+                    // Insert after 6 items (index 6) or at the end if list is smaller
+                    if (finalTimeline.size >= 6) {
+                        finalTimeline.add(6, adItem)
+                    } else {
+                        finalTimeline.add(adItem)
+                    }
                 }
 
                 LauncherUiState(
@@ -621,7 +629,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     notificationsReceivedToday = usageResult.notificationsReceived,
                     focusScore = calculatedScore,
                     topApps = topApps,
-                    timelineItems = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id },
+                    timelineItems = finalTimeline,
                     isLoaded = true
                 )
             }.collect { state ->
