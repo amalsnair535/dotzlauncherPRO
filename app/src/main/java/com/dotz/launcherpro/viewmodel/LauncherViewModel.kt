@@ -572,6 +572,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     ))
                 }
 
+                // 4. Sponsored Item (Once per 24h, non-premium only)
+                val now = System.currentTimeMillis()
+                val dayMillis = 24 * 60 * 60 * 1000L
+                if (!isCurrentlyPremium && (now - settings.lastSponsoredShowTime > dayMillis)) {
+                    timeline.add(TimelineItem(
+                        id = "sponsored_discovery",
+                        type = TimelineType.SPONSORED,
+                        title = "Featured Tool",
+                        subtitle = "Check out this minimalist weather companion for Dotz.",
+                        timestamp = now,
+                        packageName = "com.google.android.apps.magellan" // Placeholder
+                    ))
+                }
+
                 LauncherUiState(
                     page0Tiles = p0,
                     page1Tiles = p1,
@@ -1415,6 +1429,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setOnboardingSeen() = viewModelScope.launch {
         prefs.setHasSeenOnboarding(true)
+    }
+
+    fun acknowledgeSponsoredAd() = viewModelScope.launch {
+        prefs.setLastSponsoredShowTime(System.currentTimeMillis())
     }
 
     fun redeemPromoCode(code: String): Boolean {

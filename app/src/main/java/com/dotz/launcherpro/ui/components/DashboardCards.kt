@@ -141,6 +141,10 @@ fun TimelineCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        if (item.type == TimelineType.SPONSORED) {
+                            SponsoredBadge(Modifier.padding(start = 8.dp))
+                        }
+                        Spacer(Modifier.weight(1f))
                         Text(
                             text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(item.timestamp)),
                             color = DotzTheme.colors.text.copy(alpha = 0.3f),
@@ -283,6 +287,24 @@ fun PremiumBadge(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun SponsoredBadge(modifier: Modifier = Modifier) {
+    Surface(
+        color = DotzTheme.colors.accent.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(4.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = "SPONSORED", 
+            color = DotzTheme.colors.accent.copy(alpha = 0.8f), 
+            fontSize = 6.sp, 
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp), 
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
 fun getTimelineIcon(type: TimelineType): ImageVector {
     return when (type) {
         TimelineType.CALL -> Icons.Default.Call
@@ -291,5 +313,6 @@ fun getTimelineIcon(type: TimelineType): ImageVector {
         TimelineType.MUSIC -> Icons.Default.MusicNote
         TimelineType.APP_LAUNCH -> Icons.Default.RocketLaunch
         TimelineType.CALENDAR -> Icons.Default.CalendarToday
+        TimelineType.SPONSORED -> Icons.Default.Campaign
     }
 }

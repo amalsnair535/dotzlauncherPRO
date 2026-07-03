@@ -528,6 +528,11 @@ private fun FastlanePageContent(
                     TimelineCard(
                         item = item,
                         onItemClick = { pkg -> 
+                            if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED) {
+                                viewModel.acknowledgeSponsoredAd()
+                                viewModel.launchApp(pkg) // Open the sponsored app/link
+                                return@TimelineCard
+                            }
                             if (pkg != null) {
                                 val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
                                 val app = uiState.topApps.find { it.packageName == pkg }

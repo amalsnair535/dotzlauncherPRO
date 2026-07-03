@@ -25,7 +25,7 @@ data class AppTile(
     val launchCount: Int = 0
 )
 
-enum class TimelineType { CALL, MESSAGE, PHOTO, MUSIC, APP_LAUNCH, CALENDAR }
+enum class TimelineType { CALL, MESSAGE, PHOTO, MUSIC, APP_LAUNCH, CALENDAR, SPONSORED }
 
 data class TimelineItem(
     val id: String,
