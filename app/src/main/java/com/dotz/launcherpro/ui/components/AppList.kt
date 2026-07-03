@@ -53,7 +53,7 @@ fun AppList(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
     ) {
         tiles.forEach { tile ->
             AppListTile(

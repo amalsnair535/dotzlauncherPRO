@@ -336,12 +336,13 @@ private fun TilesPageContent(
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
+            .padding(bottom = 24.dp) // Added breathing room at the bottom
     ) {
         // --- Static Header (with alpha for Fastlane transition) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.40f)
+                .weight(0.38f) // Reduced slightly from 0.40
                 .graphicsLayer { alpha = headerAlpha }
         ) {
             StaticHeader(
@@ -392,7 +393,7 @@ private fun TilesPageContent(
         // --- Inner Tile Pager ---
         Box(
             modifier = Modifier
-                .weight(0.60f)
+                .weight(0.62f) // Increased from 0.60
                 .pointerInput(uiState.settings.verticalScrolling) {
                     // Logic to handle App Drawer gestures
                     var totalX = 0f

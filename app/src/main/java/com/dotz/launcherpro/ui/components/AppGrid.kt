@@ -30,8 +30,8 @@ fun AppGrid(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 32.dp), // Balanced padding for classic tile size
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top) // Old build spacing
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically) // Center grid vertically for better balance
     ) {
         rows.forEach { rowTiles ->
             Row(
