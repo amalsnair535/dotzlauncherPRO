@@ -522,31 +522,38 @@ private fun FastlanePageContent(
                         )
                     }
                     Spacer(Modifier.width(12.dp))
-                    TimelineCard(
-                        item = item,
-                        onItemClick = { pkg -> 
-                            if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED) {
-                                viewModel.acknowledgeSponsoredAd()
-                                viewModel.launchApp(pkg) // Open the sponsored app/link
-                                return@TimelineCard
-                            }
-                            if (pkg != null) {
-                                val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
-                                val app = uiState.topApps.find { it.packageName == pkg }
-                                if (uiState.settings.showMindfulUsage && (app?.launchCount ?: 0) >= 3 && isSocial) {
-                                    onMindfulLaunch(MindfulnessInfo(pkg, app?.label ?: pkg, app?.usageTime, app?.launchCount ?: 0))
-                                } else {
-                                    viewModel.launchApp(pkg)
+                    if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED && uiState.nativeAd != null) {
+                        FastlaneNativeAdCard(
+                            nativeAd = uiState.nativeAd,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        TimelineCard(
+                            item = item,
+                            onItemClick = { pkg -> 
+                                if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED) {
+                                    viewModel.acknowledgeSponsoredAd()
+                                    viewModel.launchApp(pkg) // Open the sponsored app/link
+                                    return@TimelineCard
                                 }
-                            }
-                        },
-                        onPlayPause = viewModel::mediaPlayPause,
-                        onSkipNext = viewModel::mediaSkipNext,
-                        onSkipPrevious = viewModel::mediaSkipPrevious,
-                        onReply = viewModel::sendReply,
-                        isPlaying = uiState.isPlaying,
-                        modifier = Modifier.weight(1f)
-                    )
+                                if (pkg != null) {
+                                    val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
+                                    val app = uiState.topApps.find { it.packageName == pkg }
+                                    if (uiState.settings.showMindfulUsage && (app?.launchCount ?: 0) >= 3 && isSocial) {
+                                        onMindfulLaunch(MindfulnessInfo(pkg, app?.label ?: pkg, app?.usageTime, app?.launchCount ?: 0))
+                                    } else {
+                                        viewModel.launchApp(pkg)
+                                    }
+                                }
+                            },
+                            onPlayPause = viewModel::mediaPlayPause,
+                            onSkipNext = viewModel::mediaSkipNext,
+                            onSkipPrevious = viewModel::mediaSkipPrevious,
+                            onReply = viewModel::sendReply,
+                            isPlaying = uiState.isPlaying,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }

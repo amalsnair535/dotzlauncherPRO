@@ -45,6 +45,9 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.android.gms.ads.OnUserEarnedRewardListener
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -84,6 +87,7 @@ data class LauncherUiState(
     val focusScore: Int = 100,
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
+    val nativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
     val isLoaded: Boolean = false,
 )
 
@@ -124,6 +128,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private var rewardedAd: RewardedAd? = null
+    private var nativeAd: NativeAd? = null
+    private val _nativeAdFlow = MutableStateFlow<NativeAd?>(null)
+    
     private val _isAdLoading = MutableStateFlow(false)
     val isAdLoading = _isAdLoading.asStateFlow()
 
@@ -162,6 +169,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 })
             }
         }
+    }
+
+    fun loadNativeAd() {
+        val adLoader = AdLoader.Builder(getApplication(), "ca-app-pub-9236556912103771/1133960139")
+            .forNativeAd { ad : NativeAd ->
+                nativeAd?.destroy()
+                nativeAd = ad
+                _nativeAdFlow.value = ad
+            }
+            .withNativeAdOptions(NativeAdOptions.Builder().build())
+            .build()
+        adLoader.loadAd(AdRequest.Builder().build())
     }
 
     fun grant24HourPremium() = viewModelScope.launch {
@@ -435,7 +454,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 storeBridge.isPremium,
                 _usageStats,
                 _installedAppsCache,
-                _isFastlaneVisible
+                _isFastlaneVisible,
+                _nativeAdFlow
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
@@ -463,6 +483,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 @Suppress("UNCHECKED_CAST")
                 val allApps = args[18] as List<DrawerApp>
                 val fastlaneVisible = args[19] as Boolean
+                val nativeAd = args[20] as NativeAd?
 
                 val isDefault = isDefaultLauncher()
                 val allUsage = usageResult.appStats
@@ -629,6 +650,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     focusScore = calculatedScore,
                     topApps = topApps,
                     timelineItems = finalTimeline,
+                    nativeAd = nativeAd,
                     isLoaded = true
                 )
             }.collect { state ->
@@ -639,6 +661,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Initial refresh
         refreshState()
         loadRewardedAd()
+        loadNativeAd()
     }
 
     fun checkForUpdates() {
@@ -750,6 +773,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             cameraManager.unregisterTorchCallback(torchCallback)
             mediaSessionManager.removeOnActiveSessionsChangedListener(sessionListener)
             activeController?.unregisterCallback(mediaCallback)
+            nativeAd?.destroy()
         } catch (e: Exception) { e.printStackTrace() }
 
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
