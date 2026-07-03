@@ -48,6 +48,7 @@ import com.google.android.gms.ads.OnUserEarnedRewardListener
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.google.ads.mediation.admob.AdMobAdapter
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -131,8 +132,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private var nativeAd: NativeAd? = null
     private val _nativeAdFlow = MutableStateFlow<NativeAd?>(null)
     
-    private val _isAdLoading = MutableStateFlow(false)
-    val isAdLoading = _isAdLoading.asStateFlow()
+    /** 
+     * Creates a privacy-first AdRequest that forces Non-Personalized Ads (NPA).
+     * This prevents user profiling and data harvesting by the ad server.
+     */
+    private fun createPrivacyRequest(): AdRequest {
+        val extras = Bundle()
+        extras.putString("npa", "1")
+        return AdRequest.Builder()
+            .addNetworkExtrasBundle(AdMobAdapter::class.java, extras)
+            .build()
+    }
 
     fun loadRewardedAd(onAdLoaded: () -> Unit = {}) {
         if (rewardedAd != null) {
@@ -140,8 +150,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             return
         }
         _isAdLoading.value = true
-        val adRequest = AdRequest.Builder().build()
-        RewardedAd.load(getApplication(), "ca-app-pub-9236556912103771/9239680860", adRequest, object : RewardedAdLoadCallback() {
+        RewardedAd.load(getApplication(), "ca-app-pub-9236556912103771/9239680860", createPrivacyRequest(), object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(adError: LoadAdError) {
                 rewardedAd = null
                 _isAdLoading.value = false
@@ -180,7 +189,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             .withNativeAdOptions(NativeAdOptions.Builder().build())
             .build()
-        adLoader.loadAd(AdRequest.Builder().build())
+        adLoader.loadAd(createPrivacyRequest())
     }
 
     fun grant24HourPremium() = viewModelScope.launch {
@@ -598,19 +607,48 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val now = System.currentTimeMillis()
                 val dayMillis = 24 * 60 * 60 * 1000L
                 if (!isCurrentlyPremium && (now - settings.lastSponsoredShowTime > dayMillis)) {
-                    val adItem = TimelineItem(
-                        id = "sponsored_discovery",
-                        type = TimelineType.SPONSORED,
-                        title = "Featured Tool",
-                        subtitle = "Check out this minimalist weather companion for Dotz.",
-                        timestamp = now,
-                        packageName = "com.google.android.apps.magellan"
+                    // --- ON-DEVICE AD FILTERING ENGINE ---
+                    // 1. Define a Local Pool of sponsored items
+                    val pool = listOf(
+                        TimelineItem(
+                            id = "sponsored_weather",
+                            type = TimelineType.SPONSORED,
+                            title = "Weather Companion",
+                            subtitle = "Get minimalist hourly forecasts synced with Dotz.",
+                            timestamp = now,
+                            packageName = "com.google.android.apps.magellan"
+                        ),
+                        TimelineItem(
+                            id = "sponsored_focus",
+                            type = TimelineType.SPONSORED,
+                            title = "Deep Work Mode",
+                            subtitle = "Enhance your focus score with this Pomodoro tool.",
+                            timestamp = now,
+                            packageName = "com.google.android.calendar"
+                        ),
+                        TimelineItem(
+                            id = "sponsored_music",
+                            type = TimelineType.SPONSORED,
+                            title = "Soundscape Discovery",
+                            subtitle = "Find high-fidelity tracks that match your minimalist vibe.",
+                            timestamp = now,
+                            packageName = "com.spotify.music"
+                        )
                     )
-                    // Insert after 6 items (index 6) or at the end if list is smaller
+
+                    // 2. Local Intent Filtering (analyze top apps to select best ad)
+                    val topPkg = topApps.firstOrNull()?.packageName ?: ""
+                    val selectedAd = when {
+                        topPkg.contains("music") || topPkg.contains("spotify") -> pool[2] // Music
+                        topPkg.contains("calendar") || topPkg.contains("notes") -> pool[1] // Productivity
+                        else -> pool[0] // Default/Weather
+                    }
+
+                    // 3. Insert into the timeline after 6 regular items
                     if (finalTimeline.size >= 6) {
-                        finalTimeline.add(6, adItem)
+                        finalTimeline.add(6, selectedAd)
                     } else {
-                        finalTimeline.add(adItem)
+                        finalTimeline.add(selectedAd)
                     }
                 }
 
