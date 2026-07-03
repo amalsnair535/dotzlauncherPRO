@@ -134,8 +134,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
         _isAdLoading.value = true
         val adRequest = AdRequest.Builder().build()
-        // Test Ad Unit ID: ca-app-pub-3940256099942544/5224354917
-        RewardedAd.load(getApplication(), "ca-app-pub-3940256099942544/5224354917", adRequest, object : RewardedAdLoadCallback() {
+        RewardedAd.load(getApplication(), "ca-app-pub-9236556912103771/9239680860", adRequest, object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(adError: LoadAdError) {
                 rewardedAd = null
                 _isAdLoading.value = false
