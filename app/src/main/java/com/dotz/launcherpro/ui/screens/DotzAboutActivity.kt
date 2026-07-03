@@ -285,21 +285,6 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
-                    label = "Support the Developer",
-                    subLabel = "Watch a short ad to support free updates",
-                    icon = Icons.Default.Coffee,
-                    onClick = {
-                        viewModel.showRewardedAd(context as ComponentActivity) {
-                            Toast.makeText(context, "Thank you for your support!", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
-            }
-
-            item { MatteDivider() }
-
-            item {
-                AboutActionRow(
                     label = "Support the Project",
                     subLabel = "Buy Me a Coffee (UPI)",
                     icon = Icons.Default.Coffee,
@@ -317,21 +302,6 @@ private fun AboutScreen(
                             context.startActivity(chooser)
                         } catch (_: Exception) {
                             Toast.makeText(context, "No UPI apps found", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
-            }
-
-            item { MatteDivider() }
-
-            item {
-                AboutActionRow(
-                    label = "Support the Developer",
-                    subLabel = "Watch a short ad to support free updates",
-                    icon = Icons.Default.Coffee,
-                    onClick = {
-                        viewModel.showRewardedAd(context as ComponentActivity) {
-                            Toast.makeText(context, "Thank you for your support!", Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
