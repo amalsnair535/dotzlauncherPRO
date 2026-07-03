@@ -2,7 +2,6 @@
 package com.dotz.launcherpro.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -16,13 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.dotz.launcherpro.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,23 +44,20 @@ fun DotzOnboardingSheet(
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth().height(480.dp)
+                modifier = Modifier.fillMaxWidth().height(280.dp)
             ) { page ->
                 when (page) {
                     0 -> OnboardingPage(
                         title = "Minimalist Core",
-                        description = "A clean 12-tile grid designed to reduce digital clutter and distractions.",
-                        imageRes = R.drawable.onboarding_1
+                        description = "A clean 12-tile grid designed to reduce digital clutter and distractions. Focus on the tools you actually need."
                     )
                     1 -> OnboardingPage(
                         title = "Mindful Habits",
-                        description = "Track screen time and set intentional limits. Focus on what truly matters.",
-                        imageRes = R.drawable.onboarding_2
+                        description = "Track screen time and set intentional limits. Dotz helps you stay aware of your usage habits throughout the day."
                     )
                     2 -> OnboardingPage(
                         title = "Fastlane Navigation",
-                        description = "Swipe right for your chronological life. Notifications and tools, filtered.",
-                        imageRes = R.drawable.onboarding_3
+                        description = "Swipe right for your chronological life. A filtered view of notifications, music, and tools without the noise."
                     )
                 }
             }
@@ -115,52 +108,29 @@ fun DotzOnboardingSheet(
 @Composable
 private fun OnboardingPage(
     title: String,
-    description: String,
-    imageRes: Int
+    description: String
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(4.dp)
-                    .aspectRatio(0.5f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
-            ) {
-                Image(
-                    painter = painterResource(imageRes),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().padding(4.dp)
-                )
-            }
-        }
-        
-        Spacer(Modifier.height(24.dp))
-        
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White,
             textAlign = TextAlign.Center
         )
         
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         
         Text(
             text = description,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = Color.White.copy(alpha = 0.6f),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            lineHeight = 24.sp
         )
     }
 }
