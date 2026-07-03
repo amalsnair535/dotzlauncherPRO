@@ -54,26 +54,17 @@ fun DotzOnboardingSheet(
                     0 -> OnboardingPage(
                         title = "Minimalist Core",
                         description = "A clean 12-tile grid designed to reduce digital clutter and distractions.",
-                        images = listOf(
-                            R.drawable.onboarding_1, 
-                            R.drawable.onboarding_2, 
-                            R.drawable.onboarding_3
-                        )
+                        imageRes = R.drawable.onboarding_1
                     )
                     1 -> OnboardingPage(
                         title = "Mindful Habits",
                         description = "Track screen time and set intentional limits. Focus on what truly matters.",
-                        images = listOf(
-                            R.drawable.onboarding_4, 
-                            R.drawable.onboarding_5
-                        )
+                        imageRes = R.drawable.onboarding_2
                     )
                     2 -> OnboardingPage(
                         title = "Fastlane Navigation",
                         description = "Swipe right for your chronological life. Notifications and tools, filtered.",
-                        images = listOf(
-                            R.drawable.onboarding_6
-                        )
+                        imageRes = R.drawable.onboarding_3
                     )
                 }
             }
@@ -125,7 +116,7 @@ fun DotzOnboardingSheet(
 private fun OnboardingPage(
     title: String,
     description: String,
-    images: List<Int>
+    imageRes: Int
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
@@ -135,30 +126,20 @@ private fun OnboardingPage(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            Card(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(4.dp)
+                    .aspectRatio(0.5f),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
             ) {
-                images.forEach { imageRes ->
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(4.dp)
-                            .aspectRatio(0.5f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
-                    ) {
-                        // Note: If images are not found in res/drawable, this will cause a compile error.
-                        // Please ensure onboarding_1 to onboarding_6 are added to app/src/main/res/drawable/
-                        Image(
-                            painter = painterResource(imageRes),
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize().padding(4.dp)
-                        )
-                    }
-                }
+                Image(
+                    painter = painterResource(imageRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().padding(4.dp)
+                )
             }
         }
         
