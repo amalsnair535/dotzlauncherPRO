@@ -476,10 +476,6 @@ private fun FastlanePageContent(
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp,
             )
-            if (!uiState.isPremium && uiState.isUpgradeAvailable) {
-                Spacer(Modifier.width(8.dp))
-                PremiumBadge()
-            }
         }
 
         if (uiState.timelineItems.isEmpty()) {

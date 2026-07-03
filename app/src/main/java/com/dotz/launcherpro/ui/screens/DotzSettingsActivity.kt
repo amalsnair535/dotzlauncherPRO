@@ -308,12 +308,8 @@ private fun DotzSettingsScreen(
                     label = "Fastlane Timeline",
                     icon = Icons.Default.Timeline,
                     checked = settings.enableFastlane,
-                    onToggle = { 
-                        if (!isUpgradeAvailable || settings.isPremium) onEnableFastlaneToggle(it)
-                        else showPremiumDialog = true
-                    },
-                    subtitle = "Experimental chronological view",
-                    isPremium = isUpgradeAvailable && !settings.isPremium,
+                    onToggle = onEnableFastlaneToggle,
+                    subtitle = "Chronological feed of your digital life",
                 )
                 Divider()
                 Column(modifier = Modifier.padding(16.dp)) {
