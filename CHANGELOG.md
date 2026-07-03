@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
     - **Total Notification Count**: Tracks all incoming alerts to help you measure digital noise.
 - **Enhanced Legacy Support**: Lowered minimum requirements to **Android 24 (Nougat)**, allowing Dotz to run on a wider range of hardware.
 - **Redesigned Media Controller**: A new two-row layout for the Music Widget, featuring centered controls and a more professional "Matte" aesthetic.
+- **New Onboarding Experience**: A beautiful 3-page introduction to the launcher's core philosophy (Minimalism, Fastlane, and Mindfulness) with visual aids.
+- **Rewarded Ad Support**: Added options to support the developer and unlock 24-hour PRO access by watching a short video.
 - **Sarcastic PRO Badge**: Added a touch of humor to the PRO upgrade screen (as requested by the community).
 
 ### Fixed

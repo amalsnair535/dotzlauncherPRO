@@ -51,6 +51,7 @@ data class DotzSettings(
     val focusTimeToday: Long = 0, // in milliseconds
     val lastWeatherFetchTime: Long = 0,
     val isPremium: Boolean = false,
+    val premiumExpiry: Long = 0, // 0 means permanent or no trial
     val useCircadianTheming: Boolean = false,
     val autoGrayscale: Boolean = false,
     val enableAppDrawer: Boolean = false,
@@ -58,6 +59,7 @@ data class DotzSettings(
     val appDrawerOpenCount: Int = 0,
     val lastAppDrawerOpenDate: Long = 0,
     val hasAcceptedAppDisclosure: Boolean = false,
+    val hasSeenOnboarding: Boolean = false,
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
@@ -91,6 +93,7 @@ object PrefsKeys {
     val LAST_WEATHER_FETCH_TIME = longPreferencesKey("last_weather_fetch_time")
     val SHOW_MINDFUL_USAGE = booleanPreferencesKey("show_mindful_usage")
     val IS_PREMIUM = booleanPreferencesKey("is_premium")
+    val PREMIUM_EXPIRY = longPreferencesKey("premium_expiry")
     val USE_CIRCADIAN_THEMING = booleanPreferencesKey("use_circadian_theming")
     val AUTO_GRAYSCALE        = booleanPreferencesKey("auto_grayscale")
     val ENABLE_APP_DRAWER      = booleanPreferencesKey("enable_app_drawer")
@@ -98,6 +101,7 @@ object PrefsKeys {
     val APP_DRAWER_OPEN_COUNT  = intPreferencesKey("app_drawer_open_count")
     val LAST_APP_DRAWER_OPEN_DATE = longPreferencesKey("last_app_drawer_open_date")
     val HAS_ACCEPTED_APP_DISCLOSURE = booleanPreferencesKey("has_accepted_app_disclosure")
+    val HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
@@ -163,6 +167,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 focusTimeToday       = prefs[PrefsKeys.FOCUS_TIME_TODAY] ?: 0,
                 lastWeatherFetchTime = prefs[PrefsKeys.LAST_WEATHER_FETCH_TIME] ?: 0,
                 isPremium            = prefs[PrefsKeys.IS_PREMIUM] ?: false,
+                premiumExpiry        = prefs[PrefsKeys.PREMIUM_EXPIRY] ?: 0,
                 useCircadianTheming  = prefs[PrefsKeys.USE_CIRCADIAN_THEMING] ?: false,
                 autoGrayscale        = prefs[PrefsKeys.AUTO_GRAYSCALE]        ?: false,
                 enableAppDrawer      = prefs[PrefsKeys.ENABLE_APP_DRAWER]      ?: false,
@@ -170,6 +175,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 appDrawerOpenCount   = prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT]   ?: 0,
                 lastAppDrawerOpenDate = prefs[PrefsKeys.LAST_APP_DRAWER_OPEN_DATE] ?: 0L,
                 hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false,
+                hasSeenOnboarding = prefs[PrefsKeys.HAS_SEEN_ONBOARDING] ?: false,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
                 profiles             = profilesList
@@ -251,6 +257,10 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.IS_PREMIUM] = value }
     }
 
+    suspend fun setPremiumExpiry(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.PREMIUM_EXPIRY] = value }
+    }
+
     suspend fun setUseCircadianTheming(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.USE_CIRCADIAN_THEMING] = value }
     }
@@ -294,6 +304,10 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setHasAcceptedAppDisclosure(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] = value }
+    }
+
+    suspend fun setHasSeenOnboarding(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.HAS_SEEN_ONBOARDING] = value }
     }
 
     suspend fun setTileTransparency(value: Float) {

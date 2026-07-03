@@ -60,6 +60,7 @@ fun DotzHomeScreen(
     var showUsageStatsDialog by remember { mutableStateOf(false) }
     var showAppDrawerConfirmDialog by remember { mutableStateOf(false) }
     var hasAcceptedLocally by remember { mutableStateOf(false) }
+    var showOnboarding by remember { mutableStateOf(false) }
 
     val hapticPulse = {
         val vibrator = context.getSystemService(Vibrator::class.java)
@@ -77,24 +78,32 @@ fun DotzHomeScreen(
         }
     }
 
-    LaunchedEffect(uiState.isLoaded, uiState.settings.hasAcceptedAppDisclosure, hasAcceptedLocally) {
-        if (uiState.isLoaded && !uiState.settings.hasAcceptedAppDisclosure && !hasAcceptedLocally) {
+    LaunchedEffect(uiState.isLoaded, uiState.settings.hasAcceptedAppDisclosure, hasAcceptedLocally, uiState.settings.hasSeenOnboarding) {
+        if (uiState.isLoaded && uiState.settings.hasSeenOnboarding && !uiState.settings.hasAcceptedAppDisclosure && !hasAcceptedLocally) {
             showAppAccessDisclosure = true
         } else {
             showAppAccessDisclosure = false
         }
     }
 
-    LaunchedEffect(Unit) {
-        val isNotifEnabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
-            ?.contains(context.packageName) == true
-        if (!isNotifEnabled) showNotifPermDialog = true
-        if (uiState.settings.showMindfulUsage && !viewModel.hasUsageStatsPermission()) showUsageStatsDialog = true
+    LaunchedEffect(uiState.settings.hasSeenOnboarding) {
+        if (uiState.settings.hasSeenOnboarding) {
+            val isNotifEnabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
+                ?.contains(context.packageName) == true
+            if (!isNotifEnabled) showNotifPermDialog = true
+            if (uiState.settings.showMindfulUsage && !viewModel.hasUsageStatsPermission()) showUsageStatsDialog = true
+        }
     }
 
-    LaunchedEffect(uiState.isDefaultLauncher) {
-        if (!uiState.isDefaultLauncher && !hasDismissedDefaultDialog) {
+    LaunchedEffect(uiState.isDefaultLauncher, uiState.settings.hasSeenOnboarding) {
+        if (uiState.settings.hasSeenOnboarding && !uiState.isDefaultLauncher && !hasDismissedDefaultDialog) {
             showDefaultLauncherDialog = true
+        }
+    }
+
+    LaunchedEffect(uiState.isLoaded, uiState.settings.hasSeenOnboarding) {
+        if (uiState.isLoaded && !uiState.settings.hasSeenOnboarding) {
+            showOnboarding = true
         }
     }
 
@@ -267,6 +276,15 @@ fun DotzHomeScreen(
                     showUsageStatsDialog = false
                     val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                     try { context.startActivity(intent) } catch (_: Exception) { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
+                }
+            )
+        }
+
+        if (showOnboarding) {
+            DotzOnboardingSheet(
+                onDismiss = {
+                    showOnboarding = false
+                    viewModel.setOnboardingSeen()
                 }
             )
         }

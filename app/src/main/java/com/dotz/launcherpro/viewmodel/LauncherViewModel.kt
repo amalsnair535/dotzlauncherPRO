@@ -40,6 +40,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
+import com.google.android.gms.ads.OnUserEarnedRewardListener
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -116,6 +121,53 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val sessionListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
         updateActiveController(controllers)
+    }
+
+    private var rewardedAd: RewardedAd? = null
+    private val _isAdLoading = MutableStateFlow(false)
+    val isAdLoading = _isAdLoading.asStateFlow()
+
+    fun loadRewardedAd(onAdLoaded: () -> Unit = {}) {
+        if (rewardedAd != null) {
+            onAdLoaded()
+            return
+        }
+        _isAdLoading.value = true
+        val adRequest = AdRequest.Builder().build()
+        // Test Ad Unit ID: ca-app-pub-3940256099942544/5224354917
+        RewardedAd.load(getApplication(), "ca-app-pub-3940256099942544/5224354917", adRequest, object : RewardedAdLoadCallback() {
+            override fun onAdFailedToLoad(adError: LoadAdError) {
+                rewardedAd = null
+                _isAdLoading.value = false
+            }
+
+            override fun onAdLoaded(ad: RewardedAd) {
+                rewardedAd = ad
+                _isAdLoading.value = false
+                onAdLoaded()
+            }
+        })
+    }
+
+    fun showRewardedAd(activity: Activity, onRewardEarned: () -> Unit) {
+        if (rewardedAd != null) {
+            rewardedAd?.show(activity, OnUserEarnedRewardListener {
+                onRewardEarned()
+                rewardedAd = null
+            })
+        } else {
+            loadRewardedAd {
+                rewardedAd?.show(activity, OnUserEarnedRewardListener {
+                    onRewardEarned()
+                    rewardedAd = null
+                })
+            }
+        }
+    }
+
+    fun grant24HourPremium() = viewModelScope.launch {
+        val expiry = System.currentTimeMillis() + (24 * 60 * 60 * 1000)
+        prefs.setPremiumExpiry(expiry)
     }
 
     private val _uiState = MutableStateFlow(LauncherUiState(isDefaultLauncher = isDefaultLauncher()))
@@ -418,6 +470,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val totalTimeMillis = usageResult.totalScreenTime
 
                 val isCustomProfile = settings.activeProfileId != "default"
+                
+                val isCurrentlyPremium = settings.isPremium || isPremiumStatus || (settings.premiumExpiry > System.currentTimeMillis())
+
                 val allTilesUnordered = buildTilesFast(DefaultApps.allDefaults, settings, notifCounts, allUsage)
                 val allTiles = settings.tileOrder.mapNotNull { id ->
                     allTilesUnordered.find { it.tileId == id }
@@ -442,15 +497,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val isNightTime = hour >= 22 || hour < 6
                 val effectiveGrayscale = settings.grayscaleMode || (settings.autoGrayscale && isNightTime)
 
-                val effectiveSettings = if (settings.isPremium || isPremiumStatus) {
-                    settings.copy(grayscaleMode = effectiveGrayscale)
+                val effectiveSettings = if (isCurrentlyPremium) {
+                    settings.copy(grayscaleMode = effectiveGrayscale, isPremium = true)
                 } else {
                     settings.copy(
                         tileTransparency = 1.0f,
                         layoutStyle = "classic",
                         showWallpaper = false,
                         useCircadianTheming = false,
-                        grayscaleMode = effectiveGrayscale
+                        grayscaleMode = effectiveGrayscale,
+                        isPremium = false
                     )
                 }
 
@@ -543,7 +599,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     playbackDuration = playback.component3(),
                     focusTimeToday = formatDuration(totalTimeMillis),
                     focusStreak = settings.focusStreak,
-                    isPremium = settings.isPremium || isPremiumStatus,
+                    isPremium = isCurrentlyPremium,
                     isUpgradeAvailable = storeBridge.isUpgradeAvailable,
                     isLiteVersion = storeBridge.isLiteVersion,
                     isFastlaneVisible = fastlaneVisible,
@@ -561,6 +617,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         
         // Initial refresh
         refreshState()
+        loadRewardedAd()
     }
 
     fun checkForUpdates() {
@@ -1354,6 +1411,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun acceptAppDisclosure() = viewModelScope.launch {
         prefs.setHasAcceptedAppDisclosure(true)
+    }
+
+    fun setOnboardingSeen() = viewModelScope.launch {
+        prefs.setHasSeenOnboarding(true)
     }
 
     fun redeemPromoCode(code: String): Boolean {

@@ -16,6 +16,7 @@ okhttp = "4.12.0"
 firebaseFunctions = "21.1.0"
 splashscreen = "1.0.1"
 billing = "7.1.1"
+playServicesAds = "25.4.0"
 room = "2.6.1"
 
 [libraries]
@@ -45,6 +46,7 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 google-billing = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
+google-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -103,6 +103,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.session)
     implementation(libs.google.billing)
+    implementation(libs.google.ads)
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
     implementation(libs.okhttp)

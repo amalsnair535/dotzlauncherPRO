@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -166,6 +167,43 @@ private fun UpgradeScreen(
                 Spacer(Modifier.height(16.dp))
                 Text(
                     "One-time purchase. No subscription.",
+                    fontSize = 11.sp,
+                    color = DotzTheme.colors.text.copy(alpha = 0.3f)
+                )
+                Spacer(Modifier.height(32.dp))
+            }
+
+            item {
+                val context = LocalContext.current
+                val viewModel: LauncherViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+
+                OutlinedButton(
+                    onClick = {
+                        viewModel.showRewardedAd(context as ComponentActivity) {
+                            viewModel.grant24HourPremium()
+                            Toast.makeText(context, "24 Hours PRO Unlocked!", Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = DotzTheme.colors.text
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DotzTheme.colors.text.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Star, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "WATCH AD FOR 24h PRO",
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Try all premium features for one day.",
                     fontSize = 11.sp,
                     color = DotzTheme.colors.text.copy(alpha = 0.3f)
                 )
