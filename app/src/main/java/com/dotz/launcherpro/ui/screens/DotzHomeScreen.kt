@@ -618,8 +618,15 @@ private fun AppDrawerConfirmDialog(openCount: Int, onDismiss: () -> Unit, onConf
 private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
     DotzAlertDialog(
         onDismissRequest = onDismiss,
-        title = "Mindful Usage",
-        content = { Text("Enable usage stats to track app time.", color = Color.White.copy(alpha = 0.7f)) },
+        title = "Mindful Usage Disclosure",
+        content = { 
+            Text(
+                "Dotz Launcher uses anonymized usage statistics to track your screen time and device unlocks. " +
+                "This information is processed only on your device to calculate your Focus Score and enable app usage limits. " +
+                "No usage data is ever collected or transmitted.", 
+                color = Color.White.copy(alpha = 0.7f)
+            ) 
+        },
         confirmButtonText = "ENABLE",
         onConfirm = onGoToSettings,
         dismissButtonText = "NOT NOW",
@@ -657,8 +664,15 @@ private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> U
 private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
     DotzAlertDialog(
         onDismissRequest = { },
-        title = "App Visibility",
-        content = { Text("Dotz needs to see your installed apps to function.", color = Color.White.copy(alpha = 0.7f)) },
+        title = "App Visibility Disclosure",
+        content = { 
+            Text(
+                "To function as a home screen, Dotz Launcher requires access to your list of installed applications. " +
+                "This allows you to assign apps to tiles and use the App Drawer. " +
+                "This data is used only to provide core launcher functionality and is never collected or shared.", 
+                color = Color.White.copy(alpha = 0.7f)
+            ) 
+        },
         confirmButtonText = "I UNDERSTAND",
         onConfirm = onAccept
     )

@@ -1,38 +1,49 @@
-# Privacy Policy
+# Privacy Policy for Dotz Launcher
 
-Last updated: May 27, 2026
+**Last Updated:** July 03, 2026
 
-**Dotz Launcher** ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains our practices regarding the collection, use, and disclosure of information when you use our mobile application (the "App").
+**Dotz Launcher** ("we", "us", or "our") is built with a "Privacy-First" philosophy. We believe your digital life should remain private and local. This policy describes how we handle information and the permissions we require to provide a minimalist launcher experience.
 
-## 1. Information Collection and Use
+---
 
-**Dotz Launcher does not collect, store, or transmit any personal data.**
+## 1. Our Commitment to Your Privacy
+**Dotz Launcher does not collect, store, or transmit your personal data to any external servers.** 
+We do not have a database of users, we do not track your app usage for our own benefit, and we do not sell any data to third parties.
 
-*   **Local Data:** All your settings, app tile configurations, and preferences are stored locally on your device. We do not have access to this data, and it is not uploaded to any servers.
-*   **Permissions:** The App requests certain permissions to function (e.g., Notification Access, Location, Phone State). These permissions are used exclusively on-device to provide launcher features (like displaying notification counts, weather, or system status) and are never used to collect data about you.
+## 2. On-Device Data Processing
+The following features process data entirely on your device to protect your privacy:
 
-## 2. Third-Party Services
+*   **Fastlane (Timeline):** Displays your recent notifications and media activity. This data is read from the system and displayed in real-time. It is never stored permanently or uploaded.
+*   **Mindfulness & Focus Score:** Calculates your screen time and unlock counts. This data is retrieved from the Android `UsageStatsManager` and processed locally to provide your daily insights.
+*   **App Drawer & Tiles:** Uses the list of installed applications to allow you to launch and organize your apps.
 
-While the App itself does not collect data, it utilizes certain third-party services to provide specific features:
+## 3. Sensitive Permissions
+To function as a complete home screen replacement, Dotz Launcher requires specific permissions. We use these only for their intended features:
 
-*   **Weather Data:** The App uses the Open-Meteo API to fetch weather information. This requires sending your approximate location (latitude/longitude) to the service. Open-Meteo is a privacy-focused service that does not track users.oes not track users.
+*   **QUERY_ALL_PACKAGES:** Necessary to display and launch the apps installed on your device.
+*   **PACKAGE_USAGE_STATS:** Required for the "Mindful Usage" and "Focus Score" features to track app time and device unlocks.
+*   **ACCESS_FINE_LOCATION:** Used exclusively to provide accurate local weather updates. This data is used only when the weather feature is enabled and is sent directly to our weather provider (Open-Meteo).
+*   **NOTIFICATION_LISTENER:** Required to show notification dots on tiles and to populate the Fastlane timeline.
 
-## 3. Data Security
+## 4. Third-Party Services
+While we do not collect your data, we use trusted third-party SDKs that may collect limited information for functionality:
 
-Since we do not collect personal information, there is no database of user information to secure. However, we encourage users to use built-in Android security features to protect the data stored locally on their devices.
+*   **Google AdMob (Advertising):** We show subtle rewarded ads to support development. The AdMob SDK may collect certain device identifiers (like Advertising ID) to serve non-personalized ads and prevent fraud.
+*   **Google Play Billing:** All "Supporter" purchases are handled securely by Google. We do not have access to your payment or credit card information.
+*   **Open-Meteo (Weather):** When weather is enabled, approximate location coordinates are sent to Open-Meteo to retrieve local conditions. Open-Meteo does not track users or store location history.
 
-## 4. Children’s Privacy
+## 5. Data Security
+Because we do not collect personal information, there is no risk of your data being leaked from our servers. All configurations and usage statistics are protected by your device's native Android security.
 
-Our App does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from children.
+## 6. Children’s Privacy
+Dotz Launcher does not address anyone under the age of 13. We do not knowingly collect any data from children.
 
-## 5. Changes to This Privacy Policy
+## 7. Changes to This Policy
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.
 
-We may update our Privacy Policy from time to time. You are advised to review this page periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.
+## 8. Contact Us
+If you have any questions regarding this policy or the app's privacy practices, please contact us:
 
-## 6. Contact Us
-
-If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at:
-
-**Email:** dotzlauncher@gmail.com
-**Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
-**GitHub:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
+*   **Email:** amalsnair535@gmail.com
+*   **GitHub:** [github.com/amalsnair535/dotzlauncherPRO](https://github.com/amalsnair535/dotzlauncherPRO)
+*   **Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO)

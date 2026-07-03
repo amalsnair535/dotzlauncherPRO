@@ -88,19 +88,6 @@ class DotzSettingsActivity : ComponentActivity() {
                     }
                 }
 
-                val locationPermissionLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestMultiplePermissions()
-                ) { permissions ->
-                    val granted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                                  permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
-                    if (granted) {
-                        viewModel.setShowWeatherInfo(true)
-                        viewModel.refreshWeather()
-                    } else {
-                        Toast.makeText(context, "Location permission required for weather", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
                 DotzSettingsScreen(
                     settings          = uiState.settings,
                     isUpgradeAvailable = uiState.isUpgradeAvailable,
@@ -114,23 +101,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onEnableExtraPageToggle = viewModel::setEnableExtraPage,
                     onExtraTileCountChange = viewModel::setExtraTileCount,
                     onShowWeatherToggle = { enabled ->
-                        if (enabled) {
-                            val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                            val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                            if (hasFine || hasCoarse) {
-                                viewModel.setShowWeatherInfo(true)
-                                viewModel.refreshWeather()
-                            } else {
-                                locationPermissionLauncher.launch(
-                                    arrayOf(
-                                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                        android.Manifest.permission.ACCESS_COARSE_LOCATION
-                                    )
-                                )
-                            }
-                        } else {
-                            viewModel.setShowWeatherInfo(false)
-                        }
+                        viewModel.setShowWeatherInfo(enabled)
                     },
                     onEnableFastlaneToggle = viewModel::setEnableFastlane,
                     homeHeaderMode = uiState.settings.homeHeaderMode,
@@ -207,6 +178,46 @@ private fun DotzSettingsScreen(
     var showIconPackDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
     var showCreateProfileDialog by remember { mutableStateOf(false) }
+    var showLocationDisclosure by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            onShowWeatherToggle(true)
+        } else {
+            Toast.makeText(context, "Location permission required for weather", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (showLocationDisclosure) {
+        DotzAlertDialog(
+            onDismissRequest = { showLocationDisclosure = false },
+            title = "Location Disclosure",
+            content = { 
+                Text(
+                    "Dotz Launcher requests location data to provide you with real-time weather conditions for your area. " +
+                    "This data is used only when the weather feature is active and is not stored or shared for any other purpose.",
+                    color = Color.White.copy(alpha = 0.7f)
+                ) 
+            },
+            confirmButtonText = "GRANT",
+            onConfirm = { 
+                showLocationDisclosure = false
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            },
+            dismissButtonText = "CANCEL",
+            onDismiss = { showLocationDisclosure = false }
+        )
+    }
 
     val currentThemeMode = remember(settings.isLightMode, settings.useCircadianTheming, settings.showWallpaper) {
         when {
@@ -409,7 +420,24 @@ private fun DotzSettingsScreen(
                     SettingsActionRow(label = "Set as Default", icon = Icons.Default.Home, onClick = onSetDefault)
                     Divider()
                 }
-                SettingsToggleRow(label = "Weather Info", icon = Icons.Default.Cloud, checked = settings.showWeatherInfo, onToggle = onShowWeatherToggle)
+                SettingsToggleRow(
+                    label = "Weather Info", 
+                    icon = Icons.Default.Cloud, 
+                    checked = settings.showWeatherInfo, 
+                    onToggle = { enabled ->
+                        if (enabled) {
+                            val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (hasFine || hasCoarse) {
+                                onShowWeatherToggle(true)
+                            } else {
+                                showLocationDisclosure = true
+                            }
+                        } else {
+                            onShowWeatherToggle(false)
+                        }
+                    }
+                )
                 Divider()
                 SettingsActionRow(label = "Icon Pack", icon = Icons.Default.Category, subtitle = settings.iconPackPackage ?: "Default", onClick = { showIconPackDialog = true })
                 Divider()
