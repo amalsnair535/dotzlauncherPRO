@@ -7,7 +7,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
 import android.widget.Toast
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -35,6 +36,8 @@ import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
 import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.theme.DotzTheme
+import com.dotz.launcherpro.ui.theme.DotzType
+import com.dotz.launcherpro.ui.theme.blend
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 import kotlin.math.abs
@@ -66,6 +69,19 @@ fun DotzHomeScreen(
         val vibrator = context.getSystemService(Vibrator::class.java)
         vibrator?.vibrate(VibrationEffect.createOneShot(20L, VibrationEffect.DEFAULT_AMPLITUDE))
     }
+
+    // --- Liquid Glass Animation (Optimized) ---
+    val isGlass = DotzTheme.colors.isGlass
+    val infiniteTransition = rememberInfiniteTransition(label = "LiquidGlass")
+    val animOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "Offset"
+    )
 
     val launchApp = { pkg: String ->
         val intent = context.packageManager.getLaunchIntentForPackage(pkg)
@@ -126,62 +142,125 @@ fun DotzHomeScreen(
         }
     }
 
-    val backgroundModifier = if (uiState.settings.showWallpaper) {
-        Modifier.background(
-            Brush.verticalGradient(
-                colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent),
-                endY = 400f
+    val backgroundModifier = when {
+        uiState.settings.showWallpaper -> {
+            Modifier.background(
+                Brush.verticalGradient(
+                    colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent),
+                    endY = 400f
+                )
             )
-        )
-    } else {
-        Modifier.background(DotzTheme.colors.background)
+        }
+        isGlass -> {
+            val baseColor = DotzTheme.colors.background
+            val isLightMode = baseColor.red > 0.5f && baseColor.green > 0.5f && baseColor.blue > 0.5f
+
+            val color1 = if (isLightMode) baseColor.blend(Color.Black, 0.02f) else baseColor.blend(Color.White, 0.05f)
+            val color2 = if (isLightMode) baseColor.blend(Color.Black, 0.08f) else baseColor.blend(Color.Black, 0.1f)
+
+            Modifier.drawBehind {
+                val brush = Brush.linearGradient(
+                    colors = listOf(baseColor, color1, baseColor, color2, baseColor),
+                    start = androidx.compose.ui.geometry.Offset(animOffset, animOffset),
+                    end = androidx.compose.ui.geometry.Offset(animOffset + 1000f, animOffset + 1000f),
+                    tileMode = androidx.compose.ui.graphics.TileMode.Mirror
+                )
+                drawRect(brush = brush)
+            }
+        }
+        else -> {
+            Modifier.background(DotzTheme.colors.background)
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize().then(backgroundModifier)) {
-        HorizontalPager(
-            state = rootPagerState,
-            modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = uiState.settings.enableFastlane
-        ) { rootPageIndex ->
-            if (rootPageIndex == 0) {
-                // Page 0: Fastlane
-                FastlanePageContent(uiState, viewModel) { mindfulnessApp = it }
-            } else {
-                // Page 1: Tiles & Header
-                TilesPageContent(
-                    uiState = uiState,
-                    viewModel = viewModel,
-                    iconCache = iconCache,
-                    headerAlpha = headerAlpha,
-                    swapSourceTile = swapSourceTile,
-                    onTileTap = { tile ->
-                        if (swapSourceTile != null) {
-                            if (swapSourceTile!!.tileId != tile.tileId) {
-                                viewModel.moveTile(swapSourceTile!!.tileId, tile.tileId)
-                                hapticPulse()
-                            }
-                            swapSourceTile = null
-                        } else {
-                            val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(tile.packageName)
-                            if (uiState.settings.showMindfulUsage && tile.launchCount >= 3 && isSocial) {
-                                mindfulnessApp = MindfulnessInfo(tile.packageName, tile.label, tile.usageTime, tile.launchCount)
-                            } else if (tile.packageName == context.packageName) {
-                                onLauncherSettingsTap()
-                            } else {
-                                launchApp(tile.packageName)
-                            }
-                        }
-                    },
-                    onTileLongPress = { tile ->
-                        hapticPulse()
-                        swapSourceTile = tile
-                    },
-                    onLauncherSettingsTap = onLauncherSettingsTap,
-                    onOpenDrawer = {
-                        hapticPulse()
-                        showAppDrawerConfirmDialog = true
+        if (uiState.settings.layoutStyle == "ultra_focus") {
+            // Static Ultra Focus Mode (No Horizontal Pager, No Scroll)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp)
+            ) {
+                // Simplified Header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.25f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = currentTime(context),
+                            style = DotzType.timeStyle().copy(fontSize = 36.sp, fontWeight = FontWeight.Light),
+                            color = DotzTheme.colors.text
+                        )
+                        Text(
+                            text = currentDate(),
+                            style = DotzType.dateStyle().copy(fontSize = 11.sp, letterSpacing = 2.sp),
+                            color = DotzTheme.colors.text.copy(alpha = 0.5f)
+                        )
                     }
+                }
+                
+                UltraFocusLayout(
+                    tiles = uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles,
+                    remainingMillis = uiState.ultraFocusRemainingMillis,
+                    onTileTap = { tile ->
+                        if (tile.packageName == context.packageName) onLauncherSettingsTap()
+                        else launchApp(tile.packageName)
+                    },
+                    onEndSession = viewModel::endUltraFocusSession,
+                    modifier = Modifier.weight(0.75f)
                 )
+            }
+        } else {
+            HorizontalPager(
+                state = rootPagerState,
+                modifier = Modifier.fillMaxSize(),
+                userScrollEnabled = uiState.settings.enableFastlane
+            ) { rootPageIndex ->
+                if (rootPageIndex == 0) {
+                    // Page 0: Fastlane
+                    FastlanePageContent(uiState, viewModel) { mindfulnessApp = it }
+                } else {
+                    // Page 1: Tiles & Header
+                    TilesPageContent(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        iconCache = iconCache,
+                        headerAlpha = headerAlpha,
+                        swapSourceTile = swapSourceTile,
+                        onTileTap = { tile ->
+                            if (swapSourceTile != null) {
+                                if (swapSourceTile!!.tileId != tile.tileId) {
+                                    viewModel.moveTile(swapSourceTile!!.tileId, tile.tileId)
+                                    hapticPulse()
+                                }
+                                swapSourceTile = null
+                            } else {
+                                val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(tile.packageName)
+                                if (uiState.settings.showMindfulUsage && tile.launchCount >= 3 && isSocial) {
+                                    mindfulnessApp = MindfulnessInfo(tile.packageName, tile.label, tile.usageTime, tile.launchCount)
+                                } else if (tile.packageName == context.packageName) {
+                                    onLauncherSettingsTap()
+                                } else {
+                                    launchApp(tile.packageName)
+                                }
+                            }
+                        },
+                        onTileLongPress = { tile ->
+                            hapticPulse()
+                            swapSourceTile = tile
+                        },
+                        onLauncherSettingsTap = onLauncherSettingsTap,
+                        onOpenDrawer = {
+                            hapticPulse()
+                            showAppDrawerConfirmDialog = true
+                        }
+                    )
+                }
             }
         }
 

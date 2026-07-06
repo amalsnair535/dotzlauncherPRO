@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -19,6 +20,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -98,11 +101,32 @@ fun TimelineCard(
     var showReplyInput by remember { mutableStateOf(false) }
     var replyText by remember { mutableStateOf("") }
 
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) glassColor.copy(alpha = 0.05f) else DotzTheme.colors.tile
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = DotzTheme.colors.tile),
+            .padding(vertical = 6.dp)
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(20.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            ),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -308,7 +332,7 @@ fun SponsoredBadge(modifier: Modifier = Modifier) {
 fun getTimelineIcon(type: TimelineType): ImageVector {
     return when (type) {
         TimelineType.CALL -> Icons.Default.Call
-        TimelineType.MESSAGE -> Icons.Default.Chat
+        TimelineType.MESSAGE -> Icons.AutoMirrored.Filled.Chat
         TimelineType.PHOTO -> Icons.Default.Photo
         TimelineType.MUSIC -> Icons.Default.MusicNote
         TimelineType.APP_LAUNCH -> Icons.Default.RocketLaunch

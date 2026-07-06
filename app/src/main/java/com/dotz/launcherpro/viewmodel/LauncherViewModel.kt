@@ -24,6 +24,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -54,6 +55,7 @@ data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
     val page1Tiles: List<AppTile> = DefaultApps.page1Defaults,
     val page2Tiles: List<AppTile> = DefaultApps.page2Defaults,
+    val ultraFocusTiles: List<AppTile> = emptyList(),
     val settings: DotzSettings = DotzSettings(),
     val notificationCounts: Map<String, Int> = emptyMap(),
     val batteryLevel: Int = -1,
@@ -89,7 +91,9 @@ data class LauncherUiState(
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
     val nativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
+    val isAdLoading: Boolean = false,
     val isLoaded: Boolean = false,
+    val ultraFocusRemainingMillis: Long = 0,
 )
 
 enum class ThemeMode { LIGHT, DARK, CIRCADIAN, TRANSPARENT }
@@ -131,6 +135,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private var rewardedAd: RewardedAd? = null
     private var nativeAd: NativeAd? = null
     private val _nativeAdFlow = MutableStateFlow<NativeAd?>(null)
+    private val _isAdLoading = MutableStateFlow(false)
+    
+    private val installedCache = mutableMapOf<String, Boolean>()
+    private var cachedIsDefault = false
     
     /** 
      * Creates a privacy-first AdRequest that forces Non-Personalized Ads (NPA).
@@ -213,6 +221,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _refreshTrigger = MutableStateFlow(Unit)
+    private val _timerTicker = MutableStateFlow(System.currentTimeMillis())
     private val _usageStats = MutableStateFlow(UsageStatsResult(emptyMap(), 0L, 0, 0))
     private val _installedAppsCache = MutableStateFlow<List<DrawerApp>>(emptyList())
 
@@ -225,6 +234,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val currentInnerPage: StateFlow<Int> = _currentInnerPage.asStateFlow()
     fun setInnerPage(index: Int) {
         _currentInnerPage.value = index
+    }
+
+    fun startUltraFocusSession(minutes: Int) = viewModelScope.launch {
+        val endTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        prefs.setUltraFocusEndTime(endTime)
+    }
+
+    fun endUltraFocusSession() = viewModelScope.launch {
+        prefs.setUltraFocusEndTime(0L)
+    }
+
+    private fun refreshIsDefault() {
+        cachedIsDefault = isDefaultLauncher()
     }
 
     private val WEATHER_REFRESH_INTERVAL = 30 * 60 * 1000L // 30 minutes
@@ -337,6 +359,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         app.registerReceiver(systemReceiver, systemFilter)
 
         // Initial System States
+        refreshIsDefault()
         _isWifiEnabled.value = wifiManager.isWifiEnabled
         _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
         _isSilentMode.value = audioManager.ringerMode != AudioManager.RINGER_MODE_NORMAL
@@ -359,8 +382,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Periodic update of weather
         viewModelScope.launch {
             while (true) {
-                kotlinx.coroutines.delay(WEATHER_REFRESH_INTERVAL)
-                refreshWeather()
+                kotlinx.coroutines.delay(1000)
+                _timerTicker.value = System.currentTimeMillis()
+                
+                // Keep existing weather check frequency
+                if (System.currentTimeMillis() % WEATHER_REFRESH_INTERVAL < 1000) {
+                    refreshWeather()
+                    refreshIsDefault()
+                }
             }
         }
 
@@ -426,6 +455,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Heavy data updates (Apps & Usage)
         viewModelScope.launch(Dispatchers.IO) {
             _refreshTrigger.collect {
+                installedCache.clear()
                 val usage = if (hasUsageStatsPermission()) getAllAppStatsToday() else UsageStatsResult(emptyMap(), 0L, 0, 0)
                 _usageStats.value = usage
 
@@ -464,7 +494,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _usageStats,
                 _installedAppsCache,
                 _isFastlaneVisible,
-                _nativeAdFlow
+                _nativeAdFlow,
+                _isAdLoading,
+                _timerTicker
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
@@ -493,8 +525,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val allApps = args[18] as List<DrawerApp>
                 val fastlaneVisible = args[19] as Boolean
                 val nativeAd = args[20] as NativeAd?
+                val isAdLoading = args[21] as Boolean
+                val tickTime = args[22] as Long
 
-                val isDefault = isDefaultLauncher()
+                val isDefault = cachedIsDefault
                 val allUsage = usageResult.appStats
                 val totalTimeMillis = usageResult.totalScreenTime
 
@@ -520,6 +554,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val p1 = allTiles.drop(6).take(6)
                 val p2 = if (settings.enableExtraPage || isCustomProfile) allTiles.drop(12).take(if (isCustomProfile) 6 else settings.extraTileCount) else emptyList()
                 
+                val currentTime = System.currentTimeMillis()
+                val isUltraFocusActive = settings.ultraFocusEndTime > currentTime
+                val remainingMillis = if (isUltraFocusActive) settings.ultraFocusEndTime - tickTime else 0L
+
+                val currentLayoutStyle = if (isUltraFocusActive) "ultra_focus" else settings.layoutStyle
+                val ultraFocusTiles = if (currentLayoutStyle == "ultra_focus") allTiles.take(18) else emptyList()
+
                 // Auto Grayscale Check (10 PM to 6 AM)
                 val calendar = Calendar.getInstance()
                 val hour = calendar.get(Calendar.HOUR_OF_DAY)
@@ -527,11 +568,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val effectiveGrayscale = settings.grayscaleMode || (settings.autoGrayscale && isNightTime)
 
                 val effectiveSettings = if (isCurrentlyPremium) {
-                    settings.copy(grayscaleMode = effectiveGrayscale, isPremium = true)
+                    settings.copy(grayscaleMode = effectiveGrayscale, isPremium = true, layoutStyle = currentLayoutStyle)
                 } else {
                     settings.copy(
                         tileTransparency = 1.0f,
-                        layoutStyle = "classic",
+                        layoutStyle = if (isUltraFocusActive) "ultra_focus" else "classic",
                         showWallpaper = false,
                         useCircadianTheming = false,
                         grayscaleMode = effectiveGrayscale,
@@ -604,9 +645,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 // 4. Final List Processing & Sponsored Insertion (Once per 24h, non-premium only)
                 val finalTimeline = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id }.toMutableList()
                 
-                val now = System.currentTimeMillis()
                 val dayMillis = 24 * 60 * 60 * 1000L
-                if (!isCurrentlyPremium && (now - settings.lastSponsoredShowTime > dayMillis)) {
+                if (!isCurrentlyPremium && (currentTime - settings.lastSponsoredShowTime > dayMillis)) {
                     // --- ON-DEVICE AD FILTERING ENGINE ---
                     // 1. Define a Local Pool of sponsored items
                     val pool = listOf(
@@ -615,7 +655,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             type = TimelineType.SPONSORED,
                             title = "Weather Companion",
                             subtitle = "Get minimalist hourly forecasts synced with Dotz.",
-                            timestamp = now,
+                            timestamp = currentTime,
                             packageName = "com.google.android.apps.magellan"
                         ),
                         TimelineItem(
@@ -623,7 +663,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             type = TimelineType.SPONSORED,
                             title = "Deep Work Mode",
                             subtitle = "Enhance your focus score with this Pomodoro tool.",
-                            timestamp = now,
+                            timestamp = currentTime,
                             packageName = "com.google.android.calendar"
                         ),
                         TimelineItem(
@@ -631,7 +671,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             type = TimelineType.SPONSORED,
                             title = "Soundscape Discovery",
                             subtitle = "Find high-fidelity tracks that match your minimalist vibe.",
-                            timestamp = now,
+                            timestamp = currentTime,
                             packageName = "com.spotify.music"
                         )
                     )
@@ -656,6 +696,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     page0Tiles = p0,
                     page1Tiles = p1,
                     page2Tiles = p2,
+                    ultraFocusTiles = ultraFocusTiles,
                     settings = effectiveSettings,
                     notificationCounts = notifCounts,
                     batteryLevel = battery,
@@ -689,9 +730,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     topApps = topApps,
                     timelineItems = finalTimeline,
                     nativeAd = nativeAd,
-                    isLoaded = true
+                    isAdLoading = isAdLoading,
+                    isLoaded = true,
+                    ultraFocusRemainingMillis = remainingMillis
                 )
-            }.collect { state ->
+            }.flowOn(Dispatchers.Default).collect { state ->
                 _uiState.value = state
             }
         }
@@ -845,6 +888,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         getApplication<Application>().startActivity(intent)
     }
 
+    @Suppress("DEPRECATION")
     fun toggleBluetoothDirect() {
         try {
             val isEnabled = bluetoothAdapter?.isEnabled == true
@@ -1194,7 +1238,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val pkg = event.packageName ?: continue
                 
                 when (event.eventType) {
-                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                    UsageEvents.Event.ACTIVITY_RESUMED -> {
                         if (pm.getLaunchIntentForPackage(pkg) != null) {
                             countMap[pkg] = (countMap[pkg] ?: 0) + 1
                         }
@@ -1215,7 +1259,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                     }
-                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    UsageEvents.Event.ACTIVITY_PAUSED -> {
                         if (currentForegroundPackage == pkg) {
                             totalScreenTime += (event.timeStamp - foregroundStartTime)
                             currentForegroundPackage = null
@@ -1337,10 +1381,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return preferred
     }
 
-    private fun isInstalled(pkg: String): Boolean = try {
-        pm.getPackageInfo(pkg, 0)
-        true
-    } catch (_: PackageManager.NameNotFoundException) { false }
+    private fun isInstalled(pkg: String): Boolean {
+        installedCache[pkg]?.let { return it }
+        val result = try {
+            pm.getPackageInfo(pkg, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) { false }
+        installedCache[pkg] = result
+        return result
+    }
 
     fun moveTile(fromId: Int, toId: Int) {
         viewModelScope.launch {
@@ -1406,7 +1455,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun hasUsageStatsPermission(): Boolean {
         val appOps = getApplication<Application>().getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getApplication<Application>().packageName)
+            appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getApplication<Application>().packageName)
         } else {
             appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getApplication<Application>().packageName)
         }
@@ -1452,16 +1501,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
         when (mode) {
-            ThemeMode.LIGHT -> {
-                prefs.setIsLightMode(true)
-                prefs.setUseCircadianTheming(false)
-                prefs.setShowWallpaper(false)
-            }
-            ThemeMode.DARK -> {
-                prefs.setIsLightMode(false)
-                prefs.setUseCircadianTheming(false)
-                prefs.setShowWallpaper(false)
-            }
+                ThemeMode.LIGHT -> {
+                    prefs.setIsLightMode(true)
+                    prefs.setUseCircadianTheming(false)
+                    prefs.setShowWallpaper(false)
+                    prefs.setThemeId("default")
+                }
+                ThemeMode.DARK -> {
+                    prefs.setIsLightMode(false)
+                    prefs.setUseCircadianTheming(false)
+                    prefs.setShowWallpaper(false)
+                    prefs.setThemeId("default")
+                }
             ThemeMode.CIRCADIAN -> {
                 prefs.setIsLightMode(false)
                 prefs.setUseCircadianTheming(true)
@@ -1473,6 +1524,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 prefs.setShowWallpaper(true)
             }
         }
+    }
+
+    fun setUseLiquidGlass(value: Boolean) = viewModelScope.launch {
+        prefs.setUseLiquidGlass(value)
     }
 
     fun setIconPackPackage(value: String?) = viewModelScope.launch {

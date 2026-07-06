@@ -5,6 +5,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,15 +24,34 @@ fun DotzAlertDialog(
     dismissButtonText: String? = null,
     onDismiss: (() -> Unit)? = null
 ) {
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) glassColor.copy(alpha = 0.08f) else Color(0xFF121212)
+
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        containerColor = Color(0xFF121212), // Deep dark for modern look
+        containerColor = containerColor,
+        modifier = if (isGlass) {
+            Modifier.drawBehind {
+                val strokeWidth = 1.dp.toPx()
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                        start = androidx.compose.ui.geometry.Offset.Zero,
+                        end = androidx.compose.ui.geometry.Offset.Infinite
+                    ),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                )
+            }
+        } else Modifier,
         shape = RoundedCornerShape(28.dp),
         title = {
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
-                color = Color.White,
+                color = glassColor,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -51,8 +72,8 @@ fun DotzAlertDialog(
                         .fillMaxWidth()
                         .height(54.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
+                        containerColor = glassColor,
+                        contentColor = if (glassColor == Color.White) Color.Black else Color.White
                     ),
                     shape = RoundedCornerShape(27.dp)
                 ) {
@@ -71,16 +92,16 @@ fun DotzAlertDialog(
                             .fillMaxWidth()
                             .height(54.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
+                            contentColor = glassColor
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, glassColor.copy(alpha = 0.2f)),
                         shape = RoundedCornerShape(27.dp)
                     ) {
                         Text(
                             text = dismissButtonText.uppercase(),
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 1.sp,
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = glassColor.copy(alpha = 0.7f)
                         )
                     }
                 }

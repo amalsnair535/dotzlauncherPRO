@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,14 +30,40 @@ fun AppDrawerSheet(
     onDismiss: () -> Unit,
     onLaunch: (String) -> Unit
 ) {
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) Color.Transparent else DotzTheme.colors.solidBackground
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color.Black,
+        containerColor = containerColor,
         dragHandle = {
-            BottomSheetDefaults.DragHandle(color = Color.White.copy(alpha = 0.2f))
+            BottomSheetDefaults.DragHandle(color = glassColor.copy(alpha = 0.2f))
         },
         windowInsets = WindowInsets.navigationBars,
-        modifier = Modifier.fillMaxHeight(0.9f)
+        modifier = Modifier
+            .fillMaxHeight(0.9f)
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        // Blurred glass effect logic is handled by background brush in theme
+                        // Here we just add the border and slightly tint the sheet
+                        drawRect(color = glassColor.copy(alpha = 0.05f))
+                        
+                        val strokeWidth = 1.dp.toPx()
+                        drawLine(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                            strokeWidth = strokeWidth
+                        )
+                    }
+                } else Modifier
+            )
     ) {
         var query by remember { mutableStateOf("") }
         val filtered = remember(query, apps) {
@@ -59,7 +87,7 @@ fun AppDrawerSheet(
                 text = "ALL APPS",
                 fontSize = 12.sp,
                 letterSpacing = 2.sp,
-                color = Color.White.copy(alpha = 0.4f),
+                color = glassColor.copy(alpha = 0.4f),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
@@ -68,16 +96,16 @@ fun AppDrawerSheet(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                placeholder = { Text("Search tools...", color = Color.White.copy(alpha = 0.2f)) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.3f)) },
+                placeholder = { Text("Search tools...", color = glassColor.copy(alpha = 0.2f)) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = glassColor.copy(alpha = 0.3f)) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.White.copy(alpha = 0.3f),
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    focusedBorderColor = glassColor.copy(alpha = 0.3f),
+                    unfocusedBorderColor = glassColor.copy(alpha = 0.1f),
+                    focusedTextColor = glassColor,
+                    unfocusedTextColor = glassColor,
+                    cursorColor = glassColor
                 )
             )
 
@@ -91,13 +119,13 @@ fun AppDrawerSheet(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             "TYPE TO SEARCH",
-                            color = Color.White.copy(alpha = 0.2f),
+                            color = glassColor.copy(alpha = 0.2f),
                             style = DotzType.timeStyle().copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraLight, letterSpacing = 4.sp)
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "Mindful access only",
-                            color = Color.White.copy(alpha = 0.1f),
+                            color = glassColor.copy(alpha = 0.1f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -113,7 +141,7 @@ fun AppDrawerSheet(
                         item {
                             Text(
                                 text = initial.toString(),
-                                color = Color.White.copy(alpha = 0.2f),
+                                color = glassColor.copy(alpha = 0.2f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(top = 16.dp, bottom = 4.dp, start = 4.dp)
@@ -130,7 +158,7 @@ fun AppDrawerSheet(
                             ) {
                                 Text(
                                     text = app.label.uppercase(),
-                                    color = Color.White,
+                                    color = glassColor,
                                     style = DotzType.timeStyle().copy(fontSize = 18.sp, fontWeight = FontWeight.Light),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -138,14 +166,14 @@ fun AppDrawerSheet(
                                 if (app.usageTime != null) {
                                     Text(
                                         text = app.usageTime,
-                                        color = Color.White.copy(alpha = 0.3f),
+                                        color = glassColor.copy(alpha = 0.3f),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
                             // Optional subtle divider
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f), thickness = 0.5.dp)
+                            HorizontalDivider(color = glassColor.copy(alpha = 0.05f), thickness = 0.5.dp)
                         }
                     }
                 }

@@ -57,7 +57,16 @@ object ThemePresets {
         accent = Color(0xFF000000)
     )
 
-    val all = listOf(Default, Nord, Forest, Sunset, Light)
+    val LiquidGlass = DotzThemePreset(
+        id = "liquid_glass",
+        name = "Liquid Glass",
+        background = Color(0xFF0F172A),
+        tile = Color(0x33FFFFFF),
+        text = Color(0xFFF1F5F9),
+        accent = Color(0xFF38BDF8)
+    )
+
+    val all = listOf(Default, Nord, Forest, Sunset, Light, LiquidGlass)
     
     fun getById(id: String) = all.find { it.id == id } ?: Default
 }

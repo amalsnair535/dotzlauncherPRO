@@ -54,6 +54,7 @@ data class DotzSettings(
     val premiumExpiry: Long = 0, // 0 means permanent or no trial
     val useCircadianTheming: Boolean = false,
     val autoGrayscale: Boolean = false,
+    val useLiquidGlass: Boolean = false,
     val enableAppDrawer: Boolean = false,
     val appDrawerEnabledAt: Long = 0,
     val appDrawerOpenCount: Int = 0,
@@ -64,6 +65,7 @@ data class DotzSettings(
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
+    val ultraFocusEndTime: Long = 0,
 )
 
 object PrefsKeys {
@@ -97,6 +99,7 @@ object PrefsKeys {
     val PREMIUM_EXPIRY = longPreferencesKey("premium_expiry")
     val USE_CIRCADIAN_THEMING = booleanPreferencesKey("use_circadian_theming")
     val AUTO_GRAYSCALE        = booleanPreferencesKey("auto_grayscale")
+    val USE_LIQUID_GLASS      = booleanPreferencesKey("use_liquid_glass")
     val ENABLE_APP_DRAWER      = booleanPreferencesKey("enable_app_drawer")
     val APP_DRAWER_ENABLED_AT  = longPreferencesKey("app_drawer_enabled_at")
     val APP_DRAWER_OPEN_COUNT  = intPreferencesKey("app_drawer_open_count")
@@ -107,6 +110,7 @@ object PrefsKeys {
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
+    val ULTRA_FOCUS_END_TIME    = longPreferencesKey("ultra_focus_end_time")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -172,6 +176,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 premiumExpiry        = prefs[PrefsKeys.PREMIUM_EXPIRY] ?: 0,
                 useCircadianTheming  = prefs[PrefsKeys.USE_CIRCADIAN_THEMING] ?: false,
                 autoGrayscale        = prefs[PrefsKeys.AUTO_GRAYSCALE]        ?: false,
+                useLiquidGlass       = prefs[PrefsKeys.USE_LIQUID_GLASS]       ?: false,
                 enableAppDrawer      = prefs[PrefsKeys.ENABLE_APP_DRAWER]      ?: false,
                 appDrawerEnabledAt   = prefs[PrefsKeys.APP_DRAWER_ENABLED_AT]   ?: 0L,
                 appDrawerOpenCount   = prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT]   ?: 0,
@@ -181,7 +186,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 lastSponsoredShowTime = prefs[PrefsKeys.LAST_SPONSORED_SHOW_TIME] ?: 0,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
-                profiles             = profilesList
+                profiles             = profilesList,
+                ultraFocusEndTime    = prefs[PrefsKeys.ULTRA_FOCUS_END_TIME] ?: 0L
             )
         }
 
@@ -270,6 +276,10 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setAutoGrayscale(value: Boolean) {
         context.dataStore.edit { it[PrefsKeys.AUTO_GRAYSCALE] = value }
+    }
+
+    suspend fun setUseLiquidGlass(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.USE_LIQUID_GLASS] = value }
     }
 
     suspend fun setEnableAppDrawer(value: Boolean) {
@@ -443,6 +453,10 @@ class DotzPreferencesRepository(private val context: Context) {
         }
     }
 
+    suspend fun setUltraFocusEndTime(time: Long) {
+        context.dataStore.edit { it[PrefsKeys.ULTRA_FOCUS_END_TIME] = time }
+    }
+
     /** Read a single tile label override (used for display in app grid) */
     fun tileLabelFlow(tileId: Int): Flow<String?> =
         context.dataStore.data.map { it[PrefsKeys.tileLabel(tileId)] }
@@ -479,6 +493,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.LAYOUT_STYLE] = settings.layoutStyle
                 prefs[PrefsKeys.USE_CIRCADIAN_THEMING] = settings.useCircadianTheming
                 prefs[PrefsKeys.AUTO_GRAYSCALE] = settings.autoGrayscale
+                prefs[PrefsKeys.USE_LIQUID_GLASS] = settings.useLiquidGlass
                 prefs[PrefsKeys.ENABLE_APP_DRAWER] = settings.enableAppDrawer
                 prefs[PrefsKeys.TILE_ORDER] = settings.tileOrder.joinToString(",")
                 prefs[PrefsKeys.ACTIVE_PROFILE_ID] = settings.activeProfileId

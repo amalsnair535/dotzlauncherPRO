@@ -1,8 +1,11 @@
 package com.dotz.launcherpro.ui.theme
 
 import android.os.Build
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.dotz.launcherpro.data.DotzSettings
@@ -19,6 +22,7 @@ data class DotzColorSystem(
     val settingsIcon: Color,
     val badgeDot: Color,
     val dateText: Color,
+    val isGlass: Boolean = false
 )
 
 val LocalDotzColors = staticCompositionLocalOf {
@@ -70,9 +74,11 @@ fun DotzTheme(
     
     val effectiveIsLightMode = !darkTheme
 
+    val isLiquidGlass = settings.useLiquidGlass
+
     // 1. Determine base colors
     val preset = if (effectiveIsLightMode) ThemePresets.Light else ThemePresets.getById(settings.themeId)
-    
+
     val solidBackground = preset.background
     var background = if (settings.showWallpaper) Color.Transparent else preset.background
     var tile = preset.tile.copy(alpha = settings.tileTransparency)
@@ -110,7 +116,8 @@ fun DotzTheme(
         accent = accent,
         settingsIcon = text.copy(alpha = 0.4f),
         badgeDot = accent,
-        dateText = text.copy(alpha = 0.6f)
+        dateText = text.copy(alpha = 0.6f),
+        isGlass = isLiquidGlass
     )
 
     // Font Handling

@@ -9,9 +9,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -116,6 +118,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     isDefaultLauncher = uiState.isDefaultLauncher,
                     onSetDefault      = viewModel::openDefaultLauncherSettings,
                     onThemeModeChange = viewModel::setThemeMode,
+                    onUseLiquidGlassToggle = viewModel::setUseLiquidGlass,
                     onShowMindfulUsageToggle = viewModel::setShowMindfulUsage,
                     isUpdateAvailable = uiState.isUpdateAvailable,
                     isLiteVersion     = uiState.isLiteVersion,
@@ -130,7 +133,8 @@ class DotzSettingsActivity : ComponentActivity() {
                     },
                     onCreateProfile = viewModel::createProfile,
                     onDeleteProfile = viewModel::deleteProfile,
-                    onSwitchProfile = viewModel::switchProfile
+                    onSwitchProfile = viewModel::switchProfile,
+                    onStartUltraFocus = viewModel::startUltraFocusSession
                 )
             }
         }
@@ -170,15 +174,18 @@ private fun DotzSettingsScreen(
     onUpgradeClick: () -> Unit,
     onAppSelectionClick: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onUseLiquidGlassToggle: (Boolean) -> Unit,
     onShowMindfulUsageToggle: (Boolean) -> Unit,
     onCreateProfile: (String) -> Unit,
     onDeleteProfile: (String) -> Unit,
     onSwitchProfile: (String) -> Unit,
+    onStartUltraFocus: (Int) -> Unit,
 ) {
     var showIconPackDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
     var showCreateProfileDialog by remember { mutableStateOf(false) }
     var showLocationDisclosure by remember { mutableStateOf(false) }
+    var showUltraFocusDurationDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -194,28 +201,34 @@ private fun DotzSettingsScreen(
     }
 
     if (showLocationDisclosure) {
+        // ... (existing dialog)
+    }
+
+    if (showUltraFocusDurationDialog) {
         DotzAlertDialog(
-            onDismissRequest = { showLocationDisclosure = false },
-            title = "Location Disclosure",
-            content = { 
-                Text(
-                    "Dotz Launcher requests location data to provide you with real-time weather conditions for your area. " +
-                    "This data is used only when the weather feature is active and is not stored or shared for any other purpose.",
-                    color = Color.White.copy(alpha = 0.7f)
-                ) 
+            onDismissRequest = { showUltraFocusDurationDialog = false },
+            title = "Ultra Focus Duration",
+            content = {
+                Column {
+                    Text("Select how long you want to stay in Ultra Focus mode. All distractions will be hidden.", color = Color.White.copy(alpha = 0.7f))
+                    Spacer(Modifier.height(16.dp))
+                    listOf(15 to "15 Minutes", 30 to "30 Minutes", 60 to "1 Hour", 120 to "2 Hours").forEach { (mins, label) ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().height(48.dp).clickable { 
+                                onStartUltraFocus(mins)
+                                showUltraFocusDurationDialog = false
+                            },
+                            color = Color.Transparent
+                        ) {
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                Text(label, color = Color.White, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
             },
-            confirmButtonText = "GRANT",
-            onConfirm = { 
-                showLocationDisclosure = false
-                locationPermissionLauncher.launch(
-                    arrayOf(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
-            },
-            dismissButtonText = "CANCEL",
-            onDismiss = { showLocationDisclosure = false }
+            confirmButtonText = "CANCEL",
+            onConfirm = { showUltraFocusDurationDialog = false }
         )
     }
 
@@ -313,27 +326,6 @@ private fun DotzSettingsScreen(
                 }
             }}
 
-            // --- Navigation Section ---
-            item { SettingsGroup(title = "Navigation") {
-                SettingsToggleRow(
-                    label = "Fastlane Timeline",
-                    icon = Icons.Default.Timeline,
-                    checked = settings.enableFastlane,
-                    onToggle = onEnableFastlaneToggle,
-                    subtitle = "Chronological feed of your digital life",
-                )
-                Divider()
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Header Mode", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
-                    Spacer(Modifier.height(12.dp))
-                    TonalSegmentedControl(
-                        options = listOf("toggles" to "Toggles", "music" to "Music", "stats" to "Focus"),
-                        selected = homeHeaderMode,
-                        onSelect = onHomeHeaderModeChange
-                    )
-                }
-            }}
-
             // --- Theme Section ---
             item { SettingsGroup(title = "Appearance") {
                 SettingsActionRow(
@@ -367,8 +359,44 @@ private fun DotzSettingsScreen(
                     if (settings.isPremium || !isUpgradeAvailable) onTransparencyChange(it) else showPremiumDialog = true
                 }
                 Divider()
+                SettingsToggleRow(
+                    label = "Liquid Glass Effect",
+                    icon = Icons.Default.BlurOn,
+                    checked = settings.useLiquidGlass,
+                    onToggle = { 
+                        if (settings.isPremium || !isUpgradeAvailable) onUseLiquidGlassToggle(it)
+                        else showPremiumDialog = true
+                    },
+                    subtitle = "Animated glassmorphism for all themes"
+                )
+                Divider()
                 TileLayoutSelection(settings.layoutStyle, settings.isPremium || !isUpgradeAvailable) {
                     if (settings.isPremium || !isUpgradeAvailable) onLayoutStyleChange(it) else showPremiumDialog = true
+                }
+                Divider()
+                SettingsActionRow(
+                    label = "Start Ultra Focus Session",
+                    icon = Icons.Default.Psychology,
+                    subtitle = "Minimal essentials for a set time",
+                    onClick = { showUltraFocusDurationDialog = true }
+                )
+                Divider()
+                SettingsToggleRow(
+                    label = "Fastlane Timeline",
+                    icon = Icons.Default.Timeline,
+                    checked = settings.enableFastlane,
+                    onToggle = onEnableFastlaneToggle,
+                    subtitle = "Chronological feed of your digital life",
+                )
+                Divider()
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Header Mode", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+                    Spacer(Modifier.height(12.dp))
+                    TonalSegmentedControl(
+                        options = listOf("toggles" to "Toggles", "music" to "Music", "stats" to "Focus"),
+                        selected = homeHeaderMode,
+                        onSelect = onHomeHeaderModeChange
+                    )
                 }
             }}
 
@@ -498,83 +526,155 @@ private fun DotzSettingsScreen(
 }
 
 @Composable
-private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.4f),
-            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
-            letterSpacing = 1.sp
+private fun SettingsGroup(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .animateContentSize(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.05f)
         )
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White.copy(alpha = 0.05f)
-        ) {
-            Column(content = content)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = title.uppercase(),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        letterSpacing = 2.sp,
+                        fontWeight = FontWeight.Black
+                    ),
+                    color = Color.White
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.3f)
+                )
+            }
+            
+            if (expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    content = content
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SettingsToggleRow(label: String, icon: ImageVector, checked: Boolean, subtitle: String? = null, isPremium: Boolean = false, isLocked: Boolean = false, onToggle: (Boolean) -> Unit) {
+private fun SettingsToggleRow(
+    label: String,
+    icon: ImageVector,
+    checked: Boolean,
+    subtitle: String? = null,
+    isPremium: Boolean = false,
+    isLocked: Boolean = false,
+    onToggle: (Boolean) -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = !isLocked) { onToggle(!checked) }.padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isLocked) { onToggle(!checked) }
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = Color.White.copy(alpha = if (isLocked) 0.2f else 0.7f), modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(label, style = MaterialTheme.typography.bodyLarge, color = if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White)
-                    if (isPremium) {
-                        Spacer(Modifier.width(8.dp))
-                        PremiumBadge()
-                    }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.05f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = Color.White.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, color = if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                if (isPremium && isLocked) {
+                    Spacer(Modifier.width(8.dp))
+                    PremiumBadge()
                 }
-                if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.4f))
+            }
+            if (subtitle != null) {
+                Text(subtitle, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
             }
         }
         Switch(
             checked = checked,
             onCheckedChange = onToggle,
             enabled = !isLocked,
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.Black, checkedTrackColor = Color.White, uncheckedThumbColor = Color.White.copy(alpha = 0.4f), uncheckedTrackColor = Color.White.copy(alpha = 0.1f))
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.Black,
+                checkedTrackColor = Color.White,
+                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
+                uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
+            )
         )
     }
 }
 
 @Composable
-private fun SettingsActionRow(label: String, icon: ImageVector, subtitle: String? = null, isPremium: Boolean = false, isLocked: Boolean = false, onClick: () -> Unit) {
+private fun SettingsActionRow(
+    label: String,
+    icon: ImageVector,
+    subtitle: String? = null,
+    isPremium: Boolean = false,
+    isLocked: Boolean = false,
+    onClick: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isLocked) { onClick() }
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = Color.White.copy(alpha = if (isLocked) 0.2f else 0.7f), modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(label, style = MaterialTheme.typography.bodyLarge, color = if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White)
-                    if (isPremium) {
-                        Spacer(Modifier.width(8.dp))
-                        PremiumBadge()
-                    }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.05f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = Color.White.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(label, color = if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                if (isPremium && isLocked) {
+                    Spacer(Modifier.width(8.dp))
+                    PremiumBadge()
                 }
-                if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.4f))
+            }
+            if (subtitle != null) {
+                Text(subtitle, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isLocked) {
-                Icon(Icons.Default.Lock, null, tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(8.dp))
-            }
-            Icon(Icons.Default.ChevronRight, null, tint = Color.White.copy(alpha = 0.2f))
-        }
+        Icon(
+            imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.ArrowForwardIos,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.2f),
+            modifier = Modifier.size(14.dp)
+        )
     }
 }
 
@@ -690,11 +790,11 @@ private fun TileLayoutSelection(current: String, isPremium: Boolean, onChange: (
         }
         Spacer(Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("classic", "list").forEach { style ->
+            listOf("classic" to "GRID", "list" to "LIST").forEach { (style, label) ->
                 val selected = current == style
                 Surface(modifier = Modifier.weight(1f).height(40.dp).clickable { onChange(style) }, shape = RoundedCornerShape(8.dp), color = if (selected) Color.White else Color.White.copy(alpha = 0.05f)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(style.uppercase(), color = if (selected) Color.Black else Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(label, color = if (selected) Color.Black else Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     }
                 }
             }

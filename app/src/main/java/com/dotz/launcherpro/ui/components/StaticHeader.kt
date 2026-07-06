@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
@@ -230,14 +232,35 @@ fun NowPlayingWidget(
     onSettingsClick: () -> Unit
 ) {
     val progress = if (duration > 0) position.toFloat() / duration else 0f
+    
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) glassColor.copy(alpha = 0.05f) else DotzTheme.colors.tile.copy(alpha = 0.7f)
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(140.dp)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 8.dp)
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            ),
         shape = RoundedCornerShape(28.dp),
-        color = DotzTheme.colors.tile.copy(alpha = 0.7f)
+        color = containerColor
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -346,13 +369,34 @@ fun FocusStatsWidget(
     focusScore: Int,
     onSettingsClick: () -> Unit
 ) {
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) glassColor.copy(alpha = 0.05f) else DotzTheme.colors.tile.copy(alpha = 0.7f)
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(140.dp)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 8.dp)
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            ),
         shape = RoundedCornerShape(28.dp),
-        color = DotzTheme.colors.tile.copy(alpha = 0.7f)
+        color = containerColor
     ) {
         Row(
             modifier = Modifier.padding(20.dp),
@@ -430,13 +474,13 @@ fun FocusStatsWidget(
     }
 }
 
-private fun currentTime(context: android.content.Context): String {
+fun currentTime(context: android.content.Context): String {
     val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
     val pattern = if (is24Hour) "HH:mm" else "h:mm a"
     return SimpleDateFormat(pattern, Locale.getDefault()).format(Date())
 }
 
-private fun currentDate(): String =
+fun currentDate(): String =
     SimpleDateFormat("EEE, dd MMM", Locale.getDefault())
         .format(Date())
         .uppercase(Locale.getDefault())

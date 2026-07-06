@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -46,11 +48,35 @@ fun DetoxPanel(
     onDarkModeLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val panelBackground = when {
+        isGlass -> glassColor.copy(alpha = 0.05f)
+        else -> DotzTheme.colors.tile.copy(alpha = transparency.coerceAtLeast(0.3f))
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(32.dp))
-            .background(DotzTheme.colors.tile.copy(alpha = transparency.coerceAtLeast(0.3f)))
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(32.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            )
+            .background(panelBackground)
             .padding(vertical = 16.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally

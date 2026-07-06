@@ -13,9 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -87,7 +87,20 @@ private fun AppListTile(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val baseOpacity = if (tile.isInstalled) transparency else 0.4f * transparency
-    val tileBackground = if (isHighlighted) DotzTheme.colors.text.copy(alpha = 0.2f) else DotzTheme.colors.tile.copy(alpha = baseOpacity)
+    
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val tileBackground = when {
+        isHighlighted -> glassColor.copy(alpha = 0.2f)
+        isGlass -> glassColor.copy(alpha = 0.05f)
+        else -> DotzTheme.colors.tile.copy(alpha = baseOpacity)
+    }
+
+    val glassBorderBrush = if (isGlass) Brush.linearGradient(
+        colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+        start = Offset.Zero,
+        end = Offset.Infinite
+    ) else null
 
     val cachedBitmap = remember(tile.packageName, iconPackPackage, grayscale) {
         iconCache.getIcon(tile.packageName, iconPackPackage, grayscale)
@@ -102,6 +115,19 @@ private fun AppListTile(
             .fillMaxWidth()
             .height(72.dp)
             .clip(RoundedCornerShape(16.dp))
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = glassBorderBrush!!,
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            )
             .background(tileBackground)
             .combinedClickable(
                 onClick = {
