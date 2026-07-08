@@ -16,15 +16,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,7 +48,8 @@ class DotzAboutActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsState()
             DotzTheme(settings = uiState.settings) {
                 AboutScreen(
-                    onBack = { finish() }
+                    onBack = { finish() },
+                    isUpdateAvailable = uiState.isUpdateAvailable
                 )
             }
         }
@@ -65,7 +59,8 @@ class DotzAboutActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun AboutScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    isUpdateAvailable: Boolean
 ) {
     val context = LocalContext.current
     val viewModel: LauncherViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -74,9 +69,9 @@ private fun AboutScreen(
     val versionName = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "5.5.9"
+            packageInfo.versionName ?: "6.0.0"
         } catch (_: Exception) {
-            "5.5.9"
+            "6.0.0"
         }
     }
 
@@ -177,13 +172,28 @@ private fun AboutScreen(
 
             item { MatteDivider() }
 
+            // ── Primary Actions ───────────────────────────────────────────
             item {
                 AboutActionRow(
-                    label = "Website",
-                    subLabel = "amalsnair535.github.io/dotzlauncherPRO",
-                    icon = Icons.Default.Refresh,
+                    label = "Rate Dotz Launcher",
+                    subLabel = "Support the development with a review",
+                    icon = Icons.Default.Star,
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://amalsnair535.github.io/dotzlauncherPRO/".toUri())
+                        val intent = Intent(Intent.ACTION_VIEW, "market://details?id=${context.packageName}".toUri())
+                        try { context.startActivity(intent) } catch (_: Exception) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=${context.packageName}".toUri()))
+                        }
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
+                    label = "What's New",
+                    subLabel = "Read the latest update notes",
+                    icon = Icons.Default.NewReleases,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/DotzLauncherPRO/blob/main/CHANGELOG.md".toUri())
                         context.startActivity(intent)
                     }
                 )
@@ -191,65 +201,15 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
-                    label = "GitHub",
-                    subLabel = "amalsnair535/DotzLauncherPRO",
-                    icon = Icons.Default.Code,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/DotzLauncherPRO".toUri())
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                AboutActionRow(
-                    label = "Contact",
-                    subLabel = "amalsnair535@gmail.com",
-                    icon = Icons.Default.Email,
-                    trailingIcon = Icons.Default.ContentCopy,
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Dotz Contact", "amalsnair535@gmail.com")
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Email copied to clipboard", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-
-            item {
-                AboutActionRow(
-                    label = "Telegram",
-                    subLabel = "Join our community",
-                    icon = Icons.AutoMirrored.Filled.Send,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://t.me/+w_zs7VSQ3tllMGQ9".toUri())
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item {
-                AboutActionRow(
-                    label = "Instagram",
-                    subLabel = "@dotzlauncher",
-                    icon = Icons.Default.CameraAlt,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://www.instagram.com/dotzlauncher?igsh=Znd3eXFxZWlpMzUw".toUri())
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            item { MatteDivider() }
-
-            item {
-                AboutActionRow(
-                    label = "Support the Developer",
-                    subLabel = "Watch a short ad to support free updates",
+                    label = "Buy Me a Coffee / Donation",
+                    subLabel = "Support the project via UPI",
                     icon = Icons.Default.Coffee,
                     onClick = {
-                        viewModel.showRewardedAd(context as ComponentActivity) {
-                            Toast.makeText(context, "Thank you for your support!", Toast.LENGTH_SHORT).show()
+                        val upiUri = "upi://pay?pa=amalsnair535-1@okhdfcbank&pn=Amal%20Nair&mc=0000&mode=02&purpose=00"
+                        val intent = Intent(Intent.ACTION_VIEW, upiUri.toUri())
+                        val chooser = Intent.createChooser(intent, "Pay with...")
+                        try { context.startActivity(chooser) } catch (_: Exception) {
+                            Toast.makeText(context, "No UPI apps found", Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
@@ -257,11 +217,12 @@ private fun AboutScreen(
 
             item { MatteDivider() }
 
+            // ── Legal & Open Source ──────────────────────────────────────
             item {
                 AboutActionRow(
                     label = "Privacy Policy",
-                    subLabel = "Read our commitment to your privacy",
-                    icon = Icons.Default.Code,
+                    subLabel = "Our commitment to your data",
+                    icon = Icons.Default.Description,
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/dotzlauncherPRO/blob/main/PRIVACY_POLICY.md".toUri())
                         context.startActivity(intent)
@@ -271,11 +232,23 @@ private fun AboutScreen(
 
             item {
                 AboutActionRow(
-                    label = "Terms & Conditions",
-                    subLabel = "Review our service terms",
-                    icon = Icons.Default.Code,
+                    label = "Licenses",
+                    subLabel = "Review software licenses",
+                    icon = Icons.AutoMirrored.Filled.Article,
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/dotzlauncherPRO/blob/main/TERMS_AND_CONDITIONS.md".toUri())
+                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/DotzLauncherPRO/blob/main/LICENSE".toUri())
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
+                    label = "Open Source Libraries",
+                    subLabel = "Check out our GitHub repository",
+                    icon = Icons.Default.Security,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, "https://github.com/amalsnair535/DotzLauncherPRO".toUri())
                         context.startActivity(intent)
                     }
                 )
@@ -283,58 +256,65 @@ private fun AboutScreen(
 
             item { MatteDivider() }
 
+            // ── Feedback & Support ────────────────────────────────────────
             item {
                 AboutActionRow(
-                    label = "Support the Project",
-                    subLabel = "Buy Me a Coffee (UPI)",
-                    icon = Icons.Default.Coffee,
-                    onLongClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Dotz UPI", "amalsnair535-1@okhdfcbank")
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "UPI ID copied to clipboard", Toast.LENGTH_SHORT).show()
-                    },
+                    label = "Report a Bug",
+                    subLabel = "Tell us what's broken",
+                    icon = Icons.Default.BugReport,
                     onClick = {
-                        val upiUri = "upi://pay?pa=amalsnair535-1@okhdfcbank&pn=Amal%20Nair&mc=0000&mode=02&purpose=00"
-                        val intent = Intent(Intent.ACTION_VIEW, upiUri.toUri())
-                        val chooser = Intent.createChooser(intent, "Pay with...")
-                        try {
-                            context.startActivity(chooser)
-                        } catch (_: Exception) {
-                            Toast.makeText(context, "No UPI apps found", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(Intent.ACTION_SENDTO, "mailto:amalsnair535@gmail.com".toUri()).apply {
+                            putExtra(Intent.EXTRA_SUBJECT, "Dotz Bug Report")
                         }
+                        context.startActivity(Intent.createChooser(intent, "Send Email"))
+                    }
+                )
+            }
+
+            item {
+                AboutActionRow(
+                    label = "Suggest a Feature",
+                    subLabel = "What should we build next?",
+                    icon = Icons.Default.Lightbulb,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO, "mailto:amalsnair535@gmail.com".toUri()).apply {
+                            putExtra(Intent.EXTRA_SUBJECT, "Dotz Feature Suggestion")
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Send Email"))
                     }
                 )
             }
 
             item { MatteDivider() }
 
+            // ── Socials ───────────────────────────────────────────────────
             item {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.Start
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Text(
-                        text = "PRIVACY",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.5.sp,
-                        color = DotzTheme.colors.text.copy(alpha = 0.4f)
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "Dotz Launcher does not collect or store any personal data. All settings and configurations are kept locally on your device.",
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                        color = DotzTheme.colors.text.copy(alpha = 0.6f)
-                    )
+                    IconButton(onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, "https://t.me/+w_zs7VSQ3tllMGQ9".toUri()))
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.Send, "Telegram", tint = DotzTheme.colors.text.copy(alpha = 0.6f))
+                    }
+                    IconButton(onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, "https://www.instagram.com/dotzlauncher?igsh=Znd3eXFxZWlpMzUw".toUri()))
+                    }) {
+                        Icon(Icons.Default.CameraAlt, "Instagram", tint = DotzTheme.colors.text.copy(alpha = 0.6f))
+                    }
+                    IconButton(onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, "https://amalsnair535.github.io/dotzlauncherPRO/".toUri()))
+                    }) {
+                        Icon(Icons.Default.Language, "Website", tint = DotzTheme.colors.text.copy(alpha = 0.6f))
+                    }
                 }
             }
 
             item {
                 Spacer(Modifier.height(32.dp))
                 Text(
-                    text = "Built with ❤️",
+                    text = "Built with ❤️ in India",
                     fontSize = 12.sp,
                     color = DotzTheme.colors.text.copy(alpha = 0.3f)
                 )

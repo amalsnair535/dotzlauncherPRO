@@ -1,6 +1,8 @@
 package com.dotz.launcherpro
 
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -25,8 +27,8 @@ class MainActivity : AppCompatActivity() {
         // Ensure window is transparent for wallpaper
         window.setBackgroundDrawableResource(android.R.color.transparent)
         window.setFlags(
-            android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER,
-            android.view.WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER
+            WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER,
+            WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER
         )
 
         // Modern full-screen immersive mode
@@ -34,6 +36,8 @@ class MainActivity : AppCompatActivity() {
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
+
+        setHighRefreshRate()
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -47,6 +51,28 @@ class MainActivity : AppCompatActivity() {
                     }
                 )
             }
+        }
+    }
+
+    private fun setHighRefreshRate() {
+        try {
+            val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                this.display
+            } else {
+                @Suppress("DEPRECATION")
+                (getSystemService(android.content.Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
+            }
+            
+            val modes = display?.supportedModes
+            val highRefreshMode = modes?.maxByOrNull { it.refreshRate }
+            
+            if (highRefreshMode != null) {
+                val params = window.attributes
+                params.preferredDisplayModeId = highRefreshMode.modeId
+                window.attributes = params
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

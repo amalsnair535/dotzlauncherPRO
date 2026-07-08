@@ -94,6 +94,7 @@ data class LauncherUiState(
     val isAdLoading: Boolean = false,
     val isLoaded: Boolean = false,
     val ultraFocusRemainingMillis: Long = 0,
+    val hasUsageStatsPermission: Boolean = false,
 )
 
 enum class ThemeMode { LIGHT, DARK, CIRCADIAN, TRANSPARENT }
@@ -732,7 +733,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     nativeAd = nativeAd,
                     isAdLoading = isAdLoading,
                     isLoaded = true,
-                    ultraFocusRemainingMillis = remainingMillis
+                    ultraFocusRemainingMillis = remainingMillis,
+                    hasUsageStatsPermission = hasUsageStatsPermission()
                 )
             }.flowOn(Dispatchers.Default).collect { state ->
                 _uiState.value = state

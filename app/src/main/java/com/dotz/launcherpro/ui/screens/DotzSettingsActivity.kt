@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import com.dotz.launcherpro.ui.components.DotzAlertDialog
 import com.dotz.launcherpro.ui.components.PremiumBadge
@@ -120,6 +121,7 @@ class DotzSettingsActivity : ComponentActivity() {
                     onThemeModeChange = viewModel::setThemeMode,
                     onUseLiquidGlassToggle = viewModel::setUseLiquidGlass,
                     onShowMindfulUsageToggle = viewModel::setShowMindfulUsage,
+                    hasUsageStatsPermission = uiState.hasUsageStatsPermission,
                     isUpdateAvailable = uiState.isUpdateAvailable,
                     isLiteVersion     = uiState.isLiteVersion,
                     onAboutClick      = {
@@ -176,6 +178,7 @@ private fun DotzSettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     onUseLiquidGlassToggle: (Boolean) -> Unit,
     onShowMindfulUsageToggle: (Boolean) -> Unit,
+    hasUsageStatsPermission: Boolean,
     onCreateProfile: (String) -> Unit,
     onDeleteProfile: (String) -> Unit,
     onSwitchProfile: (String) -> Unit,
@@ -186,6 +189,7 @@ private fun DotzSettingsScreen(
     var showCreateProfileDialog by remember { mutableStateOf(false) }
     var showLocationDisclosure by remember { mutableStateOf(false) }
     var showUltraFocusDurationDialog by remember { mutableStateOf(false) }
+    var showUsageStatsDisclosure by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -202,6 +206,55 @@ private fun DotzSettingsScreen(
 
     if (showLocationDisclosure) {
         // ... (existing dialog)
+    }
+
+    if (showLocationDisclosure) {
+        DotzAlertDialog(
+            onDismissRequest = { showLocationDisclosure = false },
+            title = "Location Disclosure",
+            content = { 
+                Text(
+                    "Dotz Launcher requests location data to provide you with real-time weather conditions for your area. " +
+                    "This data is used only when the weather feature is active and is not stored or shared for any other purpose.",
+                    color = Color.White.copy(alpha = 0.7f)
+                ) 
+            },
+            confirmButtonText = "GRANT",
+            onConfirm = { 
+                showLocationDisclosure = false
+                locationPermissionLauncher.launch(
+                    arrayOf(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            },
+            dismissButtonText = "CANCEL",
+            onDismiss = { showLocationDisclosure = false }
+        )
+    }
+
+    if (showUsageStatsDisclosure) {
+        DotzAlertDialog(
+            onDismissRequest = { showUsageStatsDisclosure = false },
+            title = "Mindful Usage Disclosure",
+            content = { 
+                Text(
+                    "Dotz Launcher uses anonymized usage statistics to track your screen time and device unlocks. " +
+                    "This information is processed only on your device to calculate your Focus Score and enable app usage limits. " +
+                    "No usage data is ever collected or transmitted.", 
+                    color = Color.White.copy(alpha = 0.7f)
+                ) 
+            },
+            confirmButtonText = "ENABLE",
+            onConfirm = { 
+                showUsageStatsDisclosure = false
+                val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                try { context.startActivity(intent) } catch (_: Exception) { context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
+            },
+            dismissButtonText = "NOT NOW",
+            onDismiss = { showUsageStatsDisclosure = false }
+        )
     }
 
     if (showUltraFocusDurationDialog) {
@@ -248,13 +301,22 @@ private fun DotzSettingsScreen(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.5).sp
+                    Column(modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)) {
+                        Text(
+                            text = "Settings",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = (-0.5).sp
+                            )
                         )
-                    )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Customize your minimalist experience",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.5f),
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -274,9 +336,11 @@ private fun DotzSettingsScreen(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item { Spacer(Modifier.height(16.dp)) }
+            
             // --- Premium Section ---
             if (!settings.isPremium && isUpgradeAvailable) {
                 item { PremiumPromotionCard(onClick = onUpgradeClick) }
@@ -437,7 +501,13 @@ private fun DotzSettingsScreen(
                     label = "Mindful Usage",
                     icon = Icons.Default.Psychology,
                     checked = settings.showMindfulUsage,
-                    onToggle = onShowMindfulUsageToggle,
+                    onToggle = { enabled ->
+                        if (enabled && !hasUsageStatsPermission) {
+                            showUsageStatsDisclosure = true
+                        } else {
+                            onShowMindfulUsageToggle(enabled)
+                        }
+                    },
                     subtitle = "Track app time and launch limits"
                 )
             }}
@@ -475,9 +545,28 @@ private fun DotzSettingsScreen(
             }}
 
             // --- Info ---
-            item { SettingsGroup(title = "About") {
-                SettingsActionRow(label = if (isUpdateAvailable) "Update Available!" else "About Dotz", icon = Icons.Default.Info, onClick = onAboutClick)
-            }}
+            item {
+                Text(
+                    text = "ABOUT",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+                    letterSpacing = 1.sp
+                )
+            }
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                ) {
+                    SettingsActionRow(
+                        label = if (isUpdateAvailable) "Update Available!" else "About Dotz",
+                        icon = Icons.Default.Info,
+                        onClick = onAboutClick
+                    )
+                }
+            }
 
             item { Spacer(Modifier.height(32.dp)) }
         }

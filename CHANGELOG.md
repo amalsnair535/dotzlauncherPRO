@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.0] - 2026-07-03
+
+### Added
+- **Liquid Glass Evolution**: 
+    - Global Glassmorphism: New "Liquid Glass Effect" that can be applied to any theme.
+    - GPU-Accelerated Backgrounds: Buttery-smooth animated "liquid" gradient backgrounds.
+    - Adaptive Contrast: Glass effect intelligently switches to a "Subtle Dark Glass" in Light Mode.
+- **Revolutionary Ultra-Focus Mode**:
+    - Timed Focus Sessions: Start dedicated deep-work sessions (15m to 2h) from Settings.
+    - Essentials-Only Dashboard: Single-page centered layout with 7 core apps (Phone, Camera, Maps, WhatsApp, Messaging, Music, Notes).
+    - Real-Time Countdown: Live per-second timer for focus tracking.
+    - Alphabetical Essentials: Core apps are now sorted for instant muscle-memory access.
+- **Settings Overhaul**:
+    - Expandable Category Cards: Reduced vertical length with a cleaner, organized architecture.
+    - Unified Appearance Hub: Merged Navigation and Theme settings into one logical group.
+- **Performance & High Refresh Rate**:
+    - 120Hz Mastery: Hardware-level detection automatically requests the highest refresh rate (90Hz/120Hz/144Hz).
+    - Zero-Lag Engine: Background state calculations and IPC caching for maximum responsiveness.
+- **Refined About & Support**:
+    - Enriched About Screen: Quick actions to Rate the App, view Changelog, and Support Development.
+    - Guided Permissions: Improved Mindful Usage onboarding with clear disclosures.
+
+### Fixed
+- **Release Build Stability**: Resolved critical compilation errors and missing system imports.
+- **Usage Tracking Accuracy**: Refined the screen-time engine to match system wellbeing metrics.
+
 ## [5.5.9] - 2026-07-02
 
 ### Added
