@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
@@ -30,15 +31,50 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
+import com.dotz.launcherpro.R
+import com.dotz.launcherpro.manager.PermissionManager
 import com.dotz.launcherpro.ui.components.DotzAlertDialog
 import com.dotz.launcherpro.ui.components.PremiumBadge
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
+import com.dotz.launcherpro.viewmodel.LauncherUiState
 import com.dotz.launcherpro.viewmodel.ThemeMode
 import kotlinx.coroutines.launch
+
+data class SettingsActions(
+    val onBack: () -> Unit,
+    val onShowDots: (Boolean) -> Unit,
+    val onShowCounts: (Boolean) -> Unit,
+    val onNotificationFilterToggle: (Boolean) -> Unit,
+    val onGrayscaleToggle: (Boolean) -> Unit,
+    val onAutoGrayscaleToggle: (Boolean) -> Unit,
+    val onVerticalScrollToggle: (Boolean) -> Unit,
+    val onEnableExtraPageToggle: (Boolean) -> Unit,
+    val onExtraTileCountChange: (Int) -> Unit,
+    val onShowWeatherToggle: (Boolean) -> Unit,
+    val onEnableFastlaneToggle: (Boolean) -> Unit,
+    val onHomeHeaderModeChange: (String) -> Unit,
+    val onTransparencyChange: (Float) -> Unit,
+    val onLayoutStyleChange: (String) -> Unit,
+    val onWallpaperClick: () -> Unit,
+    val onIconPackChange: (String?) -> Unit,
+    val onExport: () -> Unit,
+    val onImport: () -> Unit,
+    val onSetDefault: () -> Unit,
+    val onAboutClick: () -> Unit,
+    val onUpgradeClick: () -> Unit,
+    val onAppSelectionClick: () -> Unit,
+    val onThemeModeChange: (ThemeMode) -> Unit,
+    val onUseLiquidGlassToggle: (Boolean) -> Unit,
+    val onShowMindfulUsageToggle: (Boolean) -> Unit,
+    val onCreateProfile: (String) -> Unit,
+    val onDeleteProfile: (String) -> Unit,
+    val onSwitchProfile: (String) -> Unit,
+    val onStartUltraFocus: (Int) -> Unit,
+)
 
 class DotzSettingsActivity : ComponentActivity() {
 
@@ -46,18 +82,15 @@ class DotzSettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge()
         
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            val settingsForSettings = uiState.settings.copy(isLightMode = false, useCircadianTheming = false, showWallpaper = false, tileTransparency = 1.0f)
+            val settingsForSettings = uiState.settings.copy(showWallpaper = false, tileTransparency = 1.0f)
             DotzTheme(settings = settingsForSettings) {
                 val scope = rememberCoroutineScope()
                 val context = LocalContext.current
+                val snackbarHostState = remember { SnackbarHostState() }
 
                 val exportLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -68,7 +101,7 @@ class DotzSettingsActivity : ComponentActivity() {
                             contentResolver.openOutputStream(it)?.use { out ->
                                 out.write(json.toByteArray())
                             }
-                            Toast.makeText(context, "Settings exported", Toast.LENGTH_SHORT).show()
+                            snackbarHostState.showSnackbar(context.getString(R.string.settings_exported))
                         }
                     }
                 }
@@ -82,9 +115,9 @@ class DotzSettingsActivity : ComponentActivity() {
                             if (json != null) {
                                 val success = viewModel.importSettings(json)
                                 if (success) {
-                                    Toast.makeText(context, "Settings imported", Toast.LENGTH_SHORT).show()
+                                    snackbarHostState.showSnackbar(context.getString(R.string.settings_imported))
                                 } else {
-                                    Toast.makeText(context, "Import failed", Toast.LENGTH_SHORT).show()
+                                    snackbarHostState.showSnackbar(context.getString(R.string.settings_import_failed))
                                 }
                             }
                         }
@@ -92,51 +125,45 @@ class DotzSettingsActivity : ComponentActivity() {
                 }
 
                 DotzSettingsScreen(
-                    settings          = uiState.settings,
-                    isUpgradeAvailable = uiState.isUpgradeAvailable,
-                    onBack            = { finish() },
-                    onShowDots        = viewModel::setShowNotificationDots,
-                    onShowCounts      = viewModel::setShowNumericalCounts,
-                    onNotificationFilterToggle = viewModel::setNotificationFilterEnabled,
-                    onGrayscaleToggle = viewModel::setGrayscaleMode,
-                    onAutoGrayscaleToggle = viewModel::setAutoGrayscale,
-                    onVerticalScrollToggle = viewModel::setVerticalScrolling,
-                    onEnableExtraPageToggle = viewModel::setEnableExtraPage,
-                    onExtraTileCountChange = viewModel::setExtraTileCount,
-                    onShowWeatherToggle = { enabled ->
-                        viewModel.setShowWeatherInfo(enabled)
-                    },
-                    onEnableFastlaneToggle = viewModel::setEnableFastlane,
-                    homeHeaderMode = uiState.settings.homeHeaderMode,
-                    onHomeHeaderModeChange = viewModel::setHomeHeaderMode,
-                    onTransparencyChange = viewModel::setTileTransparency,
-                    onLayoutStyleChange = viewModel::setLayoutStyle,
-                    onWallpaperClick = viewModel::openWallpaperPicker,
-                    onIconPackChange  = viewModel::setIconPackPackage,
-                    iconPacks         = remember { viewModel.getInstalledIconPacks() },
-                    onExport          = { exportLauncher.launch("dotz_backup.json") },
-                    onImport          = { importLauncher.launch("application/json") },
-                    isDefaultLauncher = uiState.isDefaultLauncher,
-                    onSetDefault      = viewModel::openDefaultLauncherSettings,
-                    onThemeModeChange = viewModel::setThemeMode,
-                    onUseLiquidGlassToggle = viewModel::setUseLiquidGlass,
-                    onShowMindfulUsageToggle = viewModel::setShowMindfulUsage,
-                    hasUsageStatsPermission = uiState.hasUsageStatsPermission,
-                    isUpdateAvailable = uiState.isUpdateAvailable,
-                    isLiteVersion     = uiState.isLiteVersion,
-                    onAboutClick      = {
-                        startActivity(Intent(this, DotzAboutActivity::class.java))
-                    },
-                    onUpgradeClick    = {
-                        startActivity(Intent(this, DotzUpgradeActivity::class.java))
-                    },
-                    onAppSelectionClick = {
-                        startActivity(Intent(this, AppSelectionListActivity::class.java))
-                    },
-                    onCreateProfile = viewModel::createProfile,
-                    onDeleteProfile = viewModel::deleteProfile,
-                    onSwitchProfile = viewModel::switchProfile,
-                    onStartUltraFocus = viewModel::startUltraFocusSession
+                    uiState = uiState,
+                    snackbarHostState = snackbarHostState,
+                    actions = SettingsActions(
+                        onBack = { finish() },
+                        onShowDots = viewModel::setShowNotificationDots,
+                        onShowCounts = viewModel::setShowNumericalCounts,
+                        onNotificationFilterToggle = viewModel::setNotificationFilterEnabled,
+                        onGrayscaleToggle = viewModel::setGrayscaleMode,
+                        onAutoGrayscaleToggle = viewModel::setAutoGrayscale,
+                        onVerticalScrollToggle = viewModel::setVerticalScrolling,
+                        onEnableExtraPageToggle = viewModel::setEnableExtraPage,
+                        onExtraTileCountChange = viewModel::setExtraTileCount,
+                        onShowWeatherToggle = viewModel::setShowWeatherInfo,
+                        onEnableFastlaneToggle = viewModel::setEnableFastlane,
+                        onHomeHeaderModeChange = viewModel::setHomeHeaderMode,
+                        onTransparencyChange = viewModel::setTileTransparency,
+                        onLayoutStyleChange = viewModel::setLayoutStyle,
+                        onWallpaperClick = viewModel::openWallpaperPicker,
+                        onIconPackChange = viewModel::setIconPackPackage,
+                        onExport = { exportLauncher.launch("dotz_backup.json") },
+                        onImport = { importLauncher.launch("application/json") },
+                        onSetDefault = viewModel::openDefaultLauncherSettings,
+                        onThemeModeChange = viewModel::setThemeMode,
+                        onUseLiquidGlassToggle = viewModel::setUseLiquidGlass,
+                        onShowMindfulUsageToggle = viewModel::setShowMindfulUsage,
+                        onAboutClick = {
+                            startActivity(Intent(this, DotzAboutActivity::class.java))
+                        },
+                        onUpgradeClick = {
+                            startActivity(Intent(this, DotzUpgradeActivity::class.java))
+                        },
+                        onAppSelectionClick = {
+                            startActivity(Intent(this, AppSelectionListActivity::class.java))
+                        },
+                        onCreateProfile = viewModel::createProfile,
+                        onDeleteProfile = viewModel::deleteProfile,
+                        onSwitchProfile = viewModel::switchProfile,
+                        onStartUltraFocus = viewModel::startUltraFocusSession
+                    )
                 )
             }
         }
@@ -146,44 +173,20 @@ class DotzSettingsActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DotzSettingsScreen(
-    settings: com.dotz.launcherpro.data.DotzSettings,
-    isUpgradeAvailable: Boolean,
-    onBack: () -> Unit,
-    onShowDots: (Boolean) -> Unit,
-    onShowCounts: (Boolean) -> Unit,
-    onNotificationFilterToggle: (Boolean) -> Unit,
-    onGrayscaleToggle: (Boolean) -> Unit,
-    onAutoGrayscaleToggle: (Boolean) -> Unit,
-    onVerticalScrollToggle: (Boolean) -> Unit,
-    onEnableExtraPageToggle: (Boolean) -> Unit,
-    onExtraTileCountChange: (Int) -> Unit,
-    onShowWeatherToggle: (Boolean) -> Unit,
-    onEnableFastlaneToggle: (Boolean) -> Unit,
-    homeHeaderMode: String,
-    onHomeHeaderModeChange: (String) -> Unit,
-    onTransparencyChange: (Float) -> Unit,
-    onLayoutStyleChange: (String) -> Unit,
-    onWallpaperClick: () -> Unit,
-    onIconPackChange: (String?) -> Unit,
-    iconPacks: List<Pair<String, String>>,
-    onExport: () -> Unit,
-    onImport: () -> Unit,
-    isDefaultLauncher: Boolean,
-    onSetDefault: () -> Unit,
-    isUpdateAvailable: Boolean,
-    isLiteVersion: Boolean,
-    onAboutClick: () -> Unit,
-    onUpgradeClick: () -> Unit,
-    onAppSelectionClick: () -> Unit,
-    onThemeModeChange: (ThemeMode) -> Unit,
-    onUseLiquidGlassToggle: (Boolean) -> Unit,
-    onShowMindfulUsageToggle: (Boolean) -> Unit,
-    hasUsageStatsPermission: Boolean,
-    onCreateProfile: (String) -> Unit,
-    onDeleteProfile: (String) -> Unit,
-    onSwitchProfile: (String) -> Unit,
-    onStartUltraFocus: (Int) -> Unit,
+    uiState: LauncherUiState,
+    snackbarHostState: SnackbarHostState,
+    actions: SettingsActions
 ) {
+    val settings = uiState.settings
+    val isUpgradeAvailable = uiState.isUpgradeAvailable
+    val isDefaultLauncher = uiState.isDefaultLauncher
+    val isUpdateAvailable = uiState.isUpdateAvailable
+    val isLiteVersion = uiState.isLiteVersion
+    val hasUsageStatsPermission = uiState.hasUsageStatsPermission
+    val iconPacks = uiState.installedIconPacks
+    val currentThemeMode = uiState.currentThemeMode
+    val homeHeaderMode = settings.homeHeaderMode
+
     var showIconPackDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by remember { mutableStateOf(false) }
     var showCreateProfileDialog by remember { mutableStateOf(false) }
@@ -198,28 +201,23 @@ private fun DotzSettingsScreen(
         val granted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                       permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
-            onShowWeatherToggle(true)
+            actions.onShowWeatherToggle(true)
         } else {
-            Toast.makeText(context, "Location permission required for weather", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.location_permission_required), Toast.LENGTH_SHORT).show()
         }
-    }
-
-    if (showLocationDisclosure) {
-        // ... (existing dialog)
     }
 
     if (showLocationDisclosure) {
         DotzAlertDialog(
             onDismissRequest = { showLocationDisclosure = false },
-            title = "Location Disclosure",
+            title = stringResource(R.string.dialog_location_disclosure_title),
             content = { 
                 Text(
-                    "Dotz Launcher requests location data to provide you with real-time weather conditions for your area. " +
-                    "This data is used only when the weather feature is active and is not stored or shared for any other purpose.",
-                    color = Color.White.copy(alpha = 0.7f)
+                    stringResource(R.string.dialog_location_disclosure_message),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 ) 
             },
-            confirmButtonText = "GRANT",
+            confirmButtonText = stringResource(R.string.btn_grant),
             onConfirm = { 
                 showLocationDisclosure = false
                 locationPermissionLauncher.launch(
@@ -229,7 +227,7 @@ private fun DotzSettingsScreen(
                     )
                 )
             },
-            dismissButtonText = "CANCEL",
+            dismissButtonText = stringResource(R.string.btn_cancel),
             onDismiss = { showLocationDisclosure = false }
         )
     }
@@ -237,22 +235,19 @@ private fun DotzSettingsScreen(
     if (showUsageStatsDisclosure) {
         DotzAlertDialog(
             onDismissRequest = { showUsageStatsDisclosure = false },
-            title = "Mindful Usage Disclosure",
+            title = stringResource(R.string.dialog_usage_disclosure_title),
             content = { 
                 Text(
-                    "Dotz Launcher uses anonymized usage statistics to track your screen time and device unlocks. " +
-                    "This information is processed only on your device to calculate your Focus Score and enable app usage limits. " +
-                    "No usage data is ever collected or transmitted.", 
-                    color = Color.White.copy(alpha = 0.7f)
+                    stringResource(R.string.dialog_usage_disclosure_message), 
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 ) 
             },
-            confirmButtonText = "ENABLE",
+            confirmButtonText = stringResource(R.string.btn_enable),
             onConfirm = { 
                 showUsageStatsDisclosure = false
-                val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                try { context.startActivity(intent) } catch (_: Exception) { context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
+                PermissionManager.openUsageAccessSettings(context)
             },
-            dismissButtonText = "NOT NOW",
+            dismissButtonText = stringResource(R.string.btn_not_now),
             onDismiss = { showUsageStatsDisclosure = false }
         )
     }
@@ -260,38 +255,34 @@ private fun DotzSettingsScreen(
     if (showUltraFocusDurationDialog) {
         DotzAlertDialog(
             onDismissRequest = { showUltraFocusDurationDialog = false },
-            title = "Ultra Focus Duration",
+            title = stringResource(R.string.dialog_ultra_focus_duration_title),
             content = {
                 Column {
-                    Text("Select how long you want to stay in Ultra Focus mode. All distractions will be hidden.", color = Color.White.copy(alpha = 0.7f))
+                    Text(stringResource(R.string.dialog_ultra_focus_duration_message), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                     Spacer(Modifier.height(16.dp))
-                    listOf(15 to "15 Minutes", 30 to "30 Minutes", 60 to "1 Hour", 120 to "2 Hours").forEach { (mins, label) ->
+                    listOf(
+                        15 to stringResource(R.string.duration_15_mins),
+                        30 to stringResource(R.string.duration_30_mins),
+                        60 to stringResource(R.string.duration_1_hour),
+                        120 to stringResource(R.string.duration_2_hours)
+                    ).forEach { (mins, label) ->
                         Surface(
                             modifier = Modifier.fillMaxWidth().height(48.dp).clickable { 
-                                onStartUltraFocus(mins)
+                                actions.onStartUltraFocus(mins)
                                 showUltraFocusDurationDialog = false
                             },
                             color = Color.Transparent
                         ) {
                             Box(contentAlignment = Alignment.CenterStart) {
-                                Text(label, color = Color.White, fontWeight = FontWeight.Medium)
+                                Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
                 }
             },
-            confirmButtonText = "CANCEL",
+            confirmButtonText = stringResource(R.string.btn_cancel),
             onConfirm = { showUltraFocusDurationDialog = false }
         )
-    }
-
-    val currentThemeMode = remember(settings.isLightMode, settings.useCircadianTheming, settings.showWallpaper) {
-        when {
-            settings.showWallpaper -> ThemeMode.TRANSPARENT
-            settings.useCircadianTheming -> ThemeMode.CIRCADIAN
-            settings.isLightMode -> ThemeMode.LIGHT
-            else -> ThemeMode.DARK
-        }
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -303,7 +294,7 @@ private fun DotzSettingsScreen(
                 title = {
                     Column(modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)) {
                         Text(
-                            text = "Settings",
+                            text = stringResource(R.string.settings_header),
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = (-0.5).sp
@@ -311,89 +302,95 @@ private fun DotzSettingsScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Customize your minimalist experience",
+                            text = stringResource(R.string.settings_subtitle),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             letterSpacing = 0.5.sp
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    IconButton(onClick = actions.onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                     }
                 },
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = Color.Black,
-                    scrolledContainerColor = Color.Black,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = Color.Black,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { Spacer(Modifier.height(16.dp)) }
+            item(key = "spacer_top") { Spacer(Modifier.height(16.dp)) }
             
             // --- Premium Section ---
             if (!settings.isPremium && isUpgradeAvailable) {
-                item { PremiumPromotionCard(onClick = onUpgradeClick) }
+                item(key = "premium_promo") { PremiumPromotionCard(onClick = actions.onUpgradeClick) }
             }
 
             // --- Home Screen Section ---
-            item { SettingsGroup(title = "Home Screen") {
-                SettingsActionRow(label = "App Selection", icon = Icons.Default.Apps, onClick = onAppSelectionClick)
+            item(key = "group_home") { SettingsGroup(title = stringResource(R.string.settings_group_home)) {
+                SettingsActionRow(label = stringResource(R.string.settings_item_app_selection), icon = Icons.Default.Apps, onClick = actions.onAppSelectionClick)
                 Divider()
                 SettingsActionRow(
-                    label = "Change Wallpaper",
+                    label = stringResource(R.string.settings_item_wallpaper),
                     icon = Icons.Default.Wallpaper,
                     isPremium = isUpgradeAvailable,
                     isLocked = !settings.isPremium && isUpgradeAvailable,
                     onClick = {
-                        if (!isUpgradeAvailable || settings.isPremium) onWallpaperClick()
+                        if (!isUpgradeAvailable || settings.isPremium) actions.onWallpaperClick()
                         else showPremiumDialog = true
                     }
                 )
                 Divider()
                 SettingsToggleRow(
-                    label = "Vertical Scrolling",
+                    label = stringResource(R.string.settings_item_vertical_scroll),
                     icon = Icons.Default.SwapVert,
                     checked = settings.verticalScrolling,
-                    onToggle = onVerticalScrollToggle
+                    onToggle = actions.onVerticalScrollToggle
                 )
                 Divider()
                 SettingsToggleRow(
-                    label = "Enable Extra Tiles (Page 3)",
+                    label = stringResource(R.string.settings_item_extra_tiles),
                     icon = Icons.Default.AddBox,
                     checked = settings.enableExtraPage,
-                    onToggle = onEnableExtraPageToggle
+                    onToggle = actions.onEnableExtraPageToggle
                 )
                 if (settings.enableExtraPage) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Extra Tiles Count", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
-                            Text("${settings.extraTileCount}", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                            Text(stringResource(R.string.settings_label_extra_tiles_count), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                            Text("${settings.extraTileCount}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
                         }
                         Slider(
                             value = settings.extraTileCount.toFloat(),
-                            onValueChange = { onExtraTileCountChange(it.toInt()) },
+                            onValueChange = { actions.onExtraTileCountChange(it.toInt()) },
                             valueRange = 1f..6f,
-                            steps = 4
+                            steps = 4,
+                            colors = SliderDefaults.colors(
+                                thumbColor = MaterialTheme.colorScheme.onSurface,
+                                activeTrackColor = MaterialTheme.colorScheme.onSurface,
+                                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            )
                         )
                     }
                 }
             }}
 
             // --- Theme Section ---
-            item { SettingsGroup(title = "Appearance") {
+            item(key = "group_appearance") { SettingsGroup(title = stringResource(R.string.settings_group_appearance)) {
                 SettingsActionRow(
-                    label = "Theme Mode",
+                    label = stringResource(R.string.settings_item_theme_mode),
                     icon = Icons.Default.Palette,
                     subtitle = currentThemeMode.name.lowercase().replaceFirstChar { it.uppercase() },
                     onClick = {}
@@ -404,90 +401,94 @@ private fun DotzSettingsScreen(
                         isPremium = settings.isPremium,
                         isUpgradeAvailable = isUpgradeAvailable,
                         isLiteVersion = isLiteVersion,
-                        onModeChange = onThemeModeChange,
+                        onModeChange = actions.onThemeModeChange,
                         onShowPremiumDialog = { showPremiumDialog = true }
                     )
                 }
                 Divider()
-                SettingsToggleRow(label = "Grayscale Mode", icon = Icons.Default.Contrast, checked = settings.grayscaleMode, onToggle = onGrayscaleToggle)
+                SettingsToggleRow(label = stringResource(R.string.settings_item_grayscale), icon = Icons.Default.Contrast, checked = settings.grayscaleMode, onToggle = actions.onGrayscaleToggle)
                 Divider()
                 SettingsToggleRow(
-                    label = "Grayscale Auto-Schedule",
+                    label = stringResource(R.string.settings_item_grayscale_auto),
                     icon = Icons.Default.Bedtime,
                     checked = settings.autoGrayscale,
-                    onToggle = onAutoGrayscaleToggle,
-                    subtitle = "Turns on after 10 PM"
+                    onToggle = actions.onAutoGrayscaleToggle,
+                    subtitle = stringResource(R.string.settings_subtitle_grayscale_auto)
                 )
                 Divider()
                 TransparencySlider(settings.tileTransparency, settings.isPremium || !isUpgradeAvailable) {
-                    if (settings.isPremium || !isUpgradeAvailable) onTransparencyChange(it) else showPremiumDialog = true
+                    if (settings.isPremium || !isUpgradeAvailable) actions.onTransparencyChange(it) else showPremiumDialog = true
                 }
                 Divider()
                 SettingsToggleRow(
-                    label = "Liquid Glass Effect",
+                    label = stringResource(R.string.settings_item_liquid_glass),
                     icon = Icons.Default.BlurOn,
                     checked = settings.useLiquidGlass,
                     onToggle = { 
-                        if (settings.isPremium || !isUpgradeAvailable) onUseLiquidGlassToggle(it)
+                        if (settings.isPremium || !isUpgradeAvailable) actions.onUseLiquidGlassToggle(it)
                         else showPremiumDialog = true
                     },
-                    subtitle = "Animated glassmorphism for all themes"
+                    subtitle = stringResource(R.string.settings_subtitle_liquid_glass)
                 )
                 Divider()
                 TileLayoutSelection(settings.layoutStyle, settings.isPremium || !isUpgradeAvailable) {
-                    if (settings.isPremium || !isUpgradeAvailable) onLayoutStyleChange(it) else showPremiumDialog = true
+                    if (settings.isPremium || !isUpgradeAvailable) actions.onLayoutStyleChange(it) else showPremiumDialog = true
                 }
                 Divider()
                 SettingsActionRow(
-                    label = "Start Ultra Focus Session",
+                    label = stringResource(R.string.settings_item_ultra_focus),
                     icon = Icons.Default.Psychology,
-                    subtitle = "Minimal essentials for a set time",
+                    subtitle = stringResource(R.string.settings_subtitle_ultra_focus),
                     onClick = { showUltraFocusDurationDialog = true }
                 )
                 Divider()
                 SettingsToggleRow(
-                    label = "Fastlane Timeline",
+                    label = stringResource(R.string.settings_item_fastlane),
                     icon = Icons.Default.Timeline,
                     checked = settings.enableFastlane,
-                    onToggle = onEnableFastlaneToggle,
-                    subtitle = "Chronological feed of your digital life",
+                    onToggle = actions.onEnableFastlaneToggle,
+                    subtitle = stringResource(R.string.settings_subtitle_fastlane),
                 )
                 Divider()
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Header Mode", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+                    Text(stringResource(R.string.settings_label_header_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     Spacer(Modifier.height(12.dp))
                     TonalSegmentedControl(
-                        options = listOf("toggles" to "Toggles", "music" to "Music", "stats" to "Focus"),
+                        options = listOf(
+                            "toggles" to stringResource(R.string.header_mode_toggles),
+                            "music" to stringResource(R.string.header_mode_music),
+                            "stats" to stringResource(R.string.header_mode_focus)
+                        ),
                         selected = homeHeaderMode,
-                        onSelect = onHomeHeaderModeChange
+                        onSelect = actions.onHomeHeaderModeChange
                     )
                 }
             }}
 
             // --- Notifications ---
-            item { SettingsGroup(title = "Notifications") {
-                SettingsToggleRow(label = "Notification Dots", icon = Icons.Default.Circle, checked = settings.showNotificationDots, onToggle = onShowDots)
+            item(key = "group_notifications") { SettingsGroup(title = stringResource(R.string.settings_group_notifications)) {
+                SettingsToggleRow(label = stringResource(R.string.settings_item_notification_dots), icon = Icons.Default.Circle, checked = settings.showNotificationDots, onToggle = actions.onShowDots)
                 Divider()
-                SettingsToggleRow(label = "Numerical Counts", icon = Icons.Default.Pin, checked = settings.showNumericalCounts, onToggle = onShowCounts)
+                SettingsToggleRow(label = stringResource(R.string.settings_item_numerical_counts), icon = Icons.Default.Pin, checked = settings.showNumericalCounts, onToggle = actions.onShowCounts)
                 Divider()
                 SettingsToggleRow(
-                    label = "Filter Distractions",
+                    label = stringResource(R.string.settings_item_filter_distractions),
                     icon = Icons.Default.FilterAlt,
                     checked = settings.notificationFilterEnabled,
-                    onToggle = onNotificationFilterToggle,
-                    subtitle = "Hides dots for social apps"
+                    onToggle = actions.onNotificationFilterToggle,
+                    subtitle = stringResource(R.string.settings_subtitle_filter_distractions)
                 )
             }}
 
             // --- Profiles ---
-            item { SettingsGroup(title = "Profiles") {
+            item(key = "group_profiles") { SettingsGroup(title = stringResource(R.string.settings_group_profiles)) {
                 ProfileManagementCard(
                     activeId = settings.activeProfileId,
                     profiles = settings.profiles,
                     isPremium = settings.isPremium,
                     isUpgradeAvailable = isUpgradeAvailable,
-                    onSwitch = onSwitchProfile,
-                    onDelete = onDeleteProfile,
+                    onSwitch = actions.onSwitchProfile,
+                    onDelete = actions.onDeleteProfile,
                     onAddClick = { 
                         if (!isUpgradeAvailable || settings.isPremium) showCreateProfileDialog = true
                         else showPremiumDialog = true
@@ -496,30 +497,30 @@ private fun DotzSettingsScreen(
             }}
 
             // --- Mindfulness ---
-            item { SettingsGroup(title = "Mindfulness") {
+            item(key = "group_mindfulness") { SettingsGroup(title = stringResource(R.string.settings_group_mindfulness)) {
                 SettingsToggleRow(
-                    label = "Mindful Usage",
+                    label = stringResource(R.string.settings_item_mindful_usage),
                     icon = Icons.Default.Psychology,
                     checked = settings.showMindfulUsage,
                     onToggle = { enabled ->
                         if (enabled && !hasUsageStatsPermission) {
                             showUsageStatsDisclosure = true
                         } else {
-                            onShowMindfulUsageToggle(enabled)
+                            actions.onShowMindfulUsageToggle(enabled)
                         }
                     },
-                    subtitle = "Track app time and launch limits"
+                    subtitle = stringResource(R.string.settings_subtitle_mindful_usage)
                 )
             }}
 
             // --- System ---
-            item { SettingsGroup(title = "System") {
+            item(key = "group_system") { SettingsGroup(title = stringResource(R.string.settings_group_system)) {
                 if (!isDefaultLauncher) {
-                    SettingsActionRow(label = "Set as Default", icon = Icons.Default.Home, onClick = onSetDefault)
+                    SettingsActionRow(label = stringResource(R.string.settings_item_set_default), icon = Icons.Default.Home, onClick = actions.onSetDefault)
                     Divider()
                 }
                 SettingsToggleRow(
-                    label = "Weather Info", 
+                    label = stringResource(R.string.settings_item_weather), 
                     icon = Icons.Default.Cloud, 
                     checked = settings.showWeatherInfo, 
                     onToggle = { enabled ->
@@ -527,43 +528,43 @@ private fun DotzSettingsScreen(
                             val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
                             val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
                             if (hasFine || hasCoarse) {
-                                onShowWeatherToggle(true)
+                                actions.onShowWeatherToggle(true)
                             } else {
                                 showLocationDisclosure = true
                             }
                         } else {
-                            onShowWeatherToggle(false)
+                            actions.onShowWeatherToggle(false)
                         }
                     }
                 )
                 Divider()
-                SettingsActionRow(label = "Icon Pack", icon = Icons.Default.Category, subtitle = settings.iconPackPackage ?: "Default", onClick = { showIconPackDialog = true })
+                SettingsActionRow(label = stringResource(R.string.settings_item_icon_pack), icon = Icons.Default.Category, subtitle = settings.iconPackPackage ?: stringResource(R.string.label_default), onClick = { showIconPackDialog = true })
                 Divider()
-                SettingsActionRow(label = "Export Settings", icon = Icons.Default.Download, onClick = onExport)
+                SettingsActionRow(label = stringResource(R.string.settings_item_export), icon = Icons.Default.Download, onClick = actions.onExport)
                 Divider()
-                SettingsActionRow(label = "Import Settings", icon = Icons.Default.Upload, onClick = onImport)
+                SettingsActionRow(label = stringResource(R.string.settings_item_import), icon = Icons.Default.Upload, onClick = actions.onImport)
             }}
 
             // --- Info ---
-            item {
+            item(key = "label_about") {
                 Text(
-                    text = "ABOUT",
+                    text = stringResource(R.string.settings_label_about),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.4f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
                     letterSpacing = 1.sp
                 )
             }
-            item {
+            item(key = "card_about") {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                 ) {
                     SettingsActionRow(
-                        label = if (isUpdateAvailable) "Update Available!" else "About Dotz",
+                        label = if (isUpdateAvailable) stringResource(R.string.settings_item_update_available) else stringResource(R.string.settings_item_about_dotz),
                         icon = Icons.Default.Info,
-                        onClick = onAboutClick
+                        onClick = actions.onAboutClick
                     )
                 }
             }
@@ -576,7 +577,7 @@ private fun DotzSettingsScreen(
         IconPackDialog(
             currentIconPack = settings.iconPackPackage,
             iconPacks = iconPacks,
-            onSelect = { pkg -> onIconPackChange(pkg); showIconPackDialog = false },
+            onSelect = { pkg -> actions.onIconPackChange(pkg); showIconPackDialog = false },
             onDismiss = { showIconPackDialog = false },
         )
     }
@@ -584,11 +585,11 @@ private fun DotzSettingsScreen(
     if (showPremiumDialog) {
         DotzAlertDialog(
             onDismissRequest = { showPremiumDialog = false },
-            title = "PRO Feature",
-            content = { Text("Transparency, Wallpapers, and Layouts are exclusive to Dotz PRO.", color = Color.White.copy(alpha = 0.7f)) },
-            confirmButtonText = "GO PRO",
-            onConfirm = { showPremiumDialog = false; onUpgradeClick() },
-            dismissButtonText = "NOT NOW",
+            title = stringResource(R.string.dialog_pro_feature_title),
+            content = { Text(stringResource(R.string.dialog_pro_feature_message), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
+            confirmButtonText = stringResource(R.string.btn_go_pro),
+            onConfirm = { showPremiumDialog = false; actions.onUpgradeClick() },
+            dismissButtonText = stringResource(R.string.btn_not_now),
             onDismiss = { showPremiumDialog = false }
         )
     }
@@ -597,18 +598,18 @@ private fun DotzSettingsScreen(
         var profileName by remember { mutableStateOf("") }
         DotzAlertDialog(
             onDismissRequest = { showCreateProfileDialog = false },
-            title = "New Profile",
+            title = stringResource(R.string.dialog_new_profile_title),
             content = {
                 OutlinedTextField(
                     value = profileName,
                     onValueChange = { profileName = it },
-                    placeholder = { Text("Work, Home, etc.") },
+                    placeholder = { Text(stringResource(R.string.dialog_new_profile_hint)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             },
-            confirmButtonText = "CREATE",
-            onConfirm = { if (profileName.isNotBlank()) { onCreateProfile(profileName); showCreateProfileDialog = false } },
-            dismissButtonText = "CANCEL",
+            confirmButtonText = stringResource(R.string.btn_create),
+            onConfirm = { if (profileName.isNotBlank()) { actions.onCreateProfile(profileName); showCreateProfileDialog = false } },
+            dismissButtonText = stringResource(R.string.btn_cancel),
             onDismiss = { showCreateProfileDialog = false }
         )
     }
@@ -619,7 +620,7 @@ private fun SettingsGroup(
     title: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     
     Card(
         modifier = Modifier
@@ -628,7 +629,7 @@ private fun SettingsGroup(
             .animateContentSize(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.05f)
+            containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
         )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -646,12 +647,12 @@ private fun SettingsGroup(
                         letterSpacing = 2.sp,
                         fontWeight = FontWeight.Black
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.3f)
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 )
             }
             
@@ -688,22 +689,22 @@ private fun SettingsToggleRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.05f)),
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, null, tint = Color.White.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(label, color = if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(label, color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                 if (isPremium && isLocked) {
                     Spacer(Modifier.width(8.dp))
                     PremiumBadge()
                 }
             }
             if (subtitle != null) {
-                Text(subtitle, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
             }
         }
         Switch(
@@ -711,10 +712,10 @@ private fun SettingsToggleRow(
             onCheckedChange = onToggle,
             enabled = !isLocked,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.Black,
-                checkedTrackColor = Color.White,
-                uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
-                uncheckedTrackColor = Color.White.copy(alpha = 0.1f)
+                checkedThumbColor = MaterialTheme.colorScheme.surface,
+                checkedTrackColor = MaterialTheme.colorScheme.onSurface,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             )
         )
     }
@@ -740,28 +741,28 @@ private fun SettingsActionRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.05f)),
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, null, tint = Color.White.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(label, color = if (isLocked) Color.White.copy(alpha = 0.4f) else Color.White, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(label, color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                 if (isPremium && isLocked) {
                     Spacer(Modifier.width(8.dp))
                     PremiumBadge()
                 }
             }
             if (subtitle != null) {
-                Text(subtitle, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
             }
         }
         Icon(
-            imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.ArrowForwardIos,
+            imageVector = if (isLocked) Icons.Default.Lock else Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.2f),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
             modifier = Modifier.size(14.dp)
         )
     }
@@ -774,7 +775,7 @@ private fun TonalSegmentedControl(
     proOptions: Set<String> = emptySet(),
     onSelect: (String) -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth().height(48.dp).background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().height(48.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(4.dp)) {
         options.forEach { (mode, label) ->
             val isSelected = selected == mode
             val isPro = proOptions.contains(mode)
@@ -784,7 +785,7 @@ private fun TonalSegmentedControl(
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .background(if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent)
                     .clickable { onSelect(mode) },
                 contentAlignment = Alignment.Center
             ) {
@@ -792,7 +793,7 @@ private fun TonalSegmentedControl(
                     Text(
                         label.uppercase(), 
                         style = MaterialTheme.typography.labelLarge, 
-                        color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.6f), 
+                        color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), 
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                     if (isPro) {
@@ -800,8 +801,8 @@ private fun TonalSegmentedControl(
                         Box(
                             modifier = Modifier
                                 .background(
-                                    if (isSelected) Color.Black.copy(alpha = 0.1f) 
-                                    else Color.White.copy(alpha = 0.1f), 
+                                    if (isSelected) MaterialTheme.colorScheme.surface.copy(alpha = 0.1f) 
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), 
                                     RoundedCornerShape(4.dp)
                                 )
                                 .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -810,7 +811,7 @@ private fun TonalSegmentedControl(
                                 "PRO", 
                                 fontSize = 6.sp, 
                                 fontWeight = FontWeight.Black,
-                                color = if (isSelected) Color.Black else Color.White.copy(alpha = 0.5f)
+                                color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                         }
                     }
@@ -832,11 +833,11 @@ private fun ThemeModeSelectionRow(currentMode: ThemeMode, isPremium: Boolean, is
             Surface(
                 modifier = Modifier.weight(1f).height(64.dp).clickable { if (locked) onShowPremiumDialog() else onModeChange(mode) },
                 shape = RoundedCornerShape(12.dp),
-                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.05f)
+                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(mode.name, color = if (isSelected) Color.Black else Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(mode.name, color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         if (isPro && isUpgradeAvailable) {
                             Spacer(Modifier.height(4.dp))
                             PremiumBadge()
@@ -853,17 +854,26 @@ private fun TransparencySlider(value: Float, isPremium: Boolean, onChange: (Floa
     Column(modifier = Modifier.padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Opacity, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Opacity, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text("Tile Transparency", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                Text(stringResource(R.string.label_tile_transparency), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                 if (!isPremium) {
                     Spacer(Modifier.width(8.dp))
                     PremiumBadge()
                 }
             }
-            Text("${(value * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.5f))
+            Text("${(value * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
-        Slider(value = value, onValueChange = onChange, valueRange = 0.1f..1.0f)
+        Slider(
+            value = value,
+            onValueChange = onChange,
+            valueRange = 0.1f..1.0f,
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.onSurface,
+                activeTrackColor = MaterialTheme.colorScheme.onSurface,
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            )
+        )
     }
 }
 
@@ -871,7 +881,7 @@ private fun TransparencySlider(value: Float, isPremium: Boolean, onChange: (Floa
 private fun TileLayoutSelection(current: String, isPremium: Boolean, onChange: (String) -> Unit) {
     Column(modifier = Modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Tile Layout", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+            Text(stringResource(R.string.label_tile_layout), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             if (!isPremium) {
                 Spacer(Modifier.width(8.dp))
                 PremiumBadge()
@@ -879,11 +889,11 @@ private fun TileLayoutSelection(current: String, isPremium: Boolean, onChange: (
         }
         Spacer(Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("classic" to "GRID", "list" to "LIST").forEach { (style, label) ->
+            listOf("classic" to stringResource(R.string.layout_grid), "list" to stringResource(R.string.layout_list)).forEach { (style, label) ->
                 val selected = current == style
-                Surface(modifier = Modifier.weight(1f).height(40.dp).clickable { onChange(style) }, shape = RoundedCornerShape(8.dp), color = if (selected) Color.White else Color.White.copy(alpha = 0.05f)) {
+                Surface(modifier = Modifier.weight(1f).height(40.dp).clickable { onChange(style) }, shape = RoundedCornerShape(8.dp), color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(label, color = if (selected) Color.Black else Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(label, color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -894,16 +904,20 @@ private fun TileLayoutSelection(current: String, isPremium: Boolean, onChange: (
 @Composable
 private fun ProfileManagementCard(activeId: String, profiles: List<com.dotz.launcherpro.data.LauncherProfile>, isPremium: Boolean, isUpgradeAvailable: Boolean, onSwitch: (String) -> Unit, onDelete: (String) -> Unit, onAddClick: () -> Unit) {
     Column(modifier = Modifier.padding(8.dp)) {
-        ProfileItem("Default", activeId == "default", false) { onSwitch("default") }
+        ProfileItem(stringResource(R.string.label_default), activeId == "default", false, { onSwitch("default") }, null)
         profiles.filter { it.id != "default" }.forEach { profile ->
-            ProfileItem(profile.name, activeId == profile.id, isUpgradeAvailable && !isPremium) {
-                if (!isUpgradeAvailable || isPremium) onSwitch(profile.id)
-            }
+            ProfileItem(
+                name = profile.name,
+                active = activeId == profile.id,
+                locked = isUpgradeAvailable && !isPremium,
+                onClick = { if (!isUpgradeAvailable || isPremium) onSwitch(profile.id) },
+                onDelete = { onDelete(profile.id) }
+            )
         }
         TextButton(onClick = onAddClick, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Add Profile")
+            Text(stringResource(R.string.settings_item_add_profile))
             if (isUpgradeAvailable && !isPremium) {
                 Spacer(Modifier.width(8.dp))
                 PremiumBadge()
@@ -913,26 +927,34 @@ private fun ProfileManagementCard(activeId: String, profiles: List<com.dotz.laun
 }
 
 @Composable
-private fun ProfileItem(name: String, active: Boolean, locked: Boolean, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(4.dp).clip(RoundedCornerShape(12.dp)).background(if (active) Color.White.copy(alpha = 0.1f) else Color.Transparent).clickable { onClick() }.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+private fun ProfileItem(name: String, active: Boolean, locked: Boolean, onClick: () -> Unit, onDelete: (() -> Unit)?) {
+    Row(modifier = Modifier.fillMaxWidth().padding(4.dp).clip(RoundedCornerShape(12.dp)).background(if (active) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) else Color.Transparent).clickable { onClick() }.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(selected = active, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = Color.White))
+            RadioButton(selected = active, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSurface))
             Spacer(Modifier.width(8.dp))
-            Text(name, color = if (locked) Color.White.copy(alpha = 0.3f) else Color.White)
+            Text(name, color = if (locked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurface)
         }
-        if (locked) Icon(Icons.Default.Lock, null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.3f))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (locked) {
+                Icon(Icons.Default.Lock, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+            } else if (onDelete != null && !active) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                }
+            }
+        }
     }
 }
 
 @Composable
 private fun PremiumPromotionCard(onClick: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(28.dp), color = Color.White) {
+    Surface(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.onSurface) {
         Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Get Dotz PRO", style = MaterialTheme.typography.headlineSmall, color = Color.Black, fontWeight = FontWeight.Bold)
-                Text("Unlock wallpapers, profiles, and more.", style = MaterialTheme.typography.bodyMedium, color = Color.Black.copy(alpha = 0.7f))
+                Text(stringResource(R.string.premium_promo_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.premium_promo_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
             }
-            Icon(Icons.Default.Star, null, tint = Color.Black, modifier = Modifier.size(32.dp))
+            Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(32.dp))
         }
     }
 }
@@ -941,24 +963,24 @@ private fun PremiumPromotionCard(onClick: () -> Unit) {
 private fun IconPackDialog(currentIconPack: String?, iconPacks: List<Pair<String, String>>, onSelect: (String?) -> Unit, onDismiss: () -> Unit) {
     DotzAlertDialog(
         onDismissRequest = onDismiss,
-        title = "Select Icon Pack",
+        title = stringResource(R.string.dialog_select_icon_pack),
         content = {
             LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
                 item {
-                    Text("Default", color = if (currentIconPack == null) Color.White else Color.White.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth().clickable { onSelect(null) }.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.label_default), color = if (currentIconPack == null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth().clickable { onSelect(null) }.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge)
                 }
                 items(iconPacks.size) { index ->
                     val (pkg, name) = iconPacks[index]
-                    Text(name, color = if (currentIconPack == pkg) Color.White else Color.White.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth().clickable { onSelect(pkg) }.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                    Text(name, color = if (currentIconPack == pkg) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth().clickable { onSelect(pkg) }.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         },
-        confirmButtonText = "CANCEL",
+        confirmButtonText = stringResource(R.string.btn_cancel),
         onConfirm = onDismiss
     )
 }
 
 @Composable
 private fun Divider() {
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color.White.copy(alpha = 0.05f))
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 }

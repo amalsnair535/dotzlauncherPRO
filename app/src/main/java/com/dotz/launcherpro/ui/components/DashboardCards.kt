@@ -55,6 +55,7 @@ fun MindfulnessDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = onDismiss,
         title = "Mindful Check",
@@ -62,20 +63,20 @@ fun MindfulnessDialog(
             Column {
                 Text(
                     "You've opened $label $launchCount times today.",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = textColor.copy(alpha = 0.8f),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Total time spent: $usageTime",
-                    color = Color.White,
+                    color = textColor,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Black
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(
                     "Do you really want to open it again?",
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = textColor.copy(alpha = 0.6f),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -193,18 +194,18 @@ fun TimelineCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onSkipPrevious) {
-                        Icon(Icons.Default.SkipPrevious, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.SkipPrevious, "Previous Track", tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
                     }
                     IconButton(onClick = onPlayPause) {
                         Icon(
                             if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            null,
+                            if (isPlaying) "Pause" else "Play",
                             tint = DotzTheme.colors.text,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                     IconButton(onClick = onSkipNext) {
-                        Icon(Icons.Default.SkipNext, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.SkipNext, "Next Track", tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -253,7 +254,7 @@ fun TimelineCard(
                                 showReplyInput = false
                             }
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.Send, null, tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                            Icon(Icons.AutoMirrored.Filled.Send, "Send Reply", tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
                         }
                     }
                 }

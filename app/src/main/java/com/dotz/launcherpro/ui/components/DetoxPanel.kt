@@ -89,6 +89,7 @@ fun DetoxPanel(
         ) {
             DetoxIcon(
                 icon = if (isWifiEnabled) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
+                label = if (isWifiEnabled) "WiFi On" else "WiFi Off",
                 isActive = isWifiEnabled,
                 transparency = transparency,
                 onClick = onWifiToggle,
@@ -96,6 +97,7 @@ fun DetoxPanel(
             )
             DetoxIcon(
                 icon = if (isBluetoothEnabled) Icons.Rounded.Bluetooth else Icons.Rounded.BluetoothDisabled,
+                label = if (isBluetoothEnabled) "Bluetooth On" else "Bluetooth Off",
                 isActive = isBluetoothEnabled,
                 transparency = transparency,
                 onClick = onBluetoothToggle,
@@ -103,6 +105,7 @@ fun DetoxPanel(
             )
             DetoxIcon(
                 icon = Icons.Rounded.SwapVert,
+                label = "Mobile Data",
                 isActive = true,
                 transparency = transparency,
                 onClick = onDataClick,
@@ -110,6 +113,7 @@ fun DetoxPanel(
             )
             DetoxIcon(
                 icon = if (isAirplaneModeOn) Icons.Rounded.AirplanemodeActive else Icons.Rounded.AirplanemodeInactive,
+                label = if (isAirplaneModeOn) "Airplane Mode On" else "Airplane Mode Off",
                 isActive = isAirplaneModeOn,
                 transparency = transparency,
                 onClick = onAirplaneToggle,
@@ -125,6 +129,7 @@ fun DetoxPanel(
         ) {
             DetoxIcon(
                 icon = if (isSilentMode) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                label = if (isSilentMode) "Silent Mode On" else "Silent Mode Off",
                 isActive = !isSilentMode,
                 transparency = transparency,
                 onClick = onSilentToggle,
@@ -132,6 +137,7 @@ fun DetoxPanel(
             )
             DetoxIcon(
                 icon = if (isTorchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+                label = if (isTorchOn) "Flashlight On" else "Flashlight Off",
                 isActive = isTorchOn,
                 transparency = transparency,
                 onClick = onTorchToggle,
@@ -139,6 +145,7 @@ fun DetoxPanel(
             )
             DetoxIcon(
                 icon = if (isDarkModeOn) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                label = if (isDarkModeOn) "Dark Mode On" else "Light Mode On",
                 isActive = isDarkModeOn,
                 transparency = transparency,
                 onClick = onDarkModeToggle,
@@ -146,6 +153,7 @@ fun DetoxPanel(
             )
             DetoxIcon(
                 icon = Icons.Rounded.Settings,
+                label = "Settings",
                 isActive = false,
                 transparency = transparency,
                 onClick = onSettingsClick
@@ -157,6 +165,7 @@ fun DetoxPanel(
 @Composable
 private fun DetoxIcon(
     icon: ImageVector,
+    label: String,
     isActive: Boolean,
     transparency: Float,
     onClick: () -> Unit,
@@ -176,7 +185,7 @@ private fun DetoxIcon(
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = label,
             tint = contentColor,
             modifier = Modifier.size(20.dp)
         )

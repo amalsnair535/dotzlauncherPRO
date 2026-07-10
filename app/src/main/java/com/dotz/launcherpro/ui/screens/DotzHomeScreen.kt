@@ -32,8 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
+import com.dotz.launcherpro.manager.PermissionManager
 import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
@@ -107,7 +110,7 @@ fun DotzHomeScreen(
             val isNotifEnabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
                 ?.contains(context.packageName) == true
             if (!isNotifEnabled) showNotifPermDialog = true
-            if (uiState.settings.showMindfulUsage && !viewModel.hasUsageStatsPermission()) showUsageStatsDialog = true
+            if (uiState.settings.showMindfulUsage && !uiState.hasUsageStatsPermission) showUsageStatsDialog = true
         }
     }
 
@@ -126,6 +129,8 @@ fun DotzHomeScreen(
     // --- Root Pager Setup (Fastlane <-> Tiles) ---
     val rootPagerState = rememberPagerState(initialPage = 1, pageCount = { 2 })
     
+    val rootPagerDescription = if (rootPagerState.currentPage == 0) "Fastlane view" else "Tiles view"
+
     // Sync viewmodel state for fastlane visibility
     LaunchedEffect(rootPagerState.currentPage) {
         viewModel.setFastlaneVisible(rootPagerState.currentPage == 0)
@@ -218,7 +223,7 @@ fun DotzHomeScreen(
         } else {
             HorizontalPager(
                 state = rootPagerState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().semantics { contentDescription = rootPagerDescription },
                 userScrollEnabled = uiState.settings.enableFastlane
             ) { rootPageIndex ->
                 if (rootPageIndex == 0) {
@@ -290,12 +295,13 @@ fun DotzHomeScreen(
                 onDismiss = { showAppDrawerConfirmDialog = false },
                 onConfirm = {
                     showAppDrawerConfirmDialog = false
-                    if (uiState.settings.appDrawerOpenCount < 5) {
-                        viewModel.incrementAppDrawerCount()
-                        showAppDrawer = true
-                    } else {
-                        Toast.makeText(context, "Daily limit reached (5/5).", Toast.LENGTH_SHORT).show()
-                    }
+                    viewModel.incrementAppDrawerCount()
+                    showAppDrawer = true
+                },
+                onEmergencyConfirm = {
+                    showAppDrawerConfirmDialog = false
+                    viewModel.emergencyOpenAppDrawer()
+                    showAppDrawer = true
                 }
             )
         }
@@ -314,13 +320,22 @@ fun DotzHomeScreen(
             )
         }
 
+        if (showUsageStatsDialog) {
+            UsageStatsPermissionDialog(
+                onDismiss = { showUsageStatsDialog = false },
+                onGoToSettings = {
+                    showUsageStatsDialog = false
+                    PermissionManager.openUsageAccessSettings(context)
+                }
+            )
+        }
+
         if (showNotifPermDialog) {
             NotificationPermissionDialog(
                 onDismiss = { showNotifPermDialog = false },
                 onGoToSettings = {
                     showNotifPermDialog = false
-                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                    try { context.startActivity(intent) } catch (_: Exception) { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
+                    PermissionManager.openNotificationListenerSettings(context)
                 },
             )
         }
@@ -334,7 +349,7 @@ fun DotzHomeScreen(
                 onGoToSettings = {
                     showDefaultLauncherDialog = false
                     hasDismissedDefaultDialog = true
-                    viewModel.openDefaultLauncherSettings()
+                    PermissionManager.openDefaultLauncherSettings(context)
                 }
             )
         }
@@ -679,22 +694,34 @@ private fun PagerContent(
 }
 
 @Composable
-private fun AppDrawerConfirmDialog(openCount: Int, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun AppDrawerConfirmDialog(
+    openCount: Int, 
+    onDismiss: () -> Unit, 
+    onConfirm: () -> Unit,
+    onEmergencyConfirm: () -> Unit
+) {
     val remaining = (5 - openCount).coerceAtLeast(0)
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = onDismiss,
-        title = "Open All Apps?",
+        title = if (remaining > 0) "Open All Apps?" else "App Drawer Locked",
         content = {
             Column {
-                Text("Are you sure you want to open all apps?", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(12.dp))
-                Text("This gesture is for emergency access only.", color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
+                if (remaining > 0) {
+                    Text("Are you sure you want to open all apps?", color = textColor.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(12.dp))
+                    Text("This gesture is for emergency access only.", color = textColor.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("You have used all 5 daily app drawer opens.", color = textColor.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Opening it now will penalize your Focus Score by 10 points.", color = Color.Red.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+                }
                 Spacer(Modifier.height(8.dp))
-                Text("REMAINING TODAY: $remaining/5", color = if (remaining > 0) Color.White else Color.Red.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("REMAINING TODAY: $remaining/5", color = if (remaining > 0) textColor else Color.Red.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         },
-        confirmButtonText = if (remaining > 0) "OPEN" else "LOCKED",
-        onConfirm = { if (remaining > 0) onConfirm() else onDismiss() },
+        confirmButtonText = if (remaining > 0) "OPEN" else "EMERGENCY ACCESS",
+        onConfirm = { if (remaining > 0) onConfirm() else onEmergencyConfirm() },
         dismissButtonText = "CANCEL",
         onDismiss = onDismiss
     )
@@ -702,6 +729,7 @@ private fun AppDrawerConfirmDialog(openCount: Int, onDismiss: () -> Unit, onConf
 
 @Composable
 private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = onDismiss,
         title = "Mindful Usage Disclosure",
@@ -710,7 +738,7 @@ private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: ()
                 "Dotz Launcher uses anonymized usage statistics to track your screen time and device unlocks. " +
                 "This information is processed only on your device to calculate your Focus Score and enable app usage limits. " +
                 "No usage data is ever collected or transmitted.", 
-                color = Color.White.copy(alpha = 0.7f)
+                color = textColor.copy(alpha = 0.7f)
             ) 
         },
         confirmButtonText = "ENABLE",
@@ -722,10 +750,11 @@ private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: ()
 
 @Composable
 private fun NotificationPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = onDismiss,
         title = "Enable Notifications",
-        content = { Text("Allow Dotz to read notifications.", color = Color.White.copy(alpha = 0.7f)) },
+        content = { Text("Allow Dotz to read notifications.", color = textColor.copy(alpha = 0.7f)) },
         confirmButtonText = "ENABLE",
         onConfirm = onGoToSettings,
         dismissButtonText = "SKIP",
@@ -735,10 +764,11 @@ private fun NotificationPermissionDialog(onDismiss: () -> Unit, onGoToSettings: 
 
 @Composable
 private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = onDismiss,
         title = "Set as Default Launcher",
-        content = { Text("Use Dotz as your main home screen.", color = Color.White.copy(alpha = 0.7f)) },
+        content = { Text("Use Dotz as your main home screen.", color = textColor.copy(alpha = 0.7f)) },
         confirmButtonText = "SET DEFAULT",
         onConfirm = onGoToSettings,
         dismissButtonText = "SKIP",
@@ -748,6 +778,7 @@ private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> U
 
 @Composable
 private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = { },
         title = "App Visibility Disclosure",
@@ -756,7 +787,7 @@ private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
                 "To function as a home screen, Dotz Launcher requires access to your list of installed applications. " +
                 "This allows you to assign apps to tiles and use the App Drawer. " +
                 "This data is used only to provide core launcher functionality and is never collected or shared.", 
-                color = Color.White.copy(alpha = 0.7f)
+                color = textColor.copy(alpha = 0.7f)
             ) 
         },
         confirmButtonText = "I UNDERSTAND",
@@ -766,10 +797,11 @@ private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
 
 @Composable
 private fun UnassignedTileDialog(tileLabel: String, onDismiss: () -> Unit, onSelectApp: () -> Unit) {
+    val textColor = DotzTheme.colors.text
     DotzAlertDialog(
         onDismissRequest = onDismiss,
         title = "Unassigned Tile",
-        content = { Text("Assign an app to $tileLabel?", color = Color.White.copy(alpha = 0.7f)) },
+        content = { Text("Assign an app to $tileLabel?", color = textColor.copy(alpha = 0.7f)) },
         confirmButtonText = "SELECT APP",
         onConfirm = onSelectApp,
         dismissButtonText = "CANCEL",

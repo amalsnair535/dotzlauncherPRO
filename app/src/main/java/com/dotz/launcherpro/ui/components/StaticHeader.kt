@@ -310,7 +310,7 @@ fun NowPlayingWidget(
                     onClick = onSettingsClick,
                     modifier = Modifier.offset(x = 8.dp, y = (-8).dp)
                 ) {
-                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Settings, "Launcher Settings", tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(16.dp))
                 }
             }
 
@@ -334,7 +334,7 @@ fun NowPlayingWidget(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onSkipPrevious) {
-                        Icon(Icons.Default.SkipPrevious, null, tint = DotzTheme.colors.text, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.SkipPrevious, "Previous Track", tint = DotzTheme.colors.text, modifier = Modifier.size(28.dp))
                     }
                     
                     Surface(
@@ -346,7 +346,7 @@ fun NowPlayingWidget(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = null,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
                                 tint = DotzTheme.colors.solidBackground,
                                 modifier = Modifier.size(32.dp)
                             )
@@ -354,7 +354,7 @@ fun NowPlayingWidget(
                     }
 
                     IconButton(onClick = onSkipNext) {
-                        Icon(Icons.Default.SkipNext, null, tint = DotzTheme.colors.text, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.SkipNext, "Next Track", tint = DotzTheme.colors.text, modifier = Modifier.size(28.dp))
                     }
                 }
             }
@@ -439,7 +439,7 @@ fun FocusStatsWidget(
                     onClick = onSettingsClick,
                     modifier = Modifier.size(24.dp).offset(x = (-4).dp, y = 4.dp)
                 ) {
-                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Settings, "Launcher Settings", tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(14.dp))
                 }
             }
 

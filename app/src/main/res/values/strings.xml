@@ -15,4 +15,95 @@
     <string name="loading_weather">Updating weather&#8230;</string>
     <string name="pro_version_label">PRO</string>
     <string name="upgrade_to_pro">Get Full Version</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_header">Settings</string>
+    <string name="settings_subtitle">Customize your minimalist experience</string>
+    <string name="settings_exported">Settings exported</string>
+    <string name="settings_imported">Settings imported</string>
+    <string name="settings_import_failed">Import failed</string>
+    <string name="location_permission_required">Location permission required for weather</string>
+
+    <string name="dialog_location_disclosure_title">Location Disclosure</string>
+    <string name="dialog_location_disclosure_message">Dotz Launcher requests location data to provide you with real-time weather conditions for your area. This data is used only when the weather feature is active and is not stored or shared for any other purpose.</string>
+    <string name="btn_grant">GRANT</string>
+    <string name="btn_cancel">CANCEL</string>
+    <string name="btn_back">Back</string>
+
+    <string name="dialog_usage_disclosure_title">Mindful Usage Disclosure</string>
+    <string name="dialog_usage_disclosure_message">Dotz Launcher uses anonymized usage statistics to track your screen time and device unlocks. This information is processed only on your device to calculate your Focus Score and enable app usage limits. No usage data is ever collected or transmitted.</string>
+    <string name="btn_enable">ENABLE</string>
+    <string name="btn_not_now">NOT NOW</string>
+
+    <string name="dialog_ultra_focus_duration_title">Ultra Focus Duration</string>
+    <string name="dialog_ultra_focus_duration_message">Select how long you want to stay in Ultra Focus mode. All distractions will be hidden.</string>
+    <string name="duration_15_mins">15 Minutes</string>
+    <string name="duration_30_mins">30 Minutes</string>
+    <string name="duration_1_hour">1 Hour</string>
+    <string name="duration_2_hours">2 Hours</string>
+
+    <string name="settings_group_home">Home Screen</string>
+    <string name="settings_item_app_selection">App Selection</string>
+    <string name="settings_item_wallpaper">Change Wallpaper</string>
+    <string name="settings_item_vertical_scroll">Vertical Scrolling</string>
+    <string name="settings_item_extra_tiles">Enable Extra Tiles (Page 3)</string>
+    <string name="settings_label_extra_tiles_count">Extra Tiles Count</string>
+
+    <string name="settings_group_appearance">Appearance</string>
+    <string name="settings_item_theme_mode">Theme Mode</string>
+    <string name="settings_item_grayscale">Grayscale Mode</string>
+    <string name="settings_item_grayscale_auto">Grayscale Auto-Schedule</string>
+    <string name="settings_subtitle_grayscale_auto">Turns on after 10 PM</string>
+    <string name="settings_item_liquid_glass">Liquid Glass Effect</string>
+    <string name="settings_subtitle_liquid_glass">Animated glassmorphism for all themes</string>
+    <string name="settings_item_ultra_focus">Start Ultra Focus Session</string>
+    <string name="settings_subtitle_ultra_focus">Minimal essentials for a set time</string>
+    <string name="settings_item_fastlane">Fastlane Timeline</string>
+    <string name="settings_subtitle_fastlane">Chronological feed of your digital life</string>
+    <string name="settings_label_header_mode">Header Mode</string>
+
+    <string name="settings_group_notifications">Notifications</string>
+    <string name="settings_item_notification_dots">Notification Dots</string>
+    <string name="settings_item_numerical_counts">Numerical Counts</string>
+    <string name="settings_item_filter_distractions">Filter Distractions</string>
+    <string name="settings_subtitle_filter_distractions">Hides dots for social apps</string>
+
+    <string name="settings_group_profiles">Profiles</string>
+    <string name="settings_item_add_profile">Add Profile</string>
+
+    <string name="settings_group_mindfulness">Mindfulness</string>
+    <string name="settings_item_mindful_usage">Mindful Usage</string>
+    <string name="settings_subtitle_mindful_usage">Track app time and launch limits</string>
+
+    <string name="settings_group_system">System</string>
+    <string name="settings_item_set_default">Set as Default</string>
+    <string name="settings_item_weather">Weather Info</string>
+    <string name="settings_item_icon_pack">Icon Pack</string>
+    <string name="settings_item_export">Export Settings</string>
+    <string name="settings_item_import">Import Settings</string>
+
+    <string name="settings_label_about">ABOUT</string>
+    <string name="settings_item_update_available">Update Available!</string>
+    <string name="settings_item_about_dotz">About Dotz</string>
+
+    <string name="dialog_pro_feature_title">PRO Feature</string>
+    <string name="dialog_pro_feature_message">Transparency, Wallpapers, and Layouts are exclusive to Dotz PRO.</string>
+    <string name="btn_go_pro">GO PRO</string>
+
+    <string name="dialog_new_profile_title">New Profile</string>
+    <string name="dialog_new_profile_hint">Work, Home, etc.</string>
+    <string name="btn_create">CREATE</string>
+
+    <string name="label_default">Default</string>
+    <string name="premium_promo_title">Get Dotz PRO</string>
+    <string name="premium_promo_subtitle">Unlock wallpapers, profiles, and more.</string>
+    <string name="dialog_select_icon_pack">Select Icon Pack</string>
+    <string name="label_tile_transparency">Tile Transparency</string>
+    <string name="label_tile_layout">Tile Layout</string>
+
+    <string name="header_mode_toggles">Toggles</string>
+    <string name="header_mode_music">Music</string>
+    <string name="header_mode_focus">Focus</string>
+    <string name="layout_grid">GRID</string>
+    <string name="layout_list">LIST</string>
 </resources>

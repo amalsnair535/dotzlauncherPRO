@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,11 +112,17 @@ private fun AppListTile(
         ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
     } else null
 
+    val semanticsDescription = remember(tile.label, tile.badgeCount) {
+        val countText = if (tile.badgeCount > 0) ", ${tile.badgeCount} notifications" else if (tile.badgeCount == 0) ", new notification" else ""
+        "${tile.label}$countText"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp)
             .clip(RoundedCornerShape(16.dp))
+            .semantics { contentDescription = semanticsDescription }
             .then(
                 if (isGlass) {
                     Modifier.drawBehind {

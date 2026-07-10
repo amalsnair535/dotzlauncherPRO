@@ -76,10 +76,6 @@ class StoreBridgeImpl(
                     } else {
                         locationManager.requestSingleUpdate(provider, object : LocationListener {
                             override fun onLocationChanged(l: Location) { callback(l.latitude, l.longitude) }
-                            @Deprecated("Deprecated in Java")
-                            override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
-                            override fun onProviderEnabled(p: String) {}
-                            override fun onProviderDisabled(p: String) {}
                         }, android.os.Looper.getMainLooper())
                     }
                 } else {

@@ -4,10 +4,10 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.dotz.launcherpro.ui.screens.DotzHomeScreen
@@ -32,8 +32,8 @@ class MainActivity : AppCompatActivity() {
         )
 
         // Modern full-screen immersive mode
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        enableEdgeToEdge()
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
 
@@ -57,10 +57,10 @@ class MainActivity : AppCompatActivity() {
     private fun setHighRefreshRate() {
         try {
             val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                this.display
+                display
             } else {
                 @Suppress("DEPRECATION")
-                (getSystemService(android.content.Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
+                (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay
             }
             
             val modes = display?.supportedModes
@@ -78,10 +78,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        viewModel.setUiVisible(true)
         // Re-apply immersive mode
-        WindowCompat.getInsetsController(window, window.decorView).apply {
+        WindowInsetsControllerCompat(window, window.decorView).apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.systemBars())
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewModel.setUiVisible(false)
     }
 }

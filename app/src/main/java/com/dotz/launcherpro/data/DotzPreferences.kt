@@ -66,6 +66,7 @@ data class DotzSettings(
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
     val ultraFocusEndTime: Long = 0,
+    val emergencyDrawerOpens: Int = 0,
 )
 
 object PrefsKeys {
@@ -111,6 +112,7 @@ object PrefsKeys {
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
     val ULTRA_FOCUS_END_TIME    = longPreferencesKey("ultra_focus_end_time")
+    val EMERGENCY_DRAWER_OPENS  = intPreferencesKey("emergency_drawer_opens")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -187,7 +189,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
                 profiles             = profilesList,
-                ultraFocusEndTime    = prefs[PrefsKeys.ULTRA_FOCUS_END_TIME] ?: 0L
+                ultraFocusEndTime    = prefs[PrefsKeys.ULTRA_FOCUS_END_TIME] ?: 0L,
+                emergencyDrawerOpens = prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] ?: 0
             )
         }
 
@@ -449,7 +452,15 @@ class DotzPreferencesRepository(private val context: Context) {
             prefs[PrefsKeys.FOCUS_TIME_TODAY] = timeToday
             if (resetDrawerCount) {
                 prefs[PrefsKeys.APP_DRAWER_OPEN_COUNT] = 0
+                prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] = 0
             }
+        }
+    }
+
+    suspend fun incrementEmergencyDrawerOpens() {
+        context.dataStore.edit { prefs ->
+            val current = prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] ?: 0
+            prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] = current + 1
         }
     }
 

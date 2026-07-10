@@ -25,8 +25,12 @@ fun DotzAlertDialog(
     onDismiss: (() -> Unit)? = null
 ) {
     val isGlass = DotzTheme.colors.isGlass
-    val glassColor = DotzTheme.colors.text
-    val containerColor = if (isGlass) glassColor.copy(alpha = 0.08f) else Color(0xFF121212)
+    val textColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) {
+        DotzTheme.colors.solidBackground.copy(alpha = 0.95f)
+    } else {
+        DotzTheme.colors.solidBackground
+    }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -36,7 +40,7 @@ fun DotzAlertDialog(
                 val strokeWidth = 1.dp.toPx()
                 drawRoundRect(
                     brush = Brush.linearGradient(
-                        colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                        colors = listOf(textColor.copy(alpha = 0.3f), Color.Transparent, textColor.copy(alpha = 0.1f)),
                         start = androidx.compose.ui.geometry.Offset.Zero,
                         end = androidx.compose.ui.geometry.Offset.Infinite
                     ),
@@ -51,7 +55,7 @@ fun DotzAlertDialog(
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
-                color = glassColor,
+                color = textColor,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -72,8 +76,8 @@ fun DotzAlertDialog(
                         .fillMaxWidth()
                         .height(54.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = glassColor,
-                        contentColor = if (glassColor == Color.White) Color.Black else Color.White
+                        containerColor = textColor,
+                        contentColor = containerColor
                     ),
                     shape = RoundedCornerShape(27.dp)
                 ) {
@@ -92,16 +96,16 @@ fun DotzAlertDialog(
                             .fillMaxWidth()
                             .height(54.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = glassColor
+                            contentColor = textColor
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, glassColor.copy(alpha = 0.2f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, textColor.copy(alpha = 0.2f)),
                         shape = RoundedCornerShape(27.dp)
                     ) {
                         Text(
                             text = dismissButtonText.uppercase(),
                             fontWeight = FontWeight.Medium,
                             letterSpacing = 1.sp,
-                            color = glassColor.copy(alpha = 0.7f)
+                            color = textColor.copy(alpha = 0.7f)
                         )
                     }
                 }

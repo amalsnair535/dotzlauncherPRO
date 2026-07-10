@@ -12,9 +12,9 @@ android {
     defaultConfig {
         applicationId = "com.dotz.launcherpro"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 25
-        versionName = "6.0.0"
+        targetSdk = 36
+        versionCode = 36
+        versionName = "6.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
