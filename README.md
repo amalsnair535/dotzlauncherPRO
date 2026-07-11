@@ -2,7 +2,6 @@
 
 <img width="200" height="200" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
 
-[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
 
 
 **Built by a smartphone addict, for addicts.**
