@@ -39,7 +39,7 @@ data class DotzSettings(
     val showWeatherInfo: Boolean = false,
     val showMindfulUsage: Boolean = true,
     val showWallpaper: Boolean = false,
-    val enableTimeline: Boolean = false,
+    val enableTimeline: Boolean = true,
     val homeHeaderMode: String = "toggles", // "toggles", "music", or "stats"
     val tileTransparency: Float = 1.0f,
     val layoutStyle: String = "classic",
@@ -164,7 +164,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: false,
                 showMindfulUsage     = prefs[PrefsKeys.SHOW_MINDFUL_USAGE]       ?: true,
                 showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: false,
-                enableTimeline       = prefs[PrefsKeys.ENABLE_TIMELINE]          ?: false,
+                enableTimeline       = prefs[PrefsKeys.ENABLE_TIMELINE]          ?: true,
                 homeHeaderMode       = prefs[PrefsKeys.HOME_HEADER_MODE]         ?: "toggles",
                 tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
                 layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
