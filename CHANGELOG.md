@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.3] - 2026-07-04
+
+### Added
+- **Timeline by Default**: Timeline mode is now enabled by default for all new installations, providing immediate access to the launcher's core chronological activity tracking.
+- **AdMob Verification**: Added `app-ads.txt` support to the root and documentation for seamless AdMob account verification.
+
+### Improved
+- **Settings Experience**: Streamlined the initial setup by pre-configuring essential features.
+
 ## [6.0.2] - 2026-07-04
 
 ### Added
