@@ -56,7 +56,7 @@ fun DotzOnboardingSheet(
                         description = "Track screen time and set intentional limits. Dotz helps you stay aware of your usage habits throughout the day."
                     )
                     2 -> OnboardingPage(
-                        title = "Fastlane Navigation",
+                        title = "Timeline Navigation",
                         description = "Swipe right for your chronological life. A filtered view of notifications, music, and tools without the noise."
                     )
                 }

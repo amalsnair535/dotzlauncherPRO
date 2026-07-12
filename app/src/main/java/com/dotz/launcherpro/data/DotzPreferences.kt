@@ -39,7 +39,7 @@ data class DotzSettings(
     val showWeatherInfo: Boolean = false,
     val showMindfulUsage: Boolean = true,
     val showWallpaper: Boolean = false,
-    val enableFastlane: Boolean = false,
+    val enableTimeline: Boolean = false,
     val homeHeaderMode: String = "toggles", // "toggles", "music", or "stats"
     val tileTransparency: Float = 1.0f,
     val layoutStyle: String = "classic",
@@ -83,7 +83,7 @@ object PrefsKeys {
     val EXTRA_TILE_COUNT        = intPreferencesKey("extra_tile_count")
     val SHOW_WEATHER_INFO       = booleanPreferencesKey("show_weather_info")
     val SHOW_WALLPAPER          = booleanPreferencesKey("show_wallpaper")
-    val ENABLE_FASTLANE         = booleanPreferencesKey("enable_fastlane")
+    val ENABLE_TIMELINE         = booleanPreferencesKey("enable_timeline")
     val HOME_HEADER_MODE        = stringPreferencesKey("home_header_mode")
     val TILE_TRANSPARENCY       = floatPreferencesKey("tile_transparency")
     val LAYOUT_STYLE            = stringPreferencesKey("layout_style")
@@ -164,7 +164,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 showWeatherInfo      = prefs[PrefsKeys.SHOW_WEATHER_INFO]        ?: false,
                 showMindfulUsage     = prefs[PrefsKeys.SHOW_MINDFUL_USAGE]       ?: true,
                 showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: false,
-                enableFastlane       = prefs[PrefsKeys.ENABLE_FASTLANE]          ?: false,
+                enableTimeline       = prefs[PrefsKeys.ENABLE_TIMELINE]          ?: false,
                 homeHeaderMode       = prefs[PrefsKeys.HOME_HEADER_MODE]         ?: "toggles",
                 tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
                 layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
@@ -253,8 +253,8 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.SHOW_WALLPAPER] = value }
     }
 
-    suspend fun setEnableFastlane(value: Boolean) {
-        context.dataStore.edit { it[PrefsKeys.ENABLE_FASTLANE] = value }
+    suspend fun setEnableTimeline(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.ENABLE_TIMELINE] = value }
     }
 
     suspend fun setHomeHeaderMode(value: String) {
@@ -498,7 +498,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.EXTRA_TILE_COUNT] = settings.extraTileCount
                 prefs[PrefsKeys.SHOW_WEATHER_INFO] = settings.showWeatherInfo
                 prefs[PrefsKeys.SHOW_WALLPAPER] = settings.showWallpaper
-                prefs[PrefsKeys.ENABLE_FASTLANE] = settings.enableFastlane
+                prefs[PrefsKeys.ENABLE_TIMELINE] = settings.enableTimeline
                 prefs[PrefsKeys.HOME_HEADER_MODE] = settings.homeHeaderMode
                 prefs[PrefsKeys.TILE_TRANSPARENCY] = settings.tileTransparency
                 prefs[PrefsKeys.LAYOUT_STYLE] = settings.layoutStyle

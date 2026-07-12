@@ -55,7 +55,7 @@ data class SettingsActions(
     val onEnableExtraPageToggle: (Boolean) -> Unit,
     val onExtraTileCountChange: (Int) -> Unit,
     val onShowWeatherToggle: (Boolean) -> Unit,
-    val onEnableFastlaneToggle: (Boolean) -> Unit,
+    val onEnableTimelineToggle: (Boolean) -> Unit,
     val onHomeHeaderModeChange: (String) -> Unit,
     val onTransparencyChange: (Float) -> Unit,
     val onLayoutStyleChange: (String) -> Unit,
@@ -138,7 +138,7 @@ class DotzSettingsActivity : ComponentActivity() {
                         onEnableExtraPageToggle = viewModel::setEnableExtraPage,
                         onExtraTileCountChange = viewModel::setExtraTileCount,
                         onShowWeatherToggle = viewModel::setShowWeatherInfo,
-                        onEnableFastlaneToggle = viewModel::setEnableFastlane,
+                        onEnableTimelineToggle = viewModel::setEnableTimeline,
                         onHomeHeaderModeChange = viewModel::setHomeHeaderMode,
                         onTransparencyChange = viewModel::setTileTransparency,
                         onLayoutStyleChange = viewModel::setLayoutStyle,
@@ -443,11 +443,11 @@ private fun DotzSettingsScreen(
                 )
                 Divider()
                 SettingsToggleRow(
-                    label = stringResource(R.string.settings_item_fastlane),
+                    label = stringResource(R.string.settings_item_timeline),
                     icon = Icons.Default.Timeline,
-                    checked = settings.enableFastlane,
-                    onToggle = actions.onEnableFastlaneToggle,
-                    subtitle = stringResource(R.string.settings_subtitle_fastlane),
+                    checked = settings.enableTimeline,
+                    onToggle = actions.onEnableTimelineToggle,
+                    subtitle = stringResource(R.string.settings_subtitle_timeline),
                 )
                 Divider()
                 Column(modifier = Modifier.padding(16.dp)) {

@@ -13,10 +13,15 @@ android {
         applicationId = "com.dotz.launcherpro"
         minSdk = 24
         targetSdk = 36
-        versionCode = 36
-        versionName = "6.0.1"
+        versionCode = 38
+        versionName = "6.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Strip unused localized resources to save space
+        androidResources {
+            localeFilters += "en"
+        }
     }
 
     signingConfigs {
@@ -34,7 +39,7 @@ android {
             if (keystoreFile.exists()) {
                 storeFile = keystoreFile
                 keyAlias = "key0"
-
+ 
                 // Read from localProperties, fallback to project properties or environment variables
                 storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
                     ?: project.findProperty("RELEASE_STORE_PASSWORD")?.toString()

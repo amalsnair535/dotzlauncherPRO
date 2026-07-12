@@ -70,6 +70,8 @@ data class LauncherUiState(
     val isTorchOn: Boolean = false,
     val isAirplaneModeOn: Boolean = false,
     val isDarkModeOn: Boolean = false,
+    val ringerMode: Int = 2, // 2 = NORMAL, 1 = VIBRATE, 0 = SILENT
+    val isMobileDataEnabled: Boolean = true,
     val isDefaultLauncher: Boolean = false,
     val weatherTemp: String? = null,
     val weatherCondition: String? = null,
@@ -88,9 +90,10 @@ data class LauncherUiState(
     val isPremium: Boolean = false,
     val isUpgradeAvailable: Boolean = true,
     val isLiteVersion: Boolean = false,
-    val isFastlaneVisible: Boolean = false,
+    val isTimelineVisible: Boolean = false,
     val unlockCount: Int = 0,
     val notificationsReceivedToday: Int = 0,
+    val totalAppOpens: Int = 0,
     val focusScore: Int = 100,
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
@@ -217,6 +220,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isTorchOn = MutableStateFlow(value = false)
     private val _isAirplaneModeOn = MutableStateFlow(value = false)
     private val _isDarkModeOn = MutableStateFlow(value = false)
+    private val _ringerMode = MutableStateFlow(AudioManager.RINGER_MODE_NORMAL)
+    private val _isMobileDataEnabled = MutableStateFlow(true)
     private val _weatherTemp = MutableStateFlow<String?>(null)
     private val _weatherCondition = MutableStateFlow<String?>(null)
     private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
@@ -227,9 +232,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _installedAppsCache = MutableStateFlow<List<DrawerApp>>(emptyList())
     private val _installedIconPacks = MutableStateFlow<List<Pair<String, String>>>(emptyList())
 
-    private val _isFastlaneVisible = MutableStateFlow(false)
-    fun setFastlaneVisible(visible: Boolean) {
-        _isFastlaneVisible.value = visible
+    private val _isTimelineVisible = MutableStateFlow(false)
+    fun setTimelineVisible(visible: Boolean) {
+        _isTimelineVisible.value = visible
     }
 
     private val _isUiVisible = MutableStateFlow(true)
@@ -282,7 +287,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
                 }
                 AudioManager.RINGER_MODE_CHANGED_ACTION -> {
-                    _isSilentMode.value = audioManager.ringerMode != AudioManager.RINGER_MODE_NORMAL
+                    val mode = audioManager.ringerMode
+                    _ringerMode.value = mode
+                    _isSilentMode.value = mode != AudioManager.RINGER_MODE_NORMAL
                 }
                 Intent.ACTION_AIRPLANE_MODE_CHANGED -> {
                     _isAirplaneModeOn.value = intent.getBooleanExtra("state", false)
@@ -306,6 +313,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         private fun updateNetwork() {
             val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+            _isMobileDataEnabled.value = isMobileDataEnabled()
             _networkStatus.value = when {
                 caps == null -> "None"
                 caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
@@ -373,9 +381,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         refreshIsDefault()
         _isWifiEnabled.value = wifiManager.isWifiEnabled
         _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
+        _ringerMode.value = audioManager.ringerMode
         _isSilentMode.value = audioManager.ringerMode != AudioManager.RINGER_MODE_NORMAL
         _isAirplaneModeOn.value = Settings.Global.getInt(app.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
         _isDarkModeOn.value = (app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        _isMobileDataEnabled.value = isMobileDataEnabled()
         
         // Torch state tracking
         try {
@@ -438,11 +448,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 if (!_isUiVisible.value) continue
 
                 val current = _playbackState.value
-                val fastlaneEnabled = _uiState.value.settings.enableFastlane
-                val fastlaneVisible = _isFastlaneVisible.value
+                val timelineEnabled = _uiState.value.settings.enableTimeline
+                val timelineVisible = _isTimelineVisible.value
 
-                // Only update position if something is playing AND fastlane is actually visible to user
-                if (current.component1() && fastlaneEnabled && fastlaneVisible) {
+                // Only update position if something is playing AND timeline is actually visible to user
+                if (current.component1() && timelineEnabled && timelineVisible) {
                     val newPos = activeController?.playbackState?.position ?: current.component2()
                     if (newPos != current.component2()) {
                         _playbackState.value = Triple(current.component1(), newPos, current.component3())
@@ -515,6 +525,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isTorchOn,
                 _isAirplaneModeOn,
                 _isDarkModeOn,
+                _ringerMode,
+                _isMobileDataEnabled,
                 _weatherTemp,
                 _weatherCondition,
                 DotzNotificationService.notifications,
@@ -524,7 +536,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 storeBridge.isPremium,
                 _usageStats,
                 _installedAppsCache,
-                _isFastlaneVisible,
+                _isTimelineVisible,
                 _nativeAdFlow,
                 _isAdLoading,
                 _timerTicker,
@@ -541,26 +553,28 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val torch = args[7] as Boolean
                 val airplane = args[8] as Boolean
                 val dark = args[9] as Boolean
-                val temp = args[10] as String?
-                val condition = args[11] as String?
+                val ringer = args[10] as Int
+                val mobileData = args[11] as Boolean
+                val temp = args[12] as String?
+                val condition = args[13] as String?
                 @Suppress("UNCHECKED_CAST")
-                val notifications = args[12] as List<com.dotz.launcherpro.services.NotificationItem>
-                val blocked = args[13] as Int
+                val notifications = args[14] as List<com.dotz.launcherpro.services.NotificationItem>
+                val blocked = args[15] as Int
                 @Suppress("UNCHECKED_CAST")
-                val nowPlaying = args[14] as Triple<String, String, String>
+                val nowPlaying = args[16] as Triple<String, String, String>
                 @Suppress("UNCHECKED_CAST")
-                val playback = args[15] as Triple<Boolean, Long, Long>
-                val isPremiumStatus = args[16] as Boolean
+                val playback = args[17] as Triple<Boolean, Long, Long>
+                val isPremiumStatus = args[18] as Boolean
                 @Suppress("UNCHECKED_CAST")
-                val usageResult = args[17] as UsageStatsResult
+                val usageResult = args[19] as UsageStatsResult
                 @Suppress("UNCHECKED_CAST")
-                val allApps = args[18] as List<DrawerApp>
-                val fastlaneVisible = args[19] as Boolean
-                val nativeAd = args[20] as NativeAd?
-                val isAdLoading = args[21] as Boolean
-                val tickTime = args[22] as Long
+                val allApps = args[20] as List<DrawerApp>
+                val timelineVisible = args[21] as Boolean
+                val nativeAd = args[22] as NativeAd?
+                val isAdLoading = args[23] as Boolean
+                val tickTime = args[24] as Long
                 @Suppress("UNCHECKED_CAST")
-                val iconPacks = args[23] as List<Pair<String, String>>
+                val iconPacks = args[25] as List<Pair<String, String>>
 
                 val isDefault = cachedIsDefault
                 val allUsage = usageResult.appStats
@@ -716,7 +730,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isSilentMode = silent,
                     isTorchOn = torch,
                     isAirplaneModeOn = airplane,
-                    isDarkModeOn = dark,
+                    isDarkModeOn = themeMode == ThemeMode.DARK,
+                    ringerMode = ringer,
+                    isMobileDataEnabled = mobileData,
                     isDefaultLauncher = isDefault,
                     weatherTemp = temp,
                     weatherCondition = condition,
@@ -733,9 +749,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isPremium = isCurrentlyPremium,
                     isUpgradeAvailable = storeBridge.isUpgradeAvailable,
                     isLiteVersion = storeBridge.isLiteVersion,
-                    isFastlaneVisible = fastlaneVisible,
+                    isTimelineVisible = timelineVisible,
                     unlockCount = usageResult.unlockCount,
                     notificationsReceivedToday = usageResult.notificationsReceived,
+                    totalAppOpens = usageResult.totalAppOpens,
                     focusScore = calculatedScore,
                     topApps = topApps,
                     timelineItems = finalTimeline,
@@ -910,10 +927,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun toggleBluetoothDirect() {
         try {
             val isEnabled = bluetoothAdapter?.isEnabled == true
-            if (isEnabled) {
-                bluetoothAdapter?.disable()
+            val success = if (isEnabled) {
+                bluetoothAdapter?.disable() == true
             } else {
-                bluetoothAdapter?.enable()
+                bluetoothAdapter?.enable() == true
+            }
+
+            // If success is false, it likely means modern Android blocked the direct call
+            if (!success) {
+                toggleBluetooth()
             }
         } catch (_: SecurityException) {
             // If permission is missing, opening settings is the only fallback
@@ -1207,6 +1229,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return currentDefault == myPackage
     }
 
+    private fun isMobileDataEnabled(): Boolean {
+        return try {
+            val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val method = cm.javaClass.getDeclaredMethod("getMobileDataEnabled")
+            method.isAccessible = true
+            method.invoke(cm) as Boolean
+        } catch (e: Exception) {
+            // Fallback for newer Android or if reflection fails
+            val caps = (getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
+                .getNetworkCapabilities(null)
+            caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+        }
+    }
+
     // ── Logic ────────────────────────────────────────────────────────────
 
     fun refreshState() {
@@ -1382,8 +1418,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         prefs.setShowMindfulUsage(value)
     }
 
-    fun setEnableFastlane(value: Boolean) = viewModelScope.launch {
-        prefs.setEnableFastlane(value)
+    fun setEnableTimeline(value: Boolean) = viewModelScope.launch {
+        prefs.setEnableTimeline(value)
     }
 
     fun setHomeHeaderMode(value: String) = viewModelScope.launch {
@@ -1481,17 +1517,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun acknowledgeSponsoredAd() = viewModelScope.launch {
         prefs.setLastSponsoredShowTime(System.currentTimeMillis())
-    }
-
-    fun redeemPromoCode(code: String): Boolean {
-        return if (code.trim().uppercase() == "DOTZPRO2026") {
-            viewModelScope.launch {
-                prefs.setPremium(true)
-            }
-            true
-        } else {
-            false
-        }
     }
 
     suspend fun exportSettings(): String {

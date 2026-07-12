@@ -12,7 +12,8 @@ data class UsageStatsResult(
     val appStats: Map<String, Pair<String?, Int>>,
     val totalScreenTime: Long,
     val unlockCount: Int,
-    val notificationsReceived: Int
+    val notificationsReceived: Int,
+    val totalAppOpens: Int = 0
 )
 
 class UsageManager(private val context: Context) {
@@ -121,8 +122,9 @@ class UsageManager(private val context: Context) {
         
         val elapsedToday = endTime - startTime
         val finalTotal = totalScreenTime.coerceIn(0L, elapsedToday)
+        val totalAppOpens = countMap.values.sum()
         
-        return UsageStatsResult(appStats, finalTotal, unlockCount, notificationsReceived)
+        return UsageStatsResult(appStats, finalTotal, unlockCount, notificationsReceived, totalAppOpens)
     }
 
     private fun formatDuration(millis: Long): String {

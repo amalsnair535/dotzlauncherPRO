@@ -17,8 +17,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.dotz.launcherpro.R
 import com.dotz.launcherpro.ui.theme.DotzColors
 import com.dotz.launcherpro.ui.theme.DotzTheme
 
@@ -26,10 +30,11 @@ import com.dotz.launcherpro.ui.theme.DotzTheme
 fun DetoxPanel(
     isWifiEnabled: Boolean,
     isBluetoothEnabled: Boolean,
-    isSilentMode: Boolean,
+    ringerMode: Int, // 2 = NORMAL, 1 = VIBRATE, 0 = SILENT
     isTorchOn: Boolean,
     isAirplaneModeOn: Boolean,
     isDarkModeOn: Boolean,
+    isMobileDataEnabled: Boolean = true,
     transparency: Float = 1.0f,
     onWifiToggle: () -> Unit,
     onBluetoothToggle: () -> Unit,
@@ -88,7 +93,7 @@ fun DetoxPanel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             DetoxIcon(
-                icon = if (isWifiEnabled) Icons.Rounded.Wifi else Icons.Rounded.WifiOff,
+                painter = painterResource(if (isWifiEnabled) R.drawable.ic_wifi_on else R.drawable.ic_wifi_off),
                 label = if (isWifiEnabled) "WiFi On" else "WiFi Off",
                 isActive = isWifiEnabled,
                 transparency = transparency,
@@ -96,7 +101,7 @@ fun DetoxPanel(
                 onLongClick = onWifiLongClick
             )
             DetoxIcon(
-                icon = if (isBluetoothEnabled) Icons.Rounded.Bluetooth else Icons.Rounded.BluetoothDisabled,
+                painter = painterResource(if (isBluetoothEnabled) R.drawable.ic_bluetooth_on else R.drawable.ic_bluetooth_off),
                 label = if (isBluetoothEnabled) "Bluetooth On" else "Bluetooth Off",
                 isActive = isBluetoothEnabled,
                 transparency = transparency,
@@ -104,15 +109,15 @@ fun DetoxPanel(
                 onLongClick = onBluetoothLongClick
             )
             DetoxIcon(
-                icon = Icons.Rounded.SwapVert,
-                label = "Mobile Data",
-                isActive = true,
+                painter = painterResource(if (isMobileDataEnabled) R.drawable.ic_mobile_data else R.drawable.ic_mobile_data_off),
+                label = if (isMobileDataEnabled) "Mobile Data On" else "Mobile Data Off",
+                isActive = isMobileDataEnabled,
                 transparency = transparency,
                 onClick = onDataClick,
                 onLongClick = onDataLongClick
             )
             DetoxIcon(
-                icon = if (isAirplaneModeOn) Icons.Rounded.AirplanemodeActive else Icons.Rounded.AirplanemodeInactive,
+                painter = painterResource(if (isAirplaneModeOn) R.drawable.ic_airplane_on else R.drawable.ic_airplane_off),
                 label = if (isAirplaneModeOn) "Airplane Mode On" else "Airplane Mode Off",
                 isActive = isAirplaneModeOn,
                 transparency = transparency,
@@ -128,15 +133,23 @@ fun DetoxPanel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             DetoxIcon(
-                icon = if (isSilentMode) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
-                label = if (isSilentMode) "Silent Mode On" else "Silent Mode Off",
-                isActive = !isSilentMode,
+                painter = when (ringerMode) {
+                    1 -> painterResource(R.drawable.ic_vibrate)
+                    0 -> rememberVectorPainter(Icons.AutoMirrored.Rounded.VolumeOff)
+                    else -> rememberVectorPainter(Icons.AutoMirrored.Rounded.VolumeUp)
+                },
+                label = when (ringerMode) {
+                    1 -> "Vibrate Mode"
+                    0 -> "Silent Mode"
+                    else -> "Normal Mode"
+                },
+                isActive = ringerMode != 2,
                 transparency = transparency,
                 onClick = onSilentToggle,
                 onLongClick = onSilentLongClick
             )
             DetoxIcon(
-                icon = if (isTorchOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+                painter = painterResource(if (isTorchOn) R.drawable.ic_flashlight_on else R.drawable.ic_flashlight_off),
                 label = if (isTorchOn) "Flashlight On" else "Flashlight Off",
                 isActive = isTorchOn,
                 transparency = transparency,
@@ -144,7 +157,7 @@ fun DetoxPanel(
                 onLongClick = onTorchLongClick
             )
             DetoxIcon(
-                icon = if (isDarkModeOn) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                painter = painterResource(if (isDarkModeOn) R.drawable.ic_dark_mode else R.drawable.ic_light_mode),
                 label = if (isDarkModeOn) "Dark Mode On" else "Light Mode On",
                 isActive = isDarkModeOn,
                 transparency = transparency,
@@ -164,7 +177,8 @@ fun DetoxPanel(
 
 @Composable
 private fun DetoxIcon(
-    icon: ImageVector,
+    icon: ImageVector? = null,
+    painter: Painter? = null,
     label: String,
     isActive: Boolean,
     transparency: Float,
@@ -183,11 +197,14 @@ private fun DetoxIcon(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp)
-        )
+        val effectivePainter = painter ?: if (icon != null) rememberVectorPainter(icon) else null
+        effectivePainter?.let {
+            Icon(
+                painter = it,
+                contentDescription = label,
+                tint = contentColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }

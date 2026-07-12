@@ -43,6 +43,8 @@ fun StaticHeader(
     isTorchOn: Boolean,
     isAirplaneModeOn: Boolean,
     isDarkModeOn: Boolean,
+    ringerMode: Int = 2,
+    isMobileDataEnabled: Boolean = true,
     transparency: Float = 1.0f,
     headerMode: String = "toggles",
     nowPlayingTitle: String = "Not Playing",
@@ -52,6 +54,7 @@ fun StaticHeader(
     playbackDuration: Long = 0,
     unlockCount: Int = 0,
     notificationsReceived: Int = 0,
+    totalAppOpens: Int = 0,
     focusScore: Int = 100,
     onPlayPause: () -> Unit = {},
     onSkipNext: () -> Unit = {},
@@ -185,6 +188,7 @@ fun StaticHeader(
                 FocusStatsWidget(
                     unlockCount = unlockCount,
                     notificationsReceived = notificationsReceived,
+                    totalAppOpens = totalAppOpens,
                     focusScore = focusScore,
                     onSettingsClick = onLauncherSettingsTap
                 )
@@ -192,10 +196,11 @@ fun StaticHeader(
                 DetoxPanel(
                     isWifiEnabled = isWifiEnabled,
                     isBluetoothEnabled = isBluetoothEnabled,
-                    isSilentMode = isSilentMode,
+                    ringerMode = ringerMode,
                     isTorchOn = isTorchOn,
                     isAirplaneModeOn = isAirplaneModeOn,
                     isDarkModeOn = isDarkModeOn,
+                    isMobileDataEnabled = isMobileDataEnabled,
                     transparency = transparency,
                     onWifiToggle = onWifiToggle,
                     onBluetoothToggle = onBluetoothToggle,
@@ -366,6 +371,7 @@ fun NowPlayingWidget(
 fun FocusStatsWidget(
     unlockCount: Int,
     notificationsReceived: Int,
+    totalAppOpens: Int,
     focusScore: Int,
     onSettingsClick: () -> Unit
 ) {
@@ -427,6 +433,17 @@ fun FocusStatsWidget(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = "$notificationsReceived Notifications",
+                        color = DotzTheme.colors.text,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Apps, null, tint = DotzTheme.colors.text.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "$totalAppOpens App Launches",
                         color = DotzTheme.colors.text,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold

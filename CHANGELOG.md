@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.2] - 2026-07-04
+
+### Added
+- **Timeline Rebranding**: Officially renamed the "Fastlane" feature to **Timeline** across the entire app, settings, and documentation for a more intuitive user experience.
+- **Expanded Control Panel Icons**: Added dedicated minimalist icons for `Mobile Data Off` and `Vibrate Mode`.
+
+### Fixed
+- **Dynamic Icon Logic**: 
+    - Fixed an issue where the Mobile Data icon would not correctly reflect the system's "Disabled" state.
+    - Updated the sound toggle to a 3-state system (Normal, Vibrate, Silent), ensuring the new Vibrate icon appears correctly when active.
+- **Resource Compatibility Overhaul**: 
+    - Converted all legacy SVG resources to **Android Vector Drawable (XML)** format, resolving the "file name must end with .xml or .png" build error.
+    - Standardized all drawable filenames to strictly follow Android lowercase/underscore naming conventions, eliminating resource packaging failures.
+    - Optimized vector path data for improved rendering performance across all device DPIs.
+
+## [6.0.1] - 2026-07-03
+
+### Fixed
+- **Stability Improvements**: Minor bug fixes and UI performance optimizations.
+
 ## [6.0.0] - 2026-07-03
 
 ### Added
@@ -37,13 +57,13 @@ All notable changes to this project will be documented in this file.
     - **Total Notification Count**: Tracks all incoming alerts to help you measure digital noise.
 - **Enhanced Legacy Support**: Lowered minimum requirements to **Android 24 (Nougat)**, allowing Dotz to run on a wider range of hardware.
 - **Redesigned Media Controller**: A new two-row layout for the Music Widget, featuring centered controls and a more professional "Matte" aesthetic.
-- **New Onboarding Experience**: A beautiful 3-page introduction to the launcher's core philosophy (Minimalism, Fastlane, and Mindfulness) with visual aids.
+- **New Onboarding Experience**: A beautiful 3-page introduction to the launcher's core philosophy (Minimalism, Timeline, and Mindfulness) with visual aids.
 - **Rewarded Ad Support**: Added options to support the developer and unlock 24-hour PRO access by watching a short video.
 - **Sarcastic PRO Badge**: Added a touch of humor to the PRO upgrade screen (as requested by the community).
 
 ### Fixed
 - **Persistent Compliance Popups**: Fixed a bug where the "App Visibility" disclosure and "Default Launcher" prompts would reappear on every launch.
-- **Animation Fluidity**: Optimized the Fastlane transition to use direct pager offset tracking, eliminating lag during swipes.
+- **Animation Fluidity**: Optimized the Timeline transition to use direct pager offset tracking, eliminating lag during swipes.
 - **Header Layout Overlaps**: Corrected a regression where status bar text could overlap with the central clock on certain screen aspect ratios.
 
 ## [5.5.8] - 2026-07-01
@@ -54,19 +74,19 @@ All notable changes to this project will be documented in this file.
     - **Music Widget**: Enhanced with a progress bar, album art placeholder, and centered playback controls for better aesthetics and usability.
     - **Focus Stats**: Now features a circular progress indicator for the Focus Score, providing a clearer visual of daily mindfulness.
 - **Material You Settings Overhaul**: A complete redesign of the Settings screen using Material 3 components. It now features a collapsible Large Top App Bar, grouped settings categories, and a cleaner visual hierarchy.
-- **Actionable Fastlane (Quick Reply)**: You can now reply to incoming messages (WhatsApp, Telegram, SMS) directly from the Fastlane timeline.
+- **Actionable Timeline (Quick Reply)**: You can now reply to incoming messages (WhatsApp, Telegram, SMS) directly from the Timeline timeline.
 - **Dynamic Icon Dimming**: App icons now automatically fade to 20% opacity after 30 minutes of usage today.
 - **Grayscale Auto-Schedule (PRO)**: Automate your bedtime routine by scheduling grayscale mode between 10 PM and 6 AM.
 
 ### Fixed
 - **Midnight Reset Accuracy**: Ensure all mindful limits and usage stats reset exactly at 00:00:00.
 - **UI Consistency**: Improved contrast for media controls in both Light Mode and Transparent Mode.
-- **Gesture Conflict Resolution**: Refined swiping logic to prevent conflicts between the App Drawer and Fastlane navigation.
+- **Gesture Conflict Resolution**: Refined swiping logic to prevent conflicts between the App Drawer and Timeline navigation.
 
 ## [5.5.7] - 2026-06-28
 
 ### Added
-- **Refined Navigation**: Dedicated Fastlane timeline for chronological activity tracking.
+- **Refined Navigation**: Dedicated Timeline timeline for chronological activity tracking.
 - **Pro Feature Badging**: High-visibility [PRO] badges added to all premium settings for easier discovery.
 
 ### Fixed

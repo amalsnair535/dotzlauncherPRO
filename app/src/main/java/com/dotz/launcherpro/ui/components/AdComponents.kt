@@ -22,7 +22,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 
 @Composable
-fun FastlaneNativeAdCard(
+fun TimelineNativeAdCard(
     nativeAd: NativeAd,
     modifier: Modifier = Modifier
 ) {
@@ -36,7 +36,7 @@ fun FastlaneNativeAdCard(
         AndroidView(
             factory = { context ->
                 val adView = LayoutInflater.from(context)
-                    .inflate(R.layout.ad_unified_fastlane, null) as NativeAdView
+                    .inflate(R.layout.ad_unified_timeline, null) as NativeAdView
                 populateNativeAdView(nativeAd, adView)
                 adView
             },

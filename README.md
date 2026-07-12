@@ -72,7 +72,7 @@ A dedicated minimalist workspace featuring essential mindful insights:
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `6.0.0`
+* **Version:** `6.0.2`
 * **Architecture:** Pure Jetpack Compose Navigation
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 24 (Android 7.0)

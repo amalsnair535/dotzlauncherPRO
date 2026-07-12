@@ -13,7 +13,7 @@ We do not have a database of users, we do not track your app usage for our own b
 ## 2. On-Device Data Processing
 The following features process data entirely on your device to protect your privacy:
 
-*   **Fastlane (Timeline):** Displays your recent notifications and media activity. This data is read from the system and displayed in real-time. It is never stored permanently or uploaded.
+*   **Timeline:** Displays your recent notifications and media activity. This data is read from the system and displayed in real-time. It is never stored permanently or uploaded.
 *   **Mindfulness & Focus Score:** Calculates your screen time and unlock counts. This data is retrieved from the Android `UsageStatsManager` and processed locally to provide your daily insights.
 *   **App Drawer & Tiles:** Uses the list of installed applications to allow you to launch and organize your apps.
 
@@ -23,7 +23,7 @@ To function as a complete home screen replacement, Dotz Launcher requires specif
 *   **QUERY_ALL_PACKAGES:** Necessary to display and launch the apps installed on your device.
 *   **PACKAGE_USAGE_STATS:** Required for the "Mindful Usage" and "Focus Score" features to track app time and device unlocks.
 *   **ACCESS_FINE_LOCATION:** Used exclusively to provide accurate local weather updates. This data is used only when the weather feature is enabled and is sent directly to our weather provider (Open-Meteo).
-*   **NOTIFICATION_LISTENER:** Required to show notification dots on tiles and to populate the Fastlane timeline.
+*   **NOTIFICATION_LISTENER:** Required to show notification dots on tiles and to populate the Timeline.
 
 ## 4. Third-Party Services
 While we do not collect your data, we use trusted third-party SDKs that may collect limited information for functionality:

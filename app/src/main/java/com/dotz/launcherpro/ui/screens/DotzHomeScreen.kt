@@ -126,14 +126,14 @@ fun DotzHomeScreen(
         }
     }
 
-    // --- Root Pager Setup (Fastlane <-> Tiles) ---
+    // --- Root Pager Setup (Timeline <-> Tiles) ---
     val rootPagerState = rememberPagerState(initialPage = 1, pageCount = { 2 })
     
-    val rootPagerDescription = if (rootPagerState.currentPage == 0) "Fastlane view" else "Tiles view"
+    val rootPagerDescription = if (rootPagerState.currentPage == 0) "Timeline view" else "Tiles view"
 
-    // Sync viewmodel state for fastlane visibility
+    // Sync viewmodel state for timeline visibility
     LaunchedEffect(rootPagerState.currentPage) {
-        viewModel.setFastlaneVisible(rootPagerState.currentPage == 0)
+        viewModel.setTimelineVisible(rootPagerState.currentPage == 0)
     }
 
     // Driving alpha directly from pager offset for 1:1 fluid tracking (removes lag)
@@ -224,11 +224,11 @@ fun DotzHomeScreen(
             HorizontalPager(
                 state = rootPagerState,
                 modifier = Modifier.fillMaxSize().semantics { contentDescription = rootPagerDescription },
-                userScrollEnabled = uiState.settings.enableFastlane
+                userScrollEnabled = uiState.settings.enableTimeline
             ) { rootPageIndex ->
                 if (rootPageIndex == 0) {
-                    // Page 0: Fastlane
-                    FastlanePageContent(uiState, viewModel) { mindfulnessApp = it }
+                    // Page 0: Timeline
+                    TimelinePageContent(uiState, viewModel) { mindfulnessApp = it }
                 } else {
                     // Page 1: Tiles & Header
                     TilesPageContent(
@@ -292,6 +292,7 @@ fun DotzHomeScreen(
         if (showAppDrawerConfirmDialog) {
             AppDrawerConfirmDialog(
                 openCount = uiState.settings.appDrawerOpenCount,
+                totalAppOpens = uiState.totalAppOpens,
                 onDismiss = { showAppDrawerConfirmDialog = false },
                 onConfirm = {
                     showAppDrawerConfirmDialog = false
@@ -432,7 +433,7 @@ private fun TilesPageContent(
             .navigationBarsPadding()
             .padding(bottom = 24.dp) // Added breathing room at the bottom
     ) {
-        // --- Static Header (with alpha for Fastlane transition) ---
+        // --- Static Header (with alpha for Timeline transition) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -451,6 +452,8 @@ private fun TilesPageContent(
                 isTorchOn = uiState.isTorchOn,
                 isAirplaneModeOn = uiState.isAirplaneModeOn,
                 isDarkModeOn = uiState.isDarkModeOn,
+                ringerMode = uiState.ringerMode,
+                isMobileDataEnabled = uiState.isMobileDataEnabled,
                 transparency = uiState.settings.tileTransparency,
                 headerMode = uiState.settings.homeHeaderMode,
                 nowPlayingTitle = uiState.nowPlayingTitle,
@@ -460,6 +463,7 @@ private fun TilesPageContent(
                 playbackDuration = uiState.playbackDuration,
                 unlockCount = uiState.unlockCount,
                 notificationsReceived = uiState.notificationsReceivedToday,
+                totalAppOpens = uiState.totalAppOpens,
                 focusScore = uiState.focusScore,
                 onPlayPause = viewModel::mediaPlayPause,
                 onSkipNext = viewModel::mediaSkipNext,
@@ -546,7 +550,7 @@ private fun TilesPageContent(
 }
 
 @Composable
-private fun FastlanePageContent(
+private fun TimelinePageContent(
     uiState: LauncherUiState,
     viewModel: LauncherViewModel,
     onMindfulLaunch: (MindfulnessInfo) -> Unit
@@ -565,7 +569,7 @@ private fun FastlanePageContent(
             modifier = Modifier.padding(bottom = 24.dp)
         ) {
             Text(
-                text = "FASTLANE",
+                text = "TIMELINE",
                 color = DotzTheme.colors.text,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
@@ -581,7 +585,7 @@ private fun FastlanePageContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "No recent activity to show in Fastlane.",
+                    "No recent activity to show in Timeline.",
                     color = DotzTheme.colors.text.copy(alpha = 0.2f),
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center
@@ -617,7 +621,7 @@ private fun FastlanePageContent(
                     }
                     Spacer(Modifier.width(12.dp))
                     if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED && uiState.nativeAd != null) {
-                        FastlaneNativeAdCard(
+                        TimelineNativeAdCard(
                             nativeAd = uiState.nativeAd,
                             modifier = Modifier.weight(1f)
                         )
@@ -696,6 +700,7 @@ private fun PagerContent(
 @Composable
 private fun AppDrawerConfirmDialog(
     openCount: Int, 
+    totalAppOpens: Int,
     onDismiss: () -> Unit, 
     onConfirm: () -> Unit,
     onEmergencyConfirm: () -> Unit
@@ -718,6 +723,10 @@ private fun AppDrawerConfirmDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("REMAINING TODAY: $remaining/5", color = if (remaining > 0) textColor else Color.Red.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                if (remaining == 0) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("TOTAL APP OPENS: $totalAppOpens", color = textColor.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
+                }
             }
         },
         confirmButtonText = if (remaining > 0) "OPEN" else "EMERGENCY ACCESS",
