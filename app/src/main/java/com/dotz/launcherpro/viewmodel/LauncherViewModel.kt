@@ -38,6 +38,7 @@ import com.dotz.launcherpro.manager.SponsoredContentManager
 import com.dotz.launcherpro.manager.UsageManager
 import com.dotz.launcherpro.manager.UsageStatsResult
 import com.dotz.launcherpro.services.DotzNotificationService
+import com.dotz.launcherpro.R
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.*
@@ -1474,7 +1475,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
         
         try {
-            mediaPlayer = android.media.MediaPlayer.create(getApplication(), resId).apply {
+            val app: Application = getApplication()
+            mediaPlayer = android.media.MediaPlayer.create(app, resId)?.apply {
                 isLooping = true
                 start()
             }
