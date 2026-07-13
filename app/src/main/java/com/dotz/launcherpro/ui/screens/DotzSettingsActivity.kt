@@ -410,16 +410,6 @@ private fun DotzSettingsScreen(
                     )
                 }
                 Divider()
-                SettingsToggleRow(label = stringResource(R.string.settings_item_grayscale), icon = Icons.Default.Contrast, checked = settings.grayscaleMode, onToggle = actions.onGrayscaleToggle)
-                Divider()
-                SettingsToggleRow(
-                    label = stringResource(R.string.settings_item_grayscale_auto),
-                    icon = Icons.Default.Bedtime,
-                    checked = settings.autoGrayscale,
-                    onToggle = actions.onAutoGrayscaleToggle,
-                    subtitle = stringResource(R.string.settings_subtitle_grayscale_auto)
-                )
-                Divider()
                 TransparencySlider(settings.tileTransparency, settings.isPremium || !isUpgradeAvailable) {
                     if (settings.isPremium || !isUpgradeAvailable) actions.onTransparencyChange(it) else showPremiumDialog = true
                 }
