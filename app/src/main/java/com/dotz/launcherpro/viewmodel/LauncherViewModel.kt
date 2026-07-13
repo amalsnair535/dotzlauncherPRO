@@ -106,6 +106,7 @@ data class LauncherUiState(
     val nativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
     val isAdLoading: Boolean = false,
     val isLoaded: Boolean = false,
+    val ultraFocusRemainingMillis: Long = 0,
     val hasUsageStatsPermission: Boolean = false,
     val currentThemeMode: ThemeMode = ThemeMode.DARK,
     val installedIconPacks: List<Pair<String, String>> = emptyList()
@@ -238,6 +239,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
+    private val _timerTicker = MutableStateFlow(System.currentTimeMillis())
     private val _usageStats = MutableStateFlow(UsageStatsResult(emptyMap(), 0L, 0, 0))
     private val _installedAppsCache = MutableStateFlow<List<DrawerApp>>(emptyList())
     private val _installedIconPacks = MutableStateFlow<List<Pair<String, String>>>(emptyList())
@@ -251,6 +253,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setUiVisible(visible: Boolean) {
         _isUiVisible.value = visible
         if (visible) {
+            _timerTicker.value = System.currentTimeMillis()
             refreshState()
         }
     }
@@ -425,15 +428,25 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         refreshWeather()
         
-        // Periodic update of weather and checks
+        // Periodic update of weather and ticker
         viewModelScope.launch {
             while (true) {
-                kotlinx.coroutines.delay(60000) // Every minute is enough for these checks
+                kotlinx.coroutines.delay(1000)
                 
-                refreshIsDefault()
+                val ultraFocusActive = prefs.settingsFlow.first().ultraFocusEndTime > System.currentTimeMillis()
+                
+                // Only update ticker if UI is visible or Ultra Focus is active
+                if (_isUiVisible.value || ultraFocusActive) {
+                    _timerTicker.value = System.currentTimeMillis()
+                }
+                
+                // Frequent checks (every minute)
+                if (System.currentTimeMillis() % 60000 < 1000) {
+                    refreshIsDefault()
+                }
 
                 // Weather check (every 30 mins)
-                if (System.currentTimeMillis() % WEATHER_REFRESH_INTERVAL < 60000) {
+                if (System.currentTimeMillis() % WEATHER_REFRESH_INTERVAL < 1000) {
                     refreshWeather()
                 }
             }
@@ -547,6 +560,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isTimelineVisible,
                 _nativeAdFlow,
                 _isAdLoading,
+                _timerTicker,
                 _installedIconPacks,
                 _weatherFeelsLike,
                 _weatherSummary,
@@ -585,14 +599,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val timelineVisible = args[21] as Boolean
                 val nativeAd = args[22] as NativeAd?
                 val isAdLoading = args[23] as Boolean
+                val tickTime = args[24] as Long
                 @Suppress("UNCHECKED_CAST")
-                val iconPacks = args[24] as List<Pair<String, String>>
-                val feelsLike = args[25] as String?
-                val summary = args[26] as String?
-                val aqi = args[27] as String?
-                val aqiLabel = args[28] as String?
-                val low = args[29] as String?
-                val high = args[30] as String?
+                val iconPacks = args[25] as List<Pair<String, String>>
+                val feelsLike = args[26] as String?
+                val summary = args[27] as String?
+                val aqi = args[28] as String?
+                val aqiLabel = args[29] as String?
+                val low = args[30] as String?
+                val high = args[31] as String?
 
                 val isDefault = cachedIsDefault
                 val allUsage = usageResult.appStats
@@ -624,6 +639,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 
                 val currentTime = System.currentTimeMillis()
                 val isUltraFocusActive = settings.ultraFocusEndTime > currentTime
+                val remainingMillis = if (isUltraFocusActive) settings.ultraFocusEndTime - tickTime else 0L
 
                 val currentLayoutStyle = if (isUltraFocusActive) "ultra_focus" else settings.layoutStyle
                 val ultraFocusTiles = if (currentLayoutStyle == "ultra_focus") allTiles.take(18) else emptyList()
@@ -782,6 +798,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     nativeAd = nativeAd,
                     isAdLoading = isAdLoading,
                     isLoaded = true,
+                    ultraFocusRemainingMillis = remainingMillis,
                     hasUsageStatsPermission = usageManager.hasUsageStatsPermission(),
                     currentThemeMode = themeMode,
                     installedIconPacks = iconPacks
