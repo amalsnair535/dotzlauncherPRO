@@ -40,7 +40,7 @@ import com.dotz.launcherpro.manager.UsageStatsResult
 import com.dotz.launcherpro.services.DotzNotificationService
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1184,37 +1184,47 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
         viewModelScope.launch {
             try {
-                // 1. Fetch Detailed Weather
-                val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
-                val airQualityUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=$lat&longitude=$lon&current=us_aqi"
-
-                val weatherResult = withContext(Dispatchers.IO) {
-                    java.net.URL(weatherUrl).readText()
-                }
-                val aqiResult = withContext(Dispatchers.IO) {
-                    try { java.net.URL(airQualityUrl).readText() } catch (e: Exception) { null }
+                // 1. Start both requests in parallel using async
+                val weatherDeferred = async(Dispatchers.IO) {
+                    try {
+                        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
+                        java.net.URL(url).readText()
+                    } catch (e: Exception) { null }
                 }
 
-                val weatherJson = Gson().fromJson(weatherResult, JsonObject::class.java)
-                val current = weatherJson.getAsJsonObject("current")
-                val daily = weatherJson.getAsJsonObject("daily")
+                val aqiDeferred = async(Dispatchers.IO) {
+                    try {
+                        val url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=$lat&longitude=$lon&current=us_aqi"
+                        java.net.URL(url).readText()
+                    } catch (e: Exception) { null }
+                }
 
-                if (current != null) {
-                    val temp = current.get("temperature_2m").asDouble
-                    val feelsLike = current.get("apparent_temperature").asDouble
-                    val weatherCode = current.get("weather_code").asInt
-                    
-                    val low = daily?.get("temperature_2m_min")?.asJsonArray?.get(0)?.asDouble ?: 0.0
-                    val high = daily?.get("temperature_2m_max")?.asJsonArray?.get(0)?.asDouble ?: 0.0
+                // 2. Wait for both results
+                val weatherResult = weatherDeferred.await() as String?
+                val aqiResult = aqiDeferred.await() as String?
 
-                    val condition = mapWmoCode(weatherCode)
-                    
-                    _weatherTemp.value = "${temp.toInt()}°"
-                    _weatherCondition.value = condition
-                    _weatherFeelsLike.value = "Feels like ${feelsLike.toInt()}°"
-                    _weatherLow.value = "${low.toInt()}°"
-                    _weatherHigh.value = "${high.toInt()}°"
-                    _weatherSummary.value = "The skies will be ${condition.lowercase()}. The low will be ${low.toInt()}°."
+                if (weatherResult != null) {
+                    val weatherJson = Gson().fromJson(weatherResult, JsonObject::class.java)
+                    val current = weatherJson.getAsJsonObject("current")
+                    val daily = weatherJson.getAsJsonObject("daily")
+
+                    if (current != null) {
+                        val temp = current.get("temperature_2m").asDouble
+                        val feelsLike = current.get("apparent_temperature").asDouble
+                        val weatherCode = current.get("weather_code").asInt
+                        
+                        val low = daily?.get("temperature_2m_min")?.asJsonArray?.get(0)?.asDouble ?: 0.0
+                        val high = daily?.get("temperature_2m_max")?.asJsonArray?.get(0)?.asDouble ?: 0.0
+
+                        val condition = mapWmoCode(weatherCode)
+                        
+                        _weatherTemp.value = "${temp.toInt()}°"
+                        _weatherCondition.value = condition
+                        _weatherFeelsLike.value = "Feels like ${feelsLike.toInt()}°"
+                        _weatherLow.value = "${low.toInt()}°"
+                        _weatherHigh.value = "${high.toInt()}°"
+                        _weatherSummary.value = "The skies will be ${condition.lowercase()}. The low will be ${low.toInt()}°."
+                    }
                 }
 
                 if (aqiResult != null) {
