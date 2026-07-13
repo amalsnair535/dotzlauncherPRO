@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.4] - 2026-07-04
+
+### Added
+- **Detailed Weather Header**: Introduced a new "Weather" header mode that provides comprehensive real-time insights, including "Feels Like" temperature, daily highs/lows, and a conditions summary.
+- **Air Quality Integration (AQI)**: Stay informed about your environment with live AQI tracking integrated directly into the new Weather header.
+
 ## [6.0.3] - 2026-07-04
 
 ### Added

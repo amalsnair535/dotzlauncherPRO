@@ -75,6 +75,12 @@ data class LauncherUiState(
     val isDefaultLauncher: Boolean = false,
     val weatherTemp: String? = null,
     val weatherCondition: String? = null,
+    val weatherFeelsLike: String? = null,
+    val weatherSummary: String? = null,
+    val weatherAqi: String? = null,
+    val weatherAqiLabel: String? = null,
+    val weatherLow: String? = null,
+    val weatherHigh: String? = null,
     val activeNotifications: List<com.dotz.launcherpro.services.NotificationItem> = emptyList(),
     val blockedNotificationsCount: Int = 0,
     val nowPlayingTitle: String = "Not Playing",
@@ -224,6 +230,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isMobileDataEnabled = MutableStateFlow(true)
     private val _weatherTemp = MutableStateFlow<String?>(null)
     private val _weatherCondition = MutableStateFlow<String?>(null)
+    private val _weatherFeelsLike = MutableStateFlow<String?>(null)
+    private val _weatherSummary = MutableStateFlow<String?>(null)
+    private val _weatherAqi = MutableStateFlow<String?>(null)
+    private val _weatherAqiLabel = MutableStateFlow<String?>(null)
+    private val _weatherLow = MutableStateFlow<String?>(null)
+    private val _weatherHigh = MutableStateFlow<String?>(null)
     private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
     private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
@@ -540,7 +552,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _nativeAdFlow,
                 _isAdLoading,
                 _timerTicker,
-                _installedIconPacks
+                _installedIconPacks,
+                _weatherFeelsLike,
+                _weatherSummary,
+                _weatherAqi,
+                _weatherAqiLabel,
+                _weatherLow,
+                _weatherHigh
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
@@ -575,6 +593,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val tickTime = args[24] as Long
                 @Suppress("UNCHECKED_CAST")
                 val iconPacks = args[25] as List<Pair<String, String>>
+                val feelsLike = args[26] as String?
+                val summary = args[27] as String?
+                val aqi = args[28] as String?
+                val aqiLabel = args[29] as String?
+                val low = args[30] as String?
+                val high = args[31] as String?
 
                 val isDefault = cachedIsDefault
                 val allUsage = usageResult.appStats
@@ -736,6 +760,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isDefaultLauncher = isDefault,
                     weatherTemp = temp,
                     weatherCondition = condition,
+                    weatherFeelsLike = feelsLike,
+                    weatherSummary = summary,
+                    weatherAqi = aqi,
+                    weatherAqiLabel = aqiLabel,
+                    weatherLow = low,
+                    weatherHigh = high,
                     activeNotifications = notifications,
                     blockedNotificationsCount = blocked,
                     nowPlayingTitle = nowPlaying.component1(),
@@ -1154,42 +1184,71 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
         viewModelScope.launch {
             try {
-                // Using Open-Meteo API - Free, reliable, and no API key required
-                val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true"
-                
-                val result = withContext(Dispatchers.IO) {
-                    val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                    connection.connectTimeout = 10000
-                    connection.readTimeout = 10000
-                    
-                    val responseCode = connection.responseCode
-                    if (responseCode == 200) {
-                        connection.inputStream.bufferedReader().use { it.readText() }
-                    } else {
-                        throw Exception("HTTP $responseCode")
-                    }
+                // 1. Fetch Detailed Weather
+                val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
+                val airQualityUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=$lat&longitude=$lon&current=us_aqi"
+
+                val weatherResult = withContext(Dispatchers.IO) {
+                    java.net.URL(weatherUrl).readText()
                 }
-                
-                val json = Gson().fromJson(result, JsonObject::class.java)
-                val current = json.getAsJsonObject("current_weather")
-                
+                val aqiResult = withContext(Dispatchers.IO) {
+                    try { java.net.URL(airQualityUrl).readText() } catch (e: Exception) { null }
+                }
+
+                val weatherJson = Gson().fromJson(weatherResult, JsonObject::class.java)
+                val current = weatherJson.getAsJsonObject("current")
+                val daily = weatherJson.getAsJsonObject("daily")
+
                 if (current != null) {
-                    val temp = current.get("temperature").asDouble
-                    val weatherCode = current.get("weathercode").asInt
+                    val temp = current.get("temperature_2m").asDouble
+                    val feelsLike = current.get("apparent_temperature").asDouble
+                    val weatherCode = current.get("weather_code").asInt
                     
-                    _weatherTemp.value = "${temp.toInt()}°C"
-                    _weatherCondition.value = mapWmoCode(weatherCode)
+                    val low = daily?.get("temperature_2m_min")?.asJsonArray?.get(0)?.asDouble ?: 0.0
+                    val high = daily?.get("temperature_2m_max")?.asJsonArray?.get(0)?.asDouble ?: 0.0
+
+                    val condition = mapWmoCode(weatherCode)
+                    
+                    _weatherTemp.value = "${temp.toInt()}°"
+                    _weatherCondition.value = condition
+                    _weatherFeelsLike.value = "Feels like ${feelsLike.toInt()}°"
+                    _weatherLow.value = "${low.toInt()}°"
+                    _weatherHigh.value = "${high.toInt()}°"
+                    _weatherSummary.value = "The skies will be ${condition.lowercase()}. The low will be ${low.toInt()}°."
+                }
+
+                if (aqiResult != null) {
+                    val aqiJson = Gson().fromJson(aqiResult, JsonObject::class.java)
+                    val aqiCurrent = aqiJson.getAsJsonObject("current")
+                    if (aqiCurrent != null) {
+                        val usAqi = aqiCurrent.get("us_aqi").asInt
+                        _weatherAqi.value = usAqi.toString()
+                        _weatherAqiLabel.value = when {
+                            usAqi <= 50 -> "Good"
+                            usAqi <= 100 -> "Moderate"
+                            usAqi <= 150 -> "Unhealthy for Sensitive Groups"
+                            usAqi <= 200 -> "Unhealthy"
+                            usAqi <= 300 -> "Very Unhealthy"
+                            else -> "Hazardous"
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("DotzWeather", "Failed to fetch weather: ${e.message}")
-                // Clear the cache time so we can retry sooner on error
                 prefs.setLastWeatherFetchTime(0L)
                 if (_weatherTemp.value == null) {
-                    _weatherTemp.value = "--°C"
+                    _weatherTemp.value = "--°"
                     _weatherCondition.value = "Offline"
                 }
             }
         }
+    }
+
+    private fun java.net.URL.readText(): String {
+        val connection = openConnection() as java.net.HttpURLConnection
+        connection.connectTimeout = 10000
+        connection.readTimeout = 10000
+        return connection.inputStream.bufferedReader().use { it.readText() }
     }
 
     private fun mapWmoCode(code: Int): String {

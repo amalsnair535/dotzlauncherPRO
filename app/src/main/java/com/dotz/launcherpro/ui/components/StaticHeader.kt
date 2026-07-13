@@ -36,6 +36,12 @@ fun StaticHeader(
     networkStatus: String,
     weatherTemp: String?,
     weatherCondition: String?,
+    weatherFeelsLike: String? = null,
+    weatherSummary: String? = null,
+    weatherAqi: String? = null,
+    weatherAqiLabel: String? = null,
+    weatherLow: String? = null,
+    weatherHigh: String? = null,
     showWeatherInfo: Boolean,
     isWifiEnabled: Boolean,
     isBluetoothEnabled: Boolean,
@@ -190,6 +196,17 @@ fun StaticHeader(
                     notificationsReceived = notificationsReceived,
                     totalAppOpens = totalAppOpens,
                     focusScore = focusScore,
+                    onSettingsClick = onLauncherSettingsTap
+                )
+            } else if (headerMode == "weather") {
+                WeatherHeaderWidget(
+                    temp = weatherTemp ?: "--",
+                    condition = weatherCondition ?: "Unknown",
+                    feelsLike = weatherFeelsLike ?: "",
+                    summary = weatherSummary ?: "",
+                    aqi = weatherAqi,
+                    aqiLabel = weatherAqiLabel,
+                    onWeatherClick = onWeatherClick,
                     onSettingsClick = onLauncherSettingsTap
                 )
             } else {
@@ -487,6 +504,144 @@ fun FocusStatsWidget(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun WeatherHeaderWidget(
+    temp: String,
+    condition: String,
+    feelsLike: String,
+    summary: String,
+    aqi: String?,
+    aqiLabel: String?,
+    onWeatherClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) glassColor.copy(alpha = 0.05f) else DotzTheme.colors.tile.copy(alpha = 0.7f)
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .padding(horizontal = 8.dp)
+            .clickable { onWeatherClick() }
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            ),
+        shape = RoundedCornerShape(28.dp),
+        color = containerColor
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Current weather",
+                        color = DotzTheme.colors.text.copy(alpha = 0.9f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = currentTime(context),
+                        color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                        fontSize = 11.sp
+                    )
+                }
+                
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(24.dp).offset(x = 8.dp, y = (-8).dp)
+                ) {
+                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(14.dp))
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = when {
+                        condition.contains("Clear") -> Icons.Default.WbSunny
+                        condition.contains("Cloud") -> Icons.Default.Cloud
+                        condition.contains("Rain") || condition.contains("Drizzle") -> Icons.Default.WaterDrop
+                        condition.contains("Thunder") -> Icons.Default.Thunderstorm
+                        condition.contains("Snow") -> Icons.Default.AcUnit
+                        else -> Icons.Default.Cloud
+                    },
+                    contentDescription = null,
+                    tint = DotzTheme.colors.accent,
+                    modifier = Modifier.size(48.dp)
+                )
+
+                Spacer(Modifier.width(16.dp))
+
+                Text(
+                    text = temp,
+                    color = DotzTheme.colors.text,
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.Light
+                )
+
+                Spacer(Modifier.width(24.dp))
+
+                Column {
+                    Text(
+                        text = condition,
+                        color = DotzTheme.colors.text,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (feelsLike.isNotBlank()) {
+                        Text(
+                            text = feelsLike,
+                            color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    if (!aqi.isNullOrBlank()) {
+                        Text(
+                            text = "AQI: $aqi ($aqiLabel)",
+                            color = DotzTheme.colors.accent.copy(alpha = 0.8f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = summary,
+                color = DotzTheme.colors.text.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
