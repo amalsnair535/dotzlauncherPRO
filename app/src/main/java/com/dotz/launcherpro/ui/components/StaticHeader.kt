@@ -62,6 +62,7 @@ fun StaticHeader(
     notificationsReceived: Int = 0,
     totalAppOpens: Int = 0,
     focusScore: Int = 100,
+    focusSoundPlaying: String? = null,
     onPlayPause: () -> Unit = {},
     onSkipNext: () -> Unit = {},
     onSkipPrevious: () -> Unit = {},
@@ -74,6 +75,7 @@ fun StaticHeader(
     onDarkModeToggle: () -> Unit,
     onDataClick: () -> Unit,
     onWeatherClick: () -> Unit,
+    onFocusSoundClick: (String) -> Unit = {},
     onWifiLongClick: () -> Unit = {},
     onBluetoothLongClick: () -> Unit = {},
     onDataLongClick: () -> Unit = {},
@@ -207,6 +209,12 @@ fun StaticHeader(
                     aqi = weatherAqi,
                     aqiLabel = weatherAqiLabel,
                     onWeatherClick = onWeatherClick,
+                    onSettingsClick = onLauncherSettingsTap
+                )
+            } else if (headerMode == "sounds") {
+                FocusSoundsWidget(
+                    currentSound = focusSoundPlaying,
+                    onSoundClick = onFocusSoundClick,
                     onSettingsClick = onLauncherSettingsTap
                 )
             } else {
@@ -642,6 +650,108 @@ fun WeatherHeaderWidget(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+@Composable
+fun FocusSoundsWidget(
+    currentSound: String?,
+    onSoundClick: (String) -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    val isGlass = DotzTheme.colors.isGlass
+    val glassColor = DotzTheme.colors.text
+    val containerColor = if (isGlass) glassColor.copy(alpha = 0.05f) else DotzTheme.colors.tile.copy(alpha = 0.7f)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .padding(horizontal = 8.dp)
+            .then(
+                if (isGlass) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(glassColor.copy(alpha = 0.3f), Color.Transparent, glassColor.copy(alpha = 0.1f)),
+                                start = androidx.compose.ui.geometry.Offset.Zero,
+                                end = androidx.compose.ui.geometry.Offset.Infinite
+                            ),
+                            size = size,
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(28.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
+                        )
+                    }
+                } else Modifier
+            ),
+        shape = RoundedCornerShape(28.dp),
+        color = containerColor
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "FOCUS SOUNDS",
+                    color = DotzTheme.colors.accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp
+                )
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(24.dp).offset(x = 8.dp, y = (-8).dp)
+                ) {
+                    Icon(Icons.Default.Settings, null, tint = DotzTheme.colors.text.copy(alpha = 0.2f), modifier = Modifier.size(14.dp))
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf(
+                    "Rain" to Icons.Default.WaterDrop,
+                    "Brown Noise" to Icons.Default.GraphicEq,
+                    "Lo-Fi" to Icons.Default.MusicNote
+                ).forEach { (name, icon) ->
+                    val isPlaying = currentSound == name
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { onSoundClick(name) }
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isPlaying) DotzTheme.colors.accent else DotzTheme.colors.text.copy(alpha = 0.05f),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = name,
+                                    tint = if (isPlaying) DotzTheme.colors.solidBackground else DotzTheme.colors.text,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = name,
+                            color = DotzTheme.colors.text,
+                            fontSize = 10.sp,
+                            fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
         }
     }
 }
