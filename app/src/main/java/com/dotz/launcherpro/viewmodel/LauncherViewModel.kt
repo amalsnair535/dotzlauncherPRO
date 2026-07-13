@@ -733,21 +733,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     ))
                 }
 
-                // 4. Final List Processing & Sponsored Insertion (Once per 24h, non-premium only)
-                val finalTimeline = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id }.toMutableList()
-                
-                val dayMillis = 24 * 60 * 60 * 1000L
-                if (!isCurrentlyPremium && (currentTime - settings.lastSponsoredShowTime > dayMillis)) {
-                    val topPkg = topApps.firstOrNull()?.packageName
-                    val selectedAd = SponsoredContentManager.getRecommendedAd(topPkg, currentTime)
-
-                    // 3. Insert into the timeline after 6 regular items
-                    if (finalTimeline.size >= 6) {
-                        finalTimeline.add(6, selectedAd)
-                    } else {
-                        finalTimeline.add(selectedAd)
-                    }
-                }
+                // 4. Final List Processing & Clean (Remove Sponsored/Ads for testing)
+                val finalTimeline = timeline
+                    .filter { it.type != TimelineType.SPONSORED }
+                    .sortedByDescending { it.timestamp }
+                    .distinctBy { it.id }
+                    .toMutableList()
 
                 LauncherUiState(
                     page0Tiles = p0,
@@ -1502,6 +1493,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setHomeHeaderMode(value: String) = viewModelScope.launch {
         prefs.setHomeHeaderMode(value)
+    }
+
+    fun setBatchNotifications(value: Boolean) = viewModelScope.launch {
+        prefs.setBatchNotifications(value)
+    }
+
+    fun deliverBatch() = viewModelScope.launch {
+        prefs.setLastBatchTime(System.currentTimeMillis())
+        refreshState()
     }
 
     fun setTileTransparency(value: Float) = viewModelScope.launch {

@@ -101,11 +101,11 @@ fun AppTileCard(
     ) else null
     
     // Check cache first, then load if needed
-    val cachedBitmap = remember(tile.packageName, iconPackPackage, grayscale) {
-        iconCache.getIcon(tile.packageName, iconPackPackage, grayscale)
+    val cachedBitmap = remember(tile.packageName, iconPackPackage, true) {
+        iconCache.getIcon(tile.packageName, iconPackPackage, true)
     }
 
-    val colorFilter = if (grayscale && (cachedBitmap == null)) {
+    val colorFilter = if (cachedBitmap == null) {
         // Only apply color filter if we didn't get a grayscale-rendered bitmap from cache
         ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
     } else null
@@ -155,16 +155,16 @@ fun AppTileCard(
                 modifier = Modifier.size(40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Determine icon source
-                val iconAny = remember(tile.packageName, iconPackPackage, grayscale) {
-                    iconCache.getIcon(tile.packageName, iconPackPackage, grayscale)
+                // Determine icon source - Always use grayscale for drawing
+                val iconAny = remember(tile.packageName, iconPackPackage) {
+                    iconCache.getIcon(tile.packageName, iconPackPackage, true)
                         ?: IconUtils.loadAppIcon(context, tile.packageName, iconPackPackage, iconCache)?.also {
-                            iconCache.saveIcon(tile.packageName, iconPackPackage, grayscale, it)
+                            iconCache.saveIcon(tile.packageName, iconPackPackage, true, it)
                         }
                 }
 
                 if (iconAny != null) {
-                    val bitmap = remember(iconAny, grayscale) {
+                    val bitmap = remember(iconAny) {
                         when (iconAny) {
                             is android.graphics.Bitmap -> iconAny.asImageBitmap()
                             is Drawable -> {

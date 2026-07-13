@@ -67,6 +67,7 @@ fun DotzHomeScreen(
     var showAppDrawerConfirmDialog by remember { mutableStateOf(false) }
     var hasAcceptedLocally by remember { mutableStateOf(false) }
     var showOnboarding by remember { mutableStateOf(false) }
+    var showIntentionPause by remember { mutableStateOf<String?>(null) }
 
     val hapticPulse = {
         val vibrator = context.getSystemService(Vibrator::class.java)
@@ -87,13 +88,18 @@ fun DotzHomeScreen(
     )
 
     val launchApp = { pkg: String ->
-        val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-        if (intent != null) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+        val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
+        if (isSocial && showIntentionPause == null) {
+            showIntentionPause = pkg
         } else {
-            // Handle unassigned
-            tileToAssign = (uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles).find { it.packageName == pkg }
+            val intent = context.packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } else {
+                // Handle unassigned
+                tileToAssign = (uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles).find { it.packageName == pkg }
+            }
         }
     }
 
@@ -399,6 +405,69 @@ fun DotzHomeScreen(
                     )
                 },
             )
+        }
+
+        showIntentionPause?.let { pkg ->
+            IntentionPauseOverlay(
+                onFinished = {
+                    showIntentionPause = null
+                    launchApp(pkg)
+                },
+                onCancel = { showIntentionPause = null }
+            )
+        }
+    }
+}
+
+@Composable
+fun IntentionPauseOverlay(onFinished: () -> Unit, onCancel: () -> Unit) {
+    var timeLeft by remember { mutableStateOf(3) }
+    
+    LaunchedEffect(Unit) {
+        while (timeLeft > 0) {
+            kotlinx.coroutines.delay(1000)
+            timeLeft--
+        }
+        onFinished()
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color.Black.copy(alpha = 0.95f)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Wait a moment...",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Do you really need to open this app right now?",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(48.dp))
+            Text(
+                "$timeLeft",
+                style = MaterialTheme.typography.displayLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Black
+            )
+            Spacer(Modifier.height(64.dp))
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                shape = CircleShape
+            ) {
+                Text("NEVER MIND", color = Color.White)
+            }
         }
     }
 }

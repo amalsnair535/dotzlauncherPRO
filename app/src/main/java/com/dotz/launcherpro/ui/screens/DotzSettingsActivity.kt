@@ -74,6 +74,8 @@ data class SettingsActions(
     val onDeleteProfile: (String) -> Unit,
     val onSwitchProfile: (String) -> Unit,
     val onStartUltraFocus: (Int) -> Unit,
+    val onBatchNotificationsToggle: (Boolean) -> Unit,
+    val onDeliverBatch: () -> Unit
 )
 
 class DotzSettingsActivity : ComponentActivity() {
@@ -162,8 +164,10 @@ class DotzSettingsActivity : ComponentActivity() {
                         onCreateProfile = viewModel::createProfile,
                         onDeleteProfile = viewModel::deleteProfile,
                         onSwitchProfile = viewModel::switchProfile,
-                        onStartUltraFocus = viewModel::startUltraFocusSession
-                    )
+                onStartUltraFocus = viewModel::startUltraFocusSession,
+                onBatchNotificationsToggle = viewModel::setBatchNotifications,
+                onDeliverBatch = viewModel::deliverBatch
+            )
                 )
             }
         }
@@ -468,6 +472,21 @@ private fun DotzSettingsScreen(
 
             // --- Notifications ---
             item(key = "group_notifications") { SettingsGroup(title = stringResource(R.string.settings_group_notifications)) {
+                SettingsToggleRow(
+                    label = "Batch Notifications",
+                    icon = Icons.Default.Inventory,
+                    checked = settings.batchNotifications,
+                    onToggle = actions.onBatchNotificationsToggle,
+                    subtitle = "Deliver in batches every 4 hours"
+                )
+                if (settings.batchNotifications) {
+                    SettingsActionRow(
+                        label = "Deliver Batch Now",
+                        icon = Icons.Default.MoveToInbox,
+                        onClick = actions.onDeliverBatch
+                    )
+                }
+                Divider()
                 SettingsToggleRow(label = stringResource(R.string.settings_item_notification_dots), icon = Icons.Default.Circle, checked = settings.showNotificationDots, onToggle = actions.onShowDots)
                 Divider()
                 SettingsToggleRow(label = stringResource(R.string.settings_item_numerical_counts), icon = Icons.Default.Pin, checked = settings.showNumericalCounts, onToggle = actions.onShowCounts)

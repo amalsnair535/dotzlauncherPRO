@@ -104,11 +104,11 @@ private fun AppListTile(
         end = Offset.Infinite
     ) else null
 
-    val cachedBitmap = remember(tile.packageName, iconPackPackage, grayscale) {
-        iconCache.getIcon(tile.packageName, iconPackPackage, grayscale)
+    val cachedBitmap = remember(tile.packageName, iconPackPackage, true) {
+        iconCache.getIcon(tile.packageName, iconPackPackage, true)
     }
 
-    val colorFilter = if (grayscale && cachedBitmap == null) {
+    val colorFilter = if (cachedBitmap == null) {
         ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
     } else null
 
@@ -152,15 +152,15 @@ private fun AppListTile(
             modifier = Modifier.size(48.dp),
             contentAlignment = Alignment.Center
         ) {
-            val iconAny = remember(tile.packageName, iconPackPackage, grayscale) {
-                iconCache.getIcon(tile.packageName, iconPackPackage, grayscale)
+            val iconAny = remember(tile.packageName, iconPackPackage) {
+                iconCache.getIcon(tile.packageName, iconPackPackage, true)
                     ?: IconUtils.loadAppIcon(context, tile.packageName, iconPackPackage, iconCache)?.also {
-                        iconCache.saveIcon(tile.packageName, iconPackPackage, grayscale, it)
+                        iconCache.saveIcon(tile.packageName, iconPackPackage, true, it)
                     }
             }
 
             if (iconAny != null) {
-                val bitmap = remember(iconAny, grayscale) {
+                val bitmap = remember(iconAny) {
                     when (iconAny) {
                         is android.graphics.Bitmap -> iconAny.asImageBitmap()
                         is android.graphics.drawable.Drawable -> {

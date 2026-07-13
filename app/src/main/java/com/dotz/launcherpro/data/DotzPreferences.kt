@@ -26,7 +26,7 @@ data class LauncherProfile(
 
 data class DotzSettings(
     val showNotificationDots: Boolean = true,
-    val showNumericalCounts: Boolean = true,
+    val showNumericalCounts: Boolean = false,
     val grayscaleMode: Boolean = false,
     val iconPackPackage: String? = null,
     val themeId: String = "default",
@@ -62,6 +62,8 @@ data class DotzSettings(
     val hasAcceptedAppDisclosure: Boolean = false,
     val hasSeenOnboarding: Boolean = false,
     val lastSponsoredShowTime: Long = 0,
+    val batchNotifications: Boolean = false,
+    val lastBatchTime: Long = 0,
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
@@ -108,6 +110,8 @@ object PrefsKeys {
     val HAS_ACCEPTED_APP_DISCLOSURE = booleanPreferencesKey("has_accepted_app_disclosure")
     val HAS_SEEN_ONBOARDING = booleanPreferencesKey("has_seen_onboarding")
     val LAST_SPONSORED_SHOW_TIME = longPreferencesKey("last_sponsored_show_time")
+    val BATCH_NOTIFICATIONS     = booleanPreferencesKey("batch_notifications")
+    val LAST_BATCH_TIME          = longPreferencesKey("last_batch_time")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
@@ -186,6 +190,8 @@ class DotzPreferencesRepository(private val context: Context) {
                 hasAcceptedAppDisclosure = prefs[PrefsKeys.HAS_ACCEPTED_APP_DISCLOSURE] ?: false,
                 hasSeenOnboarding = prefs[PrefsKeys.HAS_SEEN_ONBOARDING] ?: false,
                 lastSponsoredShowTime = prefs[PrefsKeys.LAST_SPONSORED_SHOW_TIME] ?: 0,
+                batchNotifications = prefs[PrefsKeys.BATCH_NOTIFICATIONS] ?: false,
+                lastBatchTime = prefs[PrefsKeys.LAST_BATCH_TIME] ?: 0,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
                 profiles             = profilesList,
@@ -328,6 +334,14 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setLastSponsoredShowTime(value: Long) {
         context.dataStore.edit { it[PrefsKeys.LAST_SPONSORED_SHOW_TIME] = value }
+    }
+
+    suspend fun setBatchNotifications(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.BATCH_NOTIFICATIONS] = value }
+    }
+
+    suspend fun setLastBatchTime(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.LAST_BATCH_TIME] = value }
     }
 
     suspend fun setTileTransparency(value: Float) {

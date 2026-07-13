@@ -33,6 +33,8 @@ class DotzNotificationService : NotificationListenerService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var prefsRepository: DotzPreferencesRepository
     private var isFilterEnabled = false
+    private var isBatchingEnabled = false
+    private var lastBatchTime = 0L
 
     companion object {
         /** Map of packageName → notification count (0 means "dot only") */
@@ -101,6 +103,8 @@ class DotzNotificationService : NotificationListenerService() {
         serviceScope.launch {
             prefsRepository.settingsFlow.collectLatest { settings ->
                 isFilterEnabled = settings.notificationFilterEnabled
+                isBatchingEnabled = settings.batchNotifications
+                lastBatchTime = settings.lastBatchTime
                 rebuildCounts()
             }
         }
@@ -130,10 +134,24 @@ class DotzNotificationService : NotificationListenerService() {
             val counts = mutableMapOf<String, Int>()
             val items = mutableListOf<NotificationItem>()
             var blocked = 0
+            
+            val now = System.currentTimeMillis()
+            val hourMillis = 4 * 60 * 60 * 1000L // 4 hours for testing/default
+            val shouldHold = isBatchingEnabled && (now - lastBatchTime < hourMillis)
 
             activeNotifications?.forEach { sbn ->
                 if (!sbn.isOngoing) {
                     val pkg = sbn.packageName
+                    
+                    if (shouldHold) {
+                        // If batching is on and we haven't reached the interval, "block" everything
+                        // except maybe Dialer/System which we can choose to bypass
+                        if (pkg != "com.android.dialer" && pkg != "com.android.server.telecom") {
+                           blocked++
+                           return@forEach
+                        }
+                    }
+
                     val isDistracting = DefaultApps.distractingPackages.any { pkg.contains(it, ignoreCase = true) }
                     
                     if (isFilterEnabled && isDistracting) {
