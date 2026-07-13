@@ -411,7 +411,11 @@ fun DotzHomeScreen(
             IntentionPauseOverlay(
                 onFinished = {
                     showIntentionPause = null
-                    launchApp(pkg)
+                    val intent = context.packageManager.getLaunchIntentForPackage(pkg)
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    }
                 },
                 onCancel = { showIntentionPause = null }
             )
