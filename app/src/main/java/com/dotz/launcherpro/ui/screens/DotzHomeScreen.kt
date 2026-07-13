@@ -211,7 +211,7 @@ fun DotzHomeScreen(
                 
                 UltraFocusLayout(
                     tiles = uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles,
-                    remainingMillis = uiState.ultraFocusRemainingMillis,
+                    endTime = uiState.settings.ultraFocusEndTime,
                     onTileTap = { tile ->
                         if (tile.packageName == context.packageName) onLauncherSettingsTap()
                         else launchApp(tile.packageName)

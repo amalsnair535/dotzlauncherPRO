@@ -8,7 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,15 +20,30 @@ import androidx.compose.ui.unit.sp
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
+import kotlinx.coroutines.delay
 
 @Composable
 fun UltraFocusLayout(
     tiles: List<AppTile>,
-    remainingMillis: Long,
+    endTime: Long,
     onTileTap: (AppTile) -> Unit,
     onEndSession: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    
+    LaunchedEffect(endTime) {
+        while (currentTime < endTime) {
+            delay(1000)
+            currentTime = System.currentTimeMillis()
+        }
+        if (currentTime >= endTime && endTime > 0) {
+            onEndSession()
+        }
+    }
+
+    val remainingMillis = (endTime - currentTime).coerceAtLeast(0)
+
     // Timer text
     val minutes = (remainingMillis / 60000).toInt()
     val seconds = ((remainingMillis % 60000) / 1000).toInt()
