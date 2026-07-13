@@ -138,6 +138,8 @@ object DefaultApps {
     )
 
     fun isSocialMediaApp(packageName: String): Boolean {
+        // Exclude WhatsApp from the Intention Pause logic as it's often used for essential communication
+        if (packageName.contains("whatsapp", ignoreCase = true)) return false
         return distractingPackages.any { packageName.contains(it, ignoreCase = true) }
     }
 }
