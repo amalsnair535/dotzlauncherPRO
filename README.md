@@ -10,12 +10,15 @@ Inspired by hardware minimalism and modern, focus-driven dashboard interfaces, D
 
 ## 📱 Screenshots
 
-<img width="1920" height="1080" alt="LIGHT_20260621_002632_0000" src="https://github.com/user-attachments/assets/073609d8-3262-471f-b19c-cd0a600e36ee" />
-<img width="1920" height="1080" alt="LIGHT_20260621_002951_0000" src="https://github.com/user-attachments/assets/d0437a42-fd82-4958-b988-593773fbfa1e" />
-<img width="1615" height="974" alt="file_000000008fb4720b944af88ccb91f6e5" src="https://github.com/user-attachments/assets/ad25bae7-e8fe-4023-95dd-640183a5676a" />
-<img width="1678" height="937" alt="file_000000004d5c720b963e08ec84d72b38" src="https://github.com/user-attachments/assets/ebd632d9-64cc-4e0f-b8ed-2deed5050220" />
-
-
+<img width="1080" height="746" alt="Untitled design (6)" src="https://github.com/user-attachments/assets/855c1ef0-7e65-4c31-ae2a-4b59bedc295a" />
+<img width="1080" height="748" alt="Untitled design (7)" src="https://github.com/user-attachments/assets/b531608d-deac-4593-8dbe-f8b3825fb40f" />
+<img width="1080" height="746" alt="Untitled design (5)" src="https://github.com/user-attachments/assets/abb3c855-489c-419b-af2c-32eb2e1fe515" />
+<img width="1080" height="740" alt="Untitled design (4)" src="https://github.com/user-attachments/assets/39591962-8853-49b9-92b6-b35edb6b5052" />
+<img width="1080" height="745" alt="Untitled design (3)" src="https://github.com/user-attachments/assets/ad50f187-85b1-4ec9-a3e9-3e2ff0edb091" />
+<img width="1080" height="752" alt="Untitled design (11)" src="https://github.com/user-attachments/assets/86108f57-c97e-4151-9f71-e6e6935ccf62" />
+<img width="1080" height="752" alt="Untitled design (10)" src="https://github.com/user-attachments/assets/0edfb4bb-c829-4519-9cb9-cf168fbc8aee" />
+<img width="1080" height="746" alt="Untitled design (9)" src="https://github.com/user-attachments/assets/cc1f0856-70c7-4c0f-bc6b-75458c82393f" />
+<img width="1080" height="746" alt="Untitled design (8)" src="https://github.com/user-attachments/assets/c173453d-550f-4092-bf46-9c7a3bcce614" />
 
 ## 🧠 Core Philosophy
 Dotz Launcher is a minimalist, high-intentionality dashboard designed to reduce digital clutter. It transforms your phone into a tool for productivity rather than a source of distraction by neutralizing eye-catching branding and introducing intentional friction.
