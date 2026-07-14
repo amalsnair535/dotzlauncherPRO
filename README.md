@@ -1,7 +1,7 @@
 # Dotz Launcher
 
-<img width="200" height="200" alt="icon newnewww" src="https://github.com/user-attachments/assets/4237df91-61a9-42f8-9e9f-da845491d9b9" />
-
+<img width="1080" height="1080" alt="Untitled design (13)" src="https://github.com/user-attachments/assets/15b74722-45c0-49a2-a36b-54db4b5684f2" />
+<img width="1080" height="1080" alt="Untitled design (12)" src="https://github.com/user-attachments/assets/4695a742-e1e2-4ddc-be73-1ef2081a576f" />
 
 
 **Built by a smartphone addict, for addicts.**
