@@ -1,7 +1,6 @@
 # Dotz Launcher
-
-<img width="1080" height="1080" alt="Untitled design (13)" src="https://github.com/user-attachments/assets/15b74722-45c0-49a2-a36b-54db4b5684f2" />
-<img width="1080" height="1080" alt="Untitled design (12)" src="https://github.com/user-attachments/assets/4695a742-e1e2-4ddc-be73-1ef2081a576f" />
+<img width="1536" height="1024" alt="file_000000005ac871fa8803a95d954a8c13" src="https://github.com/user-attachments/assets/15b6b731-dc96-4b46-997c-e36a401a5f1d" />
+<img width="1536" height="1024" alt="file_00000000a48071fa958b9ae9d456c2e2" src="https://github.com/user-attachments/assets/f24a378b-c2b5-4909-8356-e6771c3b97ae" />
 
 
 **Built by a smartphone addict, for addicts.**
