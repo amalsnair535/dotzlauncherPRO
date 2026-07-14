@@ -102,7 +102,6 @@ data class LauncherUiState(
     val notificationsReceivedToday: Int = 0,
     val totalAppOpens: Int = 0,
     val focusScore: Int = 100,
-    val focusSoundPlaying: String? = null,
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
     val nativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
@@ -130,8 +129,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
     private val mediaSessionManager = application.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
     private var activeController: MediaController? = null
-
-    private val _focusSoundPlaying = MutableStateFlow<String?>(null)
 
     private val mediaCallback = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) {
@@ -566,7 +563,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isAdLoading,
                 _timerTicker,
                 _installedIconPacks,
-                _focusSoundPlaying,
                 _weatherFeelsLike,
                 _weatherSummary,
                 _weatherAqi,
@@ -607,13 +603,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val tickTime = args[24] as Long
                 @Suppress("UNCHECKED_CAST")
                 val iconPacks = args[25] as List<Pair<String, String>>
-                val currentFocusSound = args[26] as String?
-                val feelsLike = args[27] as String?
-                val summary = args[28] as String?
-                val aqi = args[29] as String?
-                val aqiLabel = args[30] as String?
-                val low = args[31] as String?
-                val high = args[32] as String?
+                val feelsLike = args[26] as String?
+                val summary = args[27] as String?
+                val aqi = args[28] as String?
+                val aqiLabel = args[29] as String?
+                val low = args[30] as String?
+                val high = args[31] as String?
 
                 val isDefault = cachedIsDefault
                 val allUsage = usageResult.appStats
@@ -799,7 +794,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     notificationsReceivedToday = usageResult.notificationsReceived,
                     totalAppOpens = usageResult.totalAppOpens,
                     focusScore = calculatedScore,
-                    focusSoundPlaying = currentFocusSound,
                     topApps = topApps,
                     timelineItems = finalTimeline,
                     nativeAd = nativeAd,
@@ -1453,44 +1447,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 prefs.setTileOrder(currentOrder)
             }
         }
-    }
-
-    private var mediaPlayer: android.media.MediaPlayer? = null
-
-    fun toggleFocusSound(soundName: String) {
-        if (_focusSoundPlaying.value == soundName) {
-            stopFocusSound()
-        } else {
-            playFocusSound(soundName)
-        }
-    }
-
-    private fun playFocusSound(soundName: String) {
-        stopFocusSound()
-        val resId = when (soundName) {
-            "Rain" -> R.raw.sound_rain
-            "Brown Noise" -> R.raw.sound_brown_noise
-            "Lo-Fi" -> R.raw.sound_lofi
-            else -> return
-        }
-        
-        try {
-            val app: Application = getApplication()
-            mediaPlayer = android.media.MediaPlayer.create(app, resId)?.apply {
-                isLooping = true
-                start()
-            }
-            _focusSoundPlaying.value = soundName
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun stopFocusSound() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
-        _focusSoundPlaying.value = null
     }
 
     fun setShowNotificationDots(value: Boolean) = viewModelScope.launch {

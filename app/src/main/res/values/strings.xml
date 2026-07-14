@@ -105,7 +105,6 @@
     <string name="header_mode_music">Music</string>
     <string name="header_mode_focus">Focus</string>
     <string name="header_mode_weather">Weather</string>
-    <string name="header_mode_sounds">Sounds</string>
     <string name="layout_grid">GRID</string>
     <string name="layout_list">LIST</string>
 </resources>

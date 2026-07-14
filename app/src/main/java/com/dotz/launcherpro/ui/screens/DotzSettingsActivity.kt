@@ -452,8 +452,7 @@ private fun DotzSettingsScreen(
                             "toggles" to stringResource(R.string.header_mode_toggles),
                             "music" to stringResource(R.string.header_mode_music),
                             "stats" to stringResource(R.string.header_mode_focus),
-                            "weather" to stringResource(R.string.header_mode_weather),
-                            "sounds" to stringResource(R.string.header_mode_sounds)
+                            "weather" to stringResource(R.string.header_mode_weather)
                         ),
                         selected = homeHeaderMode,
                         onSelect = actions.onHomeHeaderModeChange
