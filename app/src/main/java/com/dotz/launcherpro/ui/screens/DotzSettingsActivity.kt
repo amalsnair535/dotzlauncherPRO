@@ -636,19 +636,20 @@ private fun SettingsGroup(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 6.dp)
             .animateContentSize(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.05f))
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(20.dp),
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -656,14 +657,14 @@ private fun SettingsGroup(
                     text = title.uppercase(),
                     style = MaterialTheme.typography.labelLarge.copy(
                         letterSpacing = 2.sp,
-                        fontWeight = FontWeight.Black
+                        fontWeight = FontWeight.ExtraBold
                     ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
             
@@ -671,7 +672,7 @@ private fun SettingsGroup(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp),
+                        .padding(bottom = 16.dp),
                     content = content
                 )
             }
@@ -693,29 +694,39 @@ private fun SettingsToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = !isLocked) { onToggle(!checked) }
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 24.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
-            contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = if (checked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon, 
+                    null, 
+                    tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isLocked) 0.3f else 0.8f), 
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(label, color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    label, 
+                    color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.SemiBold
+                )
                 if (isPremium && isLocked) {
                     Spacer(Modifier.width(8.dp))
                     PremiumBadge()
                 }
             }
             if (subtitle != null) {
-                Text(subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
             }
         }
         Switch(
@@ -723,10 +734,10 @@ private fun SettingsToggleRow(
             onCheckedChange = onToggle,
             enabled = !isLocked,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.surface,
-                checkedTrackColor = MaterialTheme.colorScheme.onSurface,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                uncheckedTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         )
     }
@@ -745,36 +756,46 @@ private fun SettingsActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = !isLocked) { onClick() }
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 24.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
-            contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.size(40.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isLocked) 0.2f else 0.8f), modifier = Modifier.size(18.dp))
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    icon, 
+                    null, 
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isLocked) 0.3f else 0.8f), 
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(label, color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    label, 
+                    color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.SemiBold
+                )
                 if (isPremium && isLocked) {
                     Spacer(Modifier.width(8.dp))
                     PremiumBadge()
                 }
             }
             if (subtitle != null) {
-                Text(subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
             }
         }
         Icon(
             imageVector = if (isLocked) Icons.Default.Lock else Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            modifier = Modifier.size(14.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+            modifier = Modifier.size(16.dp)
         )
     }
 }
@@ -786,45 +807,41 @@ private fun TonalSegmentedControl(
     proOptions: Set<String> = emptySet(),
     onSelect: (String) -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth().height(48.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), RoundedCornerShape(12.dp)).padding(4.dp)) {
+    val scrollState = rememberScrollState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         options.forEach { (mode, label) ->
             val isSelected = selected == mode
             val isPro = proOptions.contains(mode)
             
-            Box(
+            Surface(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .clickable { onSelect(mode) },
-                contentAlignment = Alignment.Center
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(16.dp),
+                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     Text(
-                        label.uppercase(), 
+                        label, 
                         style = MaterialTheme.typography.labelLarge, 
-                        color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), 
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, 
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                     if (isPro) {
-                        Spacer(Modifier.width(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.surface.copy(alpha = 0.1f) 
-                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), 
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                "PRO", 
-                                fontSize = 6.sp, 
-                                fontWeight = FontWeight.Black,
-                                color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        }
+                        Spacer(Modifier.width(6.dp))
+                        PremiumBadge()
                     }
                 }
             }
@@ -835,23 +852,43 @@ private fun TonalSegmentedControl(
 @Composable
 private fun ThemeModeSelectionRow(currentMode: ThemeMode, isPremium: Boolean, isUpgradeAvailable: Boolean, isLiteVersion: Boolean, onModeChange: (ThemeMode) -> Unit, onShowPremiumDialog: () -> Unit) {
     val modes = if (isLiteVersion) listOf(ThemeMode.LIGHT, ThemeMode.DARK) else ThemeMode.entries
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         modes.forEach { mode ->
             val isSelected = currentMode == mode
             val isPro = mode == ThemeMode.CIRCADIAN || mode == ThemeMode.TRANSPARENT
             val locked = isPro && isUpgradeAvailable && !isPremium
 
             Surface(
-                modifier = Modifier.weight(1f).height(64.dp).clickable { if (locked) onShowPremiumDialog() else onModeChange(mode) },
-                shape = RoundedCornerShape(12.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(72.dp)
+                    .clickable { if (locked) onShowPremiumDialog() else onModeChange(mode) },
+                shape = RoundedCornerShape(20.dp),
+                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(4.dp)) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(mode.name, color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                        if (isPro && isUpgradeAvailable) {
-                            Spacer(Modifier.height(4.dp))
-                            PremiumBadge()
+                        Icon(
+                            imageVector = when(mode) {
+                                ThemeMode.LIGHT -> Icons.Default.LightMode
+                                ThemeMode.DARK -> Icons.Default.DarkMode
+                                ThemeMode.CIRCADIAN -> Icons.Default.Schedule
+                                ThemeMode.TRANSPARENT -> Icons.Default.Wallpaper
+                            },
+                            contentDescription = null,
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            mode.name, 
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant, 
+                            style = MaterialTheme.typography.labelSmall, 
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                        )
+                        if (locked) {
+                            PremiumBadge(Modifier.padding(top = 2.dp))
                         }
                     }
                 }
@@ -862,27 +899,28 @@ private fun ThemeModeSelectionRow(currentMode: ThemeMode, isPremium: Boolean, is
 
 @Composable
 private fun TransparencySlider(value: Float, isPremium: Boolean, onChange: (Float) -> Unit) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Opacity, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Opacity, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.label_tile_transparency), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(R.string.label_tile_transparency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
                 if (!isPremium) {
                     Spacer(Modifier.width(8.dp))
                     PremiumBadge()
                 }
             }
-            Text("${(value * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Text("${(value * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         }
+        Spacer(Modifier.height(8.dp))
         Slider(
             value = value,
             onValueChange = onChange,
             valueRange = 0.1f..1.0f,
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.onSurface,
-                activeTrackColor = MaterialTheme.colorScheme.onSurface,
-                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             )
         )
     }
@@ -890,21 +928,33 @@ private fun TransparencySlider(value: Float, isPremium: Boolean, onChange: (Floa
 
 @Composable
 private fun TileLayoutSelection(current: String, isPremium: Boolean, onChange: (String) -> Unit) {
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.label_tile_layout), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Icon(Icons.Default.GridView, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.label_tile_layout), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             if (!isPremium) {
                 Spacer(Modifier.width(8.dp))
                 PremiumBadge()
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(Modifier.height(16.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             listOf("classic" to stringResource(R.string.layout_grid), "list" to stringResource(R.string.layout_list)).forEach { (style, label) ->
                 val selected = current == style
-                Surface(modifier = Modifier.weight(1f).height(40.dp).clickable { onChange(style) }, shape = RoundedCornerShape(8.dp), color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)) {
+                Surface(
+                    modifier = Modifier.weight(1f).height(48.dp).clickable { onChange(style) }, 
+                    shape = RoundedCornerShape(16.dp), 
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(label, color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            label, 
+                            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, 
+                            style = MaterialTheme.typography.labelLarge, 
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                        )
                     }
                 }
             }
