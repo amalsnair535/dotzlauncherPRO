@@ -394,6 +394,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private suspend fun checkNewPhotos() {
         val app = getApplication<Application>()
+        if (ContextCompat.checkSelfPermission(app, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
         val lastCheck = uiState.value.settings.lastPhotoCheckTime
         val cursor = app.contentResolver.query(
             android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -612,7 +615,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
 
         // Periodic update of usage stats, upcoming events and alarms
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             while (true) {
                 // Fetch upcoming events
                 try {
@@ -641,7 +644,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     fastlaneDb.fastlaneDao().archive(threshold)
                 } catch (e: Exception) { e.printStackTrace() }
 
-                kotlinx.coroutines.delay(300_000) // Every 5 minutes
+                delay(300_000) // Every 5 minutes
                 _refreshTrigger.emit(Unit)
             }
         }

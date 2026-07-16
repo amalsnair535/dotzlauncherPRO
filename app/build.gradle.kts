@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
@@ -112,7 +113,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
     implementation(libs.okhttp)
-    implementation(libs.room.ktx)
-    implementation(libs.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.ui.tooling)
 }

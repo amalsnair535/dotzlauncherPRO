@@ -701,9 +701,13 @@ private fun TimelinePageContent(
 
         // --- Search & Filters ---
         Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            var searchText by remember { mutableStateOf("") }
             OutlinedTextField(
-                value = "", // This will be wired to viewModel._timelineSearchQuery
-                onValueChange = { viewModel.setTimelineSearchQuery(it) },
+                value = searchText,
+                onValueChange = { 
+                    searchText = it
+                    viewModel.setTimelineSearchQuery(it) 
+                },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Search history...", color = DotzTheme.colors.text.copy(alpha = 0.3f)) },
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = DotzTheme.colors.text.copy(alpha = 0.3f)) },
