@@ -4,12 +4,12 @@ import android.app.Activity
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.ComponentName
 import android.content.*
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.res.Configuration
 import android.hardware.camera2.CameraManager
+import android.icu.util.MeasureUnit
 import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -21,40 +21,56 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
 import android.net.wifi.WifiManager
-import android.app.usage.UsageEvents
-import android.app.usage.UsageStatsManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.dotz.launcherpro.data.*
+import com.dotz.launcherpro.data.FastlaneEvent
+import com.dotz.launcherpro.data.FastlaneType
+import com.dotz.launcherpro.data.FastlaneDatabase
 import com.dotz.launcherpro.manager.SponsoredContentManager
 import com.dotz.launcherpro.manager.UsageManager
 import com.dotz.launcherpro.manager.UsageStatsResult
 import com.dotz.launcherpro.services.DotzNotificationService
-import com.dotz.launcherpro.R
+import com.google.ads.mediation.admob.AdMobAdapter
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.OnUserEarnedRewardListener
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdOptions
+import com.google.android.gms.ads.rewarded.RewardedAd
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.*
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.rewarded.RewardedAd
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
-import com.google.android.gms.ads.OnUserEarnedRewardListener
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.nativead.NativeAd
-import com.google.android.gms.ads.nativead.NativeAdOptions
-import com.google.ads.mediation.admob.AdMobAdapter
 
 data class LauncherUiState(
     val page0Tiles: List<AppTile> = DefaultApps.page0Defaults,
@@ -102,8 +118,14 @@ data class LauncherUiState(
     val notificationsReceivedToday: Int = 0,
     val totalAppOpens: Int = 0,
     val focusScore: Int = 100,
+    val focusSoundPlaying: String? = null,
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
+    val fastlaneStream: List<FastlaneEvent> = emptyList(),
+    val upcomingEvents: List<com.dotz.launcherpro.manager.CalendarEvent> = emptyList(),
+    val suggestedApps: List<DrawerApp> = emptyList(),
+    val nextAlarm: String? = null,
+    val dailySummary: String = "",
     val nativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
     val isAdLoading: Boolean = false,
     val isLoaded: Boolean = false,
@@ -120,6 +142,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val prefs = DotzPreferencesRepository(application)
     private val storeBridge = StoreBridgeImpl(application, prefs)
     private val usageManager = UsageManager(application)
+    private val fastlaneDb = FastlaneDatabase.getDatabase(application)
+    private val calendarManager = com.dotz.launcherpro.manager.CalendarManager(application)
+    private val alarmManager = application.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
     val iconCache = IconCacheManager(application)
     private val pm: PackageManager = application.packageManager
     private val audioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -150,6 +175,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     
     private val installedCache = mutableMapOf<String, Boolean>()
     private var cachedIsDefault = false
+    private var isCurrentlyCharging = false
     
     /** 
      * Creates a privacy-first AdRequest that forces Non-Personalized Ads (NPA).
@@ -245,9 +271,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _installedAppsCache = MutableStateFlow<List<DrawerApp>>(emptyList())
     private val _installedIconPacks = MutableStateFlow<List<Pair<String, String>>>(emptyList())
 
+    private val _upcomingEvents = MutableStateFlow<List<com.dotz.launcherpro.manager.CalendarEvent>>(emptyList())
+    private val _nextAlarm = MutableStateFlow<String?>(null)
+    private val _timelineSearchQuery = MutableStateFlow("")
+    private val _timelineFilter = MutableStateFlow<FastlaneType?>(null)
+
     private val _isTimelineVisible = MutableStateFlow(false)
     fun setTimelineVisible(visible: Boolean) {
         _isTimelineVisible.value = visible
+    }
+
+    fun setTimelineSearchQuery(query: String) {
+        _timelineSearchQuery.value = query
+    }
+
+    fun setTimelineFilter(filter: FastlaneType?) {
+        _timelineFilter.value = filter
     }
 
     private val _isUiVisible = MutableStateFlow(true)
@@ -280,12 +319,123 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val WEATHER_REFRESH_INTERVAL = 30 * 60 * 1000L // 30 minutes
 
+    fun recordFastlaneEvent(type: FastlaneType, title: String, subtitle: String, packageName: String? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            fastlaneDb.fastlaneDao().recordEvent(
+                FastlaneEvent(type = type, title = title, subtitle = subtitle, packageName = packageName)
+            )
+        }
+    }
+
+    private suspend fun checkCallHistory() {
+        val app = getApplication<Application>()
+        if (ContextCompat.checkSelfPermission(app, android.Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) return
+
+        val lastCheck = uiState.value.settings.lastCallCheckTime
+        val cursor = app.contentResolver.query(
+            android.provider.CallLog.Calls.CONTENT_URI,
+            arrayOf(android.provider.CallLog.Calls.NUMBER, android.provider.CallLog.Calls.DATE, android.provider.CallLog.Calls.CACHED_NAME, android.provider.CallLog.Calls.TYPE),
+            "${android.provider.CallLog.Calls.DATE} > ?",
+            arrayOf(lastCheck.toString()),
+            "${android.provider.CallLog.Calls.DATE} DESC"
+        )
+
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val number = it.getString(0)
+                val date = it.getLong(1)
+                val name = it.getString(2) ?: "Unknown"
+                val callType = it.getInt(3)
+                
+                val type = when (callType) {
+                    android.provider.CallLog.Calls.MISSED_TYPE -> FastlaneType.CALL_MISSED
+                    android.provider.CallLog.Calls.INCOMING_TYPE -> FastlaneType.CALL_INCOMING
+                    android.provider.CallLog.Calls.OUTGOING_TYPE -> FastlaneType.CALL_OUTGOING
+                    else -> FastlaneType.CALL_INCOMING
+                }
+                
+                val title = when (type) {
+                    FastlaneType.CALL_MISSED -> "Missed Call"
+                    FastlaneType.CALL_INCOMING -> "Incoming Call"
+                    FastlaneType.CALL_OUTGOING -> "Outgoing Call"
+                    else -> "Call Activity"
+                }
+                
+                recordFastlaneEvent(type, title, "From $name ($number)")
+                prefs.setLastCallCheckTime(date)
+            }
+        }
+    }
+
+    private suspend fun checkSMS() {
+        val app = getApplication<Application>()
+        if (ContextCompat.checkSelfPermission(app, android.Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) return
+
+        val lastCheck = uiState.value.settings.lastSMSCheckTime
+        val cursor = app.contentResolver.query(
+            android.net.Uri.parse("content://sms/inbox"),
+            arrayOf("address", "body", "date", "person"),
+            "date > ?",
+            arrayOf(lastCheck.toString()),
+            "date DESC"
+        )
+
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val address = it.getString(0)
+                val body = it.getString(1)
+                val date = it.getLong(2)
+                
+                recordFastlaneEvent(FastlaneType.SMS_RECEIVED, "New Message", "From $address: $body")
+                prefs.setLastSMSCheckTime(date)
+            }
+        }
+    }
+
+    private suspend fun checkNewPhotos() {
+        val app = getApplication<Application>()
+        val lastCheck = uiState.value.settings.lastPhotoCheckTime
+        val cursor = app.contentResolver.query(
+            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            arrayOf(android.provider.MediaStore.Images.Media.DISPLAY_NAME, android.provider.MediaStore.Images.Media.DATE_ADDED, android.provider.MediaStore.Images.Media.DATA),
+            "${android.provider.MediaStore.Images.Media.DATE_ADDED} > ?",
+            arrayOf((lastCheck / 1000).toString()),
+            "${android.provider.MediaStore.Images.Media.DATE_ADDED} DESC"
+        )
+
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val name = it.getString(0)
+                val date = it.getLong(1) * 1000
+                val path = it.getString(2)
+                
+                val type = if (path.contains("Screenshot", ignoreCase = true)) FastlaneType.CAMERA_SCREENSHOT else FastlaneType.CAMERA_PHOTO
+                val title = if (type == FastlaneType.CAMERA_SCREENSHOT) "New Screenshot" else "New Photo"
+                
+                recordFastlaneEvent(type, title, name)
+                prefs.setLastPhotoCheckTime(date)
+            }
+        }
+    }
+
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            
+            if (isCharging && _batteryLevel.value != -1 && !isCurrentlyCharging) {
+                recordFastlaneEvent(FastlaneType.BATTERY_STATUS, "Charging Started", "Power source connected")
+            }
+            isCurrentlyCharging = isCharging
+
             val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
             val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
             if ((level != -1) && (scale != -1)) {
-                _batteryLevel.value = ((level * 100) / scale.toFloat()).toInt()
+                val pct = ((level * 100) / scale.toFloat()).toInt()
+                if (pct <= 15 && _batteryLevel.value > 15) {
+                    recordFastlaneEvent(FastlaneType.BATTERY_STATUS, "Battery Low", "$pct% remaining")
+                }
+                _batteryLevel.value = pct
             }
         }
     }
@@ -294,10 +444,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 WifiManager.WIFI_STATE_CHANGED_ACTION -> {
-                    _isWifiEnabled.value = wifiManager.isWifiEnabled
+                    val enabled = wifiManager.isWifiEnabled
+                    if (enabled != _isWifiEnabled.value) {
+                        recordFastlaneEvent(FastlaneType.WIFI_STATUS, if (enabled) "WiFi Connected" else "WiFi Disconnected", "")
+                    }
+                    _isWifiEnabled.value = enabled
                 }
                 BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                    _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
+                    val enabled = bluetoothAdapter?.isEnabled == true
+                    if (enabled != _isBluetoothEnabled.value) {
+                        recordFastlaneEvent(FastlaneType.BT_STATUS, if (enabled) "Bluetooth On" else "Bluetooth Off", "")
+                    }
+                    _isBluetoothEnabled.value = enabled
                 }
                 AudioManager.RINGER_MODE_CHANGED_ACTION -> {
                     val mode = audioManager.ringerMode
@@ -453,9 +611,36 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
-        // Periodic update of usage stats
+        // Periodic update of usage stats, upcoming events and alarms
         viewModelScope.launch {
             while (true) {
+                // Fetch upcoming events
+                try {
+                    _upcomingEvents.value = calendarManager.getUpcomingEvents(24)
+                } catch (e: Exception) { e.printStackTrace() }
+
+                // Fetch next alarm
+                try {
+                    val next = alarmManager.nextAlarmClock
+                    if (next != null) {
+                        val sdf = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.getDefault())
+                        _nextAlarm.value = sdf.format(java.util.Date(next.triggerTime))
+                    } else {
+                        _nextAlarm.value = null
+                    }
+                } catch (e: Exception) { e.printStackTrace() }
+
+                // Check for activity updates
+                try {
+                    checkCallHistory()
+                    checkSMS()
+                    checkNewPhotos()
+                    
+                    // Archive old events (older than 7 days)
+                    val threshold = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+                    fastlaneDb.fastlaneDao().archive(threshold)
+                } catch (e: Exception) { e.printStackTrace() }
+
                 kotlinx.coroutines.delay(300_000) // Every 5 minutes
                 _refreshTrigger.emit(Unit)
             }
@@ -563,12 +748,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _isAdLoading,
                 _timerTicker,
                 _installedIconPacks,
+                _upcomingEvents,
+                _nextAlarm,
                 _weatherFeelsLike,
                 _weatherSummary,
                 _weatherAqi,
                 _weatherAqiLabel,
                 _weatherLow,
-                _weatherHigh
+                _weatherHigh,
+                fastlaneDb.fastlaneDao().getStream(),
+                _timelineSearchQuery,
+                _timelineFilter
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
                 @Suppress("UNCHECKED_CAST")
@@ -603,12 +793,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val tickTime = args[24] as Long
                 @Suppress("UNCHECKED_CAST")
                 val iconPacks = args[25] as List<Pair<String, String>>
-                val feelsLike = args[26] as String?
-                val summary = args[27] as String?
-                val aqi = args[28] as String?
-                val aqiLabel = args[29] as String?
-                val low = args[30] as String?
-                val high = args[31] as String?
+                @Suppress("UNCHECKED_CAST")
+                val upcomingEvents = args[26] as List<com.dotz.launcherpro.manager.CalendarEvent>
+                val alarm = args[27] as String?
+                val feelsLike = args[28] as String?
+                val summary = args[29] as String?
+                val aqi = args[30] as String?
+                val aqiLabel = args[31] as String?
+                val low = args[32] as String?
+                val high = args[33] as String?
+                @Suppress("UNCHECKED_CAST")
+                val rawFastlaneEvents = args[34] as List<FastlaneEvent>
+                val searchQuery = args[35] as String
+                val activeFilter = args[36] as FastlaneType?
 
                 val isDefault = cachedIsDefault
                 val allUsage = usageResult.appStats
@@ -621,6 +818,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val allTilesUnordered = buildTilesFast(DefaultApps.allDefaults, settings, notifCounts, allUsage)
                 val allTiles = settings.tileOrder.mapNotNull { id ->
                     allTilesUnordered.find { it.tileId == id }
+                }
+
+                // Filtering the Timeline
+                val fastlaneEvents = rawFastlaneEvents.filter { event ->
+                    val matchesSearch = if (searchQuery.isBlank()) true 
+                                       else event.title.contains(searchQuery, ignoreCase = true) || event.subtitle.contains(searchQuery, ignoreCase = true)
+                    val matchesFilter = if (activeFilter == null) true else event.type == activeFilter
+                    matchesSearch && matchesFilter
                 }
 
                 // Calculate Focus Score
@@ -723,6 +928,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     p0.take(3).map { DrawerApp(it.packageName, it.label, it.usageTime, it.launchCount) }
                 }
 
+                // Smart Suggestions
+                val suggestedList = mutableListOf<DrawerApp>()
+                
+                if (hour in 7..9) { // Morning: Navigation/Mail
+                    allApps.find { it.packageName.contains("map") || it.packageName.contains("mail") }?.let { suggestedList.add(it) }
+                }
+                if (network == "WiFi" || ringer == AudioManager.RINGER_MODE_SILENT) {
+                    allApps.find { it.packageName.contains("work") || it.packageName.contains("slack") || it.packageName.contains("teams") }?.let { suggestedList.add(it) }
+                }
+                // Fallback to top apps if suggestions are few
+                if (suggestedList.size < 3) {
+                    suggestedList.addAll(topApps.take(3 - suggestedList.size))
+                }
+
                 appsToRecommend.forEach { app ->
                     timeline.add(TimelineItem(
                         id = "app_${app.packageName}",
@@ -748,6 +967,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     } else {
                         finalTimeline.add(selectedAd)
                     }
+                }
+
+                // AI Daily Summary Calculation
+                val dailySummary = when {
+                    usageResult.unlockCount > 30 -> "You've unlocked your phone ${usageResult.unlockCount} times. Try to be more intentional."
+                    usageResult.totalScreenTime > 2 * 60 * 60 * 1000 -> "Screen time is over 2h today. Time for a digital break?"
+                    else -> "Focus is high. Keep it up."
                 }
 
                 LauncherUiState(
@@ -796,6 +1022,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     focusScore = calculatedScore,
                     topApps = topApps,
                     timelineItems = finalTimeline,
+                    fastlaneStream = fastlaneEvents,
+                    upcomingEvents = upcomingEvents,
+                    suggestedApps = suggestedList,
+                    nextAlarm = alarm,
+                    dailySummary = dailySummary,
                     nativeAd = nativeAd,
                     isAdLoading = isAdLoading,
                     isLoaded = true,
@@ -895,7 +1126,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         val album = metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
         
+        val oldTitle = _nowPlaying.value.first
         _nowPlaying.value = Triple(title, artist, album)
+        
+        if (title != "Not Playing" && title != oldTitle) {
+            recordFastlaneEvent(FastlaneType.MUSIC_TRACK, "Playing: $title", artist, activeController?.packageName)
+        }
         
         val isPlaying = state?.state == PlaybackState.STATE_PLAYING
         val position = state?.position ?: 0L
@@ -1076,6 +1312,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(intent)
+            
+            // Record Recent App launch in Fastlane
+            val label = try {
+                app.packageManager.getApplicationLabel(app.packageManager.getApplicationInfo(packageName, 0)).toString()
+            } catch (e: Exception) { packageName }
+            recordFastlaneEvent(FastlaneType.APP_OPEN, "Opened $label", "", packageName)
         } else {
             Toast.makeText(app, "Could not open app", Toast.LENGTH_SHORT).show()
         }

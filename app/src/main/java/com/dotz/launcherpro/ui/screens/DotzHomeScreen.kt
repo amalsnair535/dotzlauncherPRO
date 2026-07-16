@@ -10,12 +10,14 @@ import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,8 +36,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
+import com.dotz.launcherpro.data.FastlaneEvent
 import com.dotz.launcherpro.manager.PermissionManager
 import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.theme.DotzTheme
@@ -43,6 +50,8 @@ import com.dotz.launcherpro.ui.theme.DotzType
 import com.dotz.launcherpro.ui.theme.blend
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.abs
 
 @Composable
@@ -641,22 +650,148 @@ private fun TimelinePageContent(
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 24.dp)
-        ) {
+        // --- Header Section ---
+        Column(modifier = Modifier.padding(bottom = 32.dp)) {
             Text(
-                text = "TIMELINE",
-                color = DotzTheme.colors.text,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp,
+                text = currentDate(),
+                style = DotzType.dateStyle().copy(fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Black),
+                color = DotzTheme.colors.accent.copy(alpha = 0.7f)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "TODAY",
+                style = DotzType.timeStyle().copy(fontSize = 32.sp, fontWeight = FontWeight.ExtraBold),
+                color = DotzTheme.colors.text
             )
         }
 
-        if (uiState.timelineItems.isEmpty()) {
+        // --- AI Daily Summary ---
+        AISummaryCard(summary = uiState.dailySummary)
+
+        // --- Smart Suggestions ---
+        if (uiState.suggestedApps.isNotEmpty()) {
+            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+                Text(
+                    text = "SUGGESTED",
+                    style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                    color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    uiState.suggestedApps.take(3).forEach { app ->
+                        AssistChip(
+                            onClick = { viewModel.launchApp(app.packageName) },
+                            label = { Text(app.label.uppercase(), fontSize = 10.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(12.dp))
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                labelColor = DotzTheme.colors.text
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- Search & Filters ---
+        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            OutlinedTextField(
+                value = "", // This will be wired to viewModel._timelineSearchQuery
+                onValueChange = { viewModel.setTimelineSearchQuery(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search history...", color = DotzTheme.colors.text.copy(alpha = 0.3f)) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = DotzTheme.colors.text.copy(alpha = 0.3f)) },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.2f),
+                    unfocusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.05f)
+                )
+            )
+            
+            Spacer(Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                com.dotz.launcherpro.data.FastlaneType.values().take(6).forEach { type ->
+                    AssistChip(
+                        onClick = { viewModel.setTimelineFilter(type) },
+                        label = { Text(type.name.replace("_", " "), fontSize = 10.sp) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = DotzTheme.colors.text.copy(alpha = 0.6f)
+                        ),
+                        border = BorderStroke(1.dp, DotzTheme.colors.text.copy(alpha = 0.1f))
+                    )
+                }
+            }
+        }
+
+        // --- Upcoming Section ---
+        if (uiState.upcomingEvents.isNotEmpty() || uiState.nextAlarm != null) {
+            Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                Text(
+                    text = "UPCOMING",
+                    style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                    color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                uiState.nextAlarm?.let { alarm ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
+                        Icon(Icons.Default.NotificationsActive, null, tint = DotzTheme.colors.accent, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(text = "Next Alarm: $alarm", style = MaterialTheme.typography.bodyLarge, color = DotzTheme.colors.text)
+                    }
+                }
+
+                uiState.upcomingEvents.take(3).forEach { event ->
+                    UpcomingEventCard(event = event)
+                }
+            }
+        }
+
+        // --- Active Widgets (Optional Peek) ---
+        if (uiState.isPlaying) {
+            Text(
+                "NOW PLAYING", 
+                style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            TimelineCard(
+                item = com.dotz.launcherpro.data.TimelineItem(
+                    id = "current_music",
+                    type = com.dotz.launcherpro.data.TimelineType.MUSIC,
+                    title = uiState.nowPlayingTitle,
+                    subtitle = uiState.nowPlayingArtist,
+                    timestamp = System.currentTimeMillis(),
+                    packageName = ""
+                ),
+                onItemClick = {},
+                onPlayPause = viewModel::mediaPlayPause,
+                onSkipNext = viewModel::mediaSkipNext,
+                onSkipPrevious = viewModel::mediaSkipPrevious,
+                isPlaying = uiState.isPlaying,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+        }
+
+        // --- The Stream ---
+        Text(
+            "ACTIVITY", 
+            style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+            color = DotzTheme.colors.text.copy(alpha = 0.3f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (uiState.fastlaneStream.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -664,77 +799,41 @@ private fun TimelinePageContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "No recent activity to show in Timeline.",
+                    "Your digital journey starts here.\nActivity will appear as you use your device.",
                     color = DotzTheme.colors.text.copy(alpha = 0.2f),
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
                     textAlign = TextAlign.Center
                 )
             }
         } else {
-            uiState.timelineItems.forEachIndexed { index, item ->
-                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    Column(
-                        modifier = Modifier
-                            .width(44.dp)
-                            .fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .weight(1f)
-                                .background(if (index == 0) Color.Transparent else DotzTheme.colors.text.copy(alpha = 0.1f))
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(DotzTheme.colors.text.copy(alpha = 0.2f))
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .weight(1f)
-                                .background(if (index == uiState.timelineItems.size - 1) Color.Transparent else DotzTheme.colors.text.copy(alpha = 0.1f))
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED && uiState.nativeAd != null) {
-                        TimelineNativeAdCard(
-                            nativeAd = uiState.nativeAd,
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        TimelineCard(
-                            item = item,
-                            onItemClick = { pkg -> 
-                                if (item.type == com.dotz.launcherpro.data.TimelineType.SPONSORED) {
-                                    viewModel.acknowledgeSponsoredAd()
-                                    viewModel.launchApp(pkg) // Open the sponsored app/link
-                                    return@TimelineCard
-                                }
-                                if (pkg != null) {
-                                    val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
-                                    val app = uiState.topApps.find { it.packageName == pkg }
-                                    if (uiState.settings.showMindfulUsage && (app?.launchCount ?: 0) >= 3 && isSocial) {
-                                        onMindfulLaunch(MindfulnessInfo(pkg, app?.label ?: pkg, app?.usageTime, app?.launchCount ?: 0))
-                                    } else {
-                                        viewModel.launchApp(pkg)
-                                    }
-                                }
-                            },
-                            onPlayPause = viewModel::mediaPlayPause,
-                            onSkipNext = viewModel::mediaSkipNext,
-                            onSkipPrevious = viewModel::mediaSkipPrevious,
-                            onReply = viewModel::sendReply,
-                            isPlaying = uiState.isPlaying,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+            val sdf = SimpleDateFormat("EEEE, dd MMMM", Locale.getDefault())
+            var lastDateLabel = ""
+
+            uiState.fastlaneStream.forEach { event ->
+                val dateLabel = sdf.format(Date(event.timestamp))
+                if (dateLabel != lastDateLabel) {
+                    Text(
+                        text = dateLabel.uppercase(),
+                        style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                        color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                    )
+                    lastDateLabel = dateLabel
                 }
+
+                FastlaneTypographyCard(
+                    event = event,
+                    onAction = {
+                        if (event.packageName != null) {
+                            viewModel.launchApp(event.packageName)
+                        }
+                    }
+                )
             }
         }
-        Spacer(Modifier.height(48.dp))
+        
+        Spacer(Modifier.height(80.dp))
     }
 }
 

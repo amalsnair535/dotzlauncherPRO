@@ -64,6 +64,10 @@ data class DotzSettings(
     val lastSponsoredShowTime: Long = 0,
     val batchNotifications: Boolean = false,
     val lastBatchTime: Long = 0,
+    val lastCallCheckTime: Long = 0,
+    val lastSMSCheckTime: Long = 0,
+    val lastMediaCheckTime: Long = 0,
+    val lastPhotoCheckTime: Long = 0,
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
@@ -112,6 +116,10 @@ object PrefsKeys {
     val LAST_SPONSORED_SHOW_TIME = longPreferencesKey("last_sponsored_show_time")
     val BATCH_NOTIFICATIONS     = booleanPreferencesKey("batch_notifications")
     val LAST_BATCH_TIME          = longPreferencesKey("last_batch_time")
+    val LAST_CALL_CHECK_TIME     = longPreferencesKey("last_call_check_time")
+    val LAST_SMS_CHECK_TIME      = longPreferencesKey("last_sms_check_time")
+    val LAST_MEDIA_CHECK_TIME    = longPreferencesKey("last_media_check_time")
+    val LAST_PHOTO_CHECK_TIME    = longPreferencesKey("last_photo_check_time")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
@@ -192,6 +200,10 @@ class DotzPreferencesRepository(private val context: Context) {
                 lastSponsoredShowTime = prefs[PrefsKeys.LAST_SPONSORED_SHOW_TIME] ?: 0,
                 batchNotifications = prefs[PrefsKeys.BATCH_NOTIFICATIONS] ?: false,
                 lastBatchTime = prefs[PrefsKeys.LAST_BATCH_TIME] ?: 0,
+                lastCallCheckTime = prefs[PrefsKeys.LAST_CALL_CHECK_TIME] ?: 0,
+                lastSMSCheckTime = prefs[PrefsKeys.LAST_SMS_CHECK_TIME] ?: 0,
+                lastMediaCheckTime = prefs[PrefsKeys.LAST_MEDIA_CHECK_TIME] ?: 0,
+                lastPhotoCheckTime = prefs[PrefsKeys.LAST_PHOTO_CHECK_TIME] ?: 0,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
                 profiles             = profilesList,
@@ -342,6 +354,22 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setLastBatchTime(value: Long) {
         context.dataStore.edit { it[PrefsKeys.LAST_BATCH_TIME] = value }
+    }
+
+    suspend fun setLastCallCheckTime(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.LAST_CALL_CHECK_TIME] = value }
+    }
+
+    suspend fun setLastSMSCheckTime(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.LAST_SMS_CHECK_TIME] = value }
+    }
+
+    suspend fun setLastMediaCheckTime(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.LAST_MEDIA_CHECK_TIME] = value }
+    }
+
+    suspend fun setLastPhotoCheckTime(value: Long) {
+        context.dataStore.edit { it[PrefsKeys.LAST_PHOTO_CHECK_TIME] = value }
     }
 
     suspend fun setTileTransparency(value: Float) {
