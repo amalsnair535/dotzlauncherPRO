@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.6] - 2026-07-04
+
+### Fixed
+- **Build Resolution**: Fixed critical `AAR Metadata` mismatch by aligning `compileSdk` with library requirements.
+- **Installation Fix**: Resolved `INSTALL_BASELINE_PROFILE_FAILED` by resetting optimization metadata and bumping version identity.
+
 ## [6.0.5] - 2026-07-04
 
 ### Added
