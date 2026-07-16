@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.5] - 2026-07-04
+
+### Added
+- **Evolved Fastlane (Timeline)**: A complete overhaul of the activity feed into a persistent, searchable digital diary.
+- **Deep System Integration**: Automatically logs call history, SMS notifications, and media playback into the chronological stream.
+- **Creative Logging**: New photos and screenshots are now timestamped and recorded in the Timeline.
+- **Notification History**: View and search notifications even after they are dismissed.
+- **Contextual AI Summaries**: Time-of-day specific reflections (Morning/Afternoon/Night) to help analyze digital habits.
+- **Upcoming Section**: Real-time peek at the next 24 hours of calendar events and alarms.
+- **Smart App Predictions**: Suggests relevant tools based on time, network state, and usage patterns.
+- **Global Activity Search**: Type to find any past interaction across your entire digital history.
+
+### Fixed
+- **Build Stability**: Resolved APK installation conflicts by standardizing Target SDK to 35.
+
 ## [6.0.4] - 2026-07-04
 
 ### Added
