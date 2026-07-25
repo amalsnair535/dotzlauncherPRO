@@ -3,7 +3,6 @@ package com.dotz.launcherpro.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -65,6 +64,7 @@ fun StaticHeader(
     onPlayPause: () -> Unit = {},
     onSkipNext: () -> Unit = {},
     onSkipPrevious: () -> Unit = {},
+    onMusicClick: () -> Unit = {},
     onLauncherSettingsTap: () -> Unit,
     onWifiToggle: () -> Unit,
     onBluetoothToggle: () -> Unit,
@@ -188,6 +188,7 @@ fun StaticHeader(
                     onPlayPause = onPlayPause,
                     onSkipNext = onSkipNext,
                     onSkipPrevious = onSkipPrevious,
+                    onMusicClick = onMusicClick,
                     onSettingsClick = onLauncherSettingsTap
                 )
             } else if (headerMode == "stats") {
@@ -204,6 +205,8 @@ fun StaticHeader(
                     condition = weatherCondition ?: "Unknown",
                     feelsLike = weatherFeelsLike ?: "",
                     summary = weatherSummary ?: "",
+                    low = weatherLow ?: "--",
+                    high = weatherHigh ?: "--",
                     aqi = weatherAqi,
                     aqiLabel = weatherAqiLabel,
                     onWeatherClick = onWeatherClick,
@@ -251,6 +254,7 @@ fun NowPlayingWidget(
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
+    onMusicClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     val progress = if (duration > 0) position.toFloat() / duration else 0f
@@ -264,6 +268,7 @@ fun NowPlayingWidget(
             .fillMaxWidth()
             .height(140.dp)
             .padding(horizontal = 8.dp)
+            .clickable { onMusicClick() }
             .then(
                 if (isGlass) {
                     Modifier.drawBehind {
@@ -514,6 +519,8 @@ fun WeatherHeaderWidget(
     condition: String,
     feelsLike: String,
     summary: String,
+    low: String,
+    high: String,
     aqi: String?,
     aqiLabel: String?,
     onWeatherClick: () -> Unit,
@@ -619,7 +626,7 @@ fun WeatherHeaderWidget(
                     )
                     if (feelsLike.isNotBlank()) {
                         Text(
-                            text = feelsLike,
+                            text = "$feelsLike • $low / $high",
                             color = DotzTheme.colors.text.copy(alpha = 0.5f),
                             fontSize = 12.sp
                         )

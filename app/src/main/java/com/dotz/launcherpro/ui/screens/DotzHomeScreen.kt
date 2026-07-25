@@ -3,6 +3,7 @@ package com.dotz.launcherpro.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
@@ -10,6 +11,7 @@ import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -42,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
-import com.dotz.launcherpro.data.FastlaneEvent
 import com.dotz.launcherpro.manager.PermissionManager
 import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.theme.DotzTheme
@@ -80,7 +81,32 @@ fun DotzHomeScreen(
 
     val hapticPulse = {
         val vibrator = context.getSystemService(Vibrator::class.java)
-        vibrator?.vibrate(VibrationEffect.createOneShot(20L, VibrationEffect.DEFAULT_AMPLITUDE))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator?.vibrate(VibrationEffect.createOneShot(20L, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(20L)
+        }
+    }
+
+    var lastTapTime by remember { mutableLongStateOf(0L) }
+    var tapCount by remember { mutableIntStateOf(0) }
+
+    val handleHomeScreenTap = {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastTapTime < 500) {
+            tapCount++
+        } else {
+            tapCount = 1
+        }
+        lastTapTime = currentTime
+        
+        if (tapCount >= 3) {
+            hapticPulse()
+            viewModel.startUltraFocusSession(30) // Default 30 mins
+            tapCount = 0
+            Toast.makeText(context, "Unplugged: Ultra-Focus Mode Active", Toast.LENGTH_SHORT).show()
+        }
     }
 
     // --- Liquid Glass Animation (Optimized) ---
@@ -101,13 +127,13 @@ fun DotzHomeScreen(
         if (isSocial && showIntentionPause == null) {
             showIntentionPause = pkg
         } else {
-            val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-            if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-            } else {
+            val success = viewModel.launchApp(pkg)
+            if (!success) {
                 // Handle unassigned
                 tileToAssign = (uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles).find { it.packageName == pkg }
+                if (tileToAssign == null && pkg.isNotBlank()) {
+                    Toast.makeText(context, "Could not open app", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -225,13 +251,16 @@ fun DotzHomeScreen(
                 }
                 
                 UltraFocusLayout(
-                    tiles = uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles,
+                    tiles = uiState.ultraFocusTiles,
                     remainingMillis = uiState.ultraFocusRemainingMillis,
                     onTileTap = { tile ->
                         if (tile.packageName == context.packageName) onLauncherSettingsTap()
                         else launchApp(tile.packageName)
                     },
-                    onEndSession = viewModel::endUltraFocusSession,
+                    onSelectApps = {
+                        context.startActivity(Intent(context, com.dotz.launcherpro.ui.screens.UltraFocusAppSelectionActivity::class.java))
+                    },
+                    onEndSession = viewModel::requestUltraFocusExit,
                     modifier = Modifier.weight(0.75f)
                 )
             }
@@ -278,7 +307,8 @@ fun DotzHomeScreen(
                         onOpenDrawer = {
                             hapticPulse()
                             showAppDrawerConfirmDialog = true
-                        }
+                        },
+                        onBackgroundTap = handleHomeScreenTap
                     )
                 }
             }
@@ -379,17 +409,6 @@ fun DotzHomeScreen(
             )
         }
 
-        if (showUsageStatsDialog) {
-            UsageStatsPermissionDialog(
-                onDismiss = { showUsageStatsDialog = false },
-                onGoToSettings = {
-                    showUsageStatsDialog = false
-                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                    try { context.startActivity(intent) } catch (_: Exception) { context.startActivity(Intent(Settings.ACTION_SETTINGS)) }
-                }
-            )
-        }
-
         if (showOnboarding) {
             DotzOnboardingSheet(
                 onDismiss = {
@@ -429,58 +448,14 @@ fun DotzHomeScreen(
                 onCancel = { showIntentionPause = null }
             )
         }
-    }
-}
 
-@Composable
-fun IntentionPauseOverlay(onFinished: () -> Unit, onCancel: () -> Unit) {
-    var timeLeft by remember { mutableStateOf(3) }
-    
-    LaunchedEffect(Unit) {
-        while (timeLeft > 0) {
-            kotlinx.coroutines.delay(1000)
-            timeLeft--
-        }
-        onFinished()
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color.Black.copy(alpha = 0.95f)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                "Wait a moment...",
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
+        if (uiState.showUltraFocusExitReason) {
+            UltraFocusExitDialog(
+                onDismiss = viewModel::cancelUltraFocusExit,
+                onConfirm = { reason ->
+                    viewModel.endUltraFocusSession(reason)
+                }
             )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Do you really need to open this app right now?",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(48.dp))
-            Text(
-                "$timeLeft",
-                style = MaterialTheme.typography.displayLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Black
-            )
-            Spacer(Modifier.height(64.dp))
-            Button(
-                onClick = onCancel,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
-                shape = CircleShape
-            ) {
-                Text("NEVER MIND", color = Color.White)
-            }
         }
     }
 }
@@ -495,7 +470,8 @@ private fun TilesPageContent(
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit,
     onLauncherSettingsTap: () -> Unit,
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+    onBackgroundTap: () -> Unit
 ) {
     val pages = listOfNotNull(
         uiState.page0Tiles,
@@ -511,9 +487,12 @@ private fun TilesPageContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onBackgroundTap() })
+            }
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(bottom = 24.dp) // Added breathing room at the bottom
+            .padding(bottom = 24.dp)
     ) {
         // --- Static Header (with alpha for Timeline transition) ---
         Box(
@@ -556,6 +535,7 @@ private fun TilesPageContent(
                 onPlayPause = viewModel::mediaPlayPause,
                 onSkipNext = viewModel::mediaSkipNext,
                 onSkipPrevious = viewModel::mediaSkipPrevious,
+                onMusicClick = { viewModel.launchApp(uiState.nowPlayingPackage) },
                 onLauncherSettingsTap = onLauncherSettingsTap,
                 onWifiToggle = viewModel::toggleWifiDirect,
                 onBluetoothToggle = viewModel::toggleBluetoothDirect,
@@ -643,7 +623,10 @@ private fun TimelinePageContent(
     viewModel: LauncherViewModel,
     onMindfulLaunch: (MindfulnessInfo) -> Unit
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val textColor = DotzTheme.colors.text
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -653,191 +636,141 @@ private fun TimelinePageContent(
             .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
         // --- Header Section ---
-        Column(modifier = Modifier.padding(bottom = 32.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
             Text(
-                text = currentDate(),
-                style = DotzType.dateStyle().copy(fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Black),
-                color = DotzTheme.colors.accent.copy(alpha = 0.7f)
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "TODAY",
-                style = DotzType.timeStyle().copy(fontSize = 32.sp, fontWeight = FontWeight.ExtraBold),
-                color = DotzTheme.colors.text
-            )
-        }
-
-        // --- AI Daily Summary ---
-        AISummaryCard(summary = uiState.dailySummary)
-
-        // --- Smart Suggestions ---
-        if (uiState.suggestedApps.isNotEmpty()) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
-                Text(
-                    text = "SUGGESTED",
-                    style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                    color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    uiState.suggestedApps.take(3).forEach { app ->
-                        AssistChip(
-                            onClick = { viewModel.launchApp(app.packageName) },
-                            label = { Text(app.label.uppercase(), fontSize = 10.sp) },
-                            leadingIcon = {
-                                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(12.dp))
-                            },
-                            colors = AssistChipDefaults.assistChipColors(
-                                labelColor = DotzTheme.colors.text
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
-        // --- Search & Filters ---
-        Column(modifier = Modifier.padding(bottom = 24.dp)) {
-            var searchText by remember { mutableStateOf("") }
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { 
-                    searchText = it
-                    viewModel.setTimelineSearchQuery(it) 
-                },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search history...", color = DotzTheme.colors.text.copy(alpha = 0.3f)) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = DotzTheme.colors.text.copy(alpha = 0.3f)) },
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.2f),
-                    unfocusedBorderColor = DotzTheme.colors.text.copy(alpha = 0.05f)
-                )
+                text = "TIMELINE",
+                style = DotzType.dateStyle().copy(fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp),
+                color = textColor
             )
             
-            Spacer(Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                com.dotz.launcherpro.data.FastlaneType.values().take(6).forEach { type ->
-                    AssistChip(
-                        onClick = { viewModel.setTimelineFilter(type) },
-                        label = { Text(type.name.replace("_", " "), fontSize = 10.sp) },
-                        colors = AssistChipDefaults.assistChipColors(
-                            labelColor = DotzTheme.colors.text.copy(alpha = 0.6f)
-                        ),
-                        border = BorderStroke(1.dp, DotzTheme.colors.text.copy(alpha = 0.1f))
-                    )
-                }
-            }
-        }
-
-        // --- Upcoming Section ---
-        if (uiState.upcomingEvents.isNotEmpty() || uiState.nextAlarm != null) {
-            Column(modifier = Modifier.padding(bottom = 32.dp)) {
-                Text(
-                    text = "UPCOMING",
-                    style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                    color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                uiState.nextAlarm?.let { alarm ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
-                        Icon(Icons.Default.NotificationsActive, null, tint = DotzTheme.colors.accent, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(text = "Next Alarm: $alarm", style = MaterialTheme.typography.bodyLarge, color = DotzTheme.colors.text)
-                    }
-                }
-
-                uiState.upcomingEvents.take(3).forEach { event ->
-                    UpcomingEventCard(event = event)
-                }
-            }
-        }
-
-        // --- Active Widgets (Optional Peek) ---
-        if (uiState.isPlaying) {
             Text(
-                "NOW PLAYING", 
-                style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            TimelineCard(
-                item = com.dotz.launcherpro.data.TimelineItem(
-                    id = "current_music",
-                    type = com.dotz.launcherpro.data.TimelineType.MUSIC,
-                    title = uiState.nowPlayingTitle,
-                    subtitle = uiState.nowPlayingArtist,
-                    timestamp = System.currentTimeMillis(),
-                    packageName = ""
-                ),
-                onItemClick = {},
-                onPlayPause = viewModel::mediaPlayPause,
-                onSkipNext = viewModel::mediaSkipNext,
-                onSkipPrevious = viewModel::mediaSkipPrevious,
-                isPlaying = uiState.isPlaying,
-                modifier = Modifier.padding(bottom = 24.dp)
+                text = uiState.focusTimeToday.uppercase(),
+                style = DotzType.dateStyle().copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                color = textColor.copy(alpha = 0.4f)
             )
         }
 
-        // --- The Stream ---
-        Text(
-            "ACTIVITY", 
-            style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-            color = DotzTheme.colors.text.copy(alpha = 0.3f),
-            modifier = Modifier.padding(bottom = 16.dp)
+        // --- Focus History ---
+        FocusHistoryChart(
+            history = uiState.focusScoreHistory,
+            hasPermission = uiState.hasUsageStatsPermission,
+            onEnablePermission = {
+                PermissionManager.openUsageAccessSettings(context)
+            }
         )
 
-        if (uiState.fastlaneStream.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "Your digital journey starts here.\nActivity will appear as you use your device.",
-                    color = DotzTheme.colors.text.copy(alpha = 0.2f),
-                    fontSize = 13.sp,
-                    lineHeight = 20.sp,
-                    textAlign = TextAlign.Center
+        // --- Content with Vertical Line ---
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // The Vertical Timeline Line
+            if (uiState.timelineItems.isNotEmpty() || uiState.upcomingEvents.isNotEmpty() || uiState.nextAlarm != null) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 12.dp)
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .align(Alignment.TopStart)
+                        .drawBehind {
+                            drawLine(
+                                color = textColor.copy(alpha = 0.15f),
+                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(0f, size.height),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                        }
                 )
             }
-        } else {
-            val sdf = SimpleDateFormat("EEEE, dd MMMM", Locale.getDefault())
-            var lastDateLabel = ""
 
-            uiState.fastlaneStream.forEach { event ->
-                val dateLabel = sdf.format(Date(event.timestamp))
-                if (dateLabel != lastDateLabel) {
-                    Text(
-                        text = dateLabel.uppercase(),
-                        style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                        color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                        modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
-                    )
-                    lastDateLabel = dateLabel
-                }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // --- Upcoming Section ---
+                if (uiState.upcomingEvents.isNotEmpty() || uiState.nextAlarm != null) {
+                    TimelineSectionWrapper(textColor) {
+                        Text(
+                            text = "UPCOMING",
+                            style = DotzType.dateStyle().copy(fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            color = textColor.copy(alpha = 0.3f),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        uiState.nextAlarm?.let { alarm ->
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
+                                Icon(Icons.Default.NotificationsActive, null, tint = DotzTheme.colors.accent, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(text = "Next Alarm: $alarm", style = MaterialTheme.typography.bodyLarge, color = textColor)
+                            }
+                        }
 
-                FastlaneTypographyCard(
-                    event = event,
-                    onAction = {
-                        if (event.packageName != null) {
-                            viewModel.launchApp(event.packageName)
+                        uiState.upcomingEvents.take(3).forEach { event ->
+                            UpcomingEventCard(event = event)
                         }
                     }
-                )
+                }
+
+                // --- Notifications ---
+                if (uiState.timelineItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No active notifications.\nYour digital space is clear.",
+                            color = textColor.copy(alpha = 0.2f),
+                            fontSize = 13.sp,
+                            lineHeight = 20.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    uiState.timelineItems.forEach { item ->
+                        TimelineSectionWrapper(textColor) {
+                            TimelineCard(
+                                item = item,
+                                onItemClick = { pkg -> if (pkg != null) viewModel.launchApp(pkg) },
+                                onPlayPause = viewModel::mediaPlayPause,
+                                onSkipNext = viewModel::mediaSkipNext,
+                                onSkipPrevious = viewModel::mediaSkipPrevious,
+                                onReply = viewModel::sendReply,
+                                isPlaying = uiState.isPlaying
+                            )
+                        }
+                    }
+                }
             }
         }
         
         Spacer(Modifier.height(80.dp))
+    }
+}
+
+@Composable
+private fun TimelineSectionWrapper(
+    lineColor: Color,
+    content: @Composable () -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        // Dot on the line
+        Box(
+            modifier = Modifier
+                .width(24.dp)
+                .padding(top = 28.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(lineColor.copy(alpha = 0.3f))
+            )
+        }
+        
+        Column(modifier = Modifier.weight(1f)) {
+            content()
+        }
     }
 }
 
@@ -877,125 +810,4 @@ private fun PagerContent(
             modifier = Modifier.fillMaxSize()
         )
     }
-}
-
-@Composable
-private fun AppDrawerConfirmDialog(
-    openCount: Int, 
-    totalAppOpens: Int,
-    onDismiss: () -> Unit, 
-    onConfirm: () -> Unit,
-    onEmergencyConfirm: () -> Unit
-) {
-    val remaining = (5 - openCount).coerceAtLeast(0)
-    val textColor = DotzTheme.colors.text
-    DotzAlertDialog(
-        onDismissRequest = onDismiss,
-        title = if (remaining > 0) "Open All Apps?" else "App Drawer Locked",
-        content = {
-            Column {
-                if (remaining > 0) {
-                    Text("Are you sure you want to open all apps?", color = textColor.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(12.dp))
-                    Text("This gesture is for emergency access only.", color = textColor.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
-                } else {
-                    Text("You have used all 5 daily app drawer opens.", color = textColor.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Opening it now will penalize your Focus Score by 10 points.", color = Color.Red.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("REMAINING TODAY: $remaining/5", color = if (remaining > 0) textColor else Color.Red.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                if (remaining == 0) {
-                    Spacer(Modifier.height(4.dp))
-                    Text("TOTAL APP OPENS: $totalAppOpens", color = textColor.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        },
-        confirmButtonText = if (remaining > 0) "OPEN" else "EMERGENCY ACCESS",
-        onConfirm = { if (remaining > 0) onConfirm() else onEmergencyConfirm() },
-        dismissButtonText = "CANCEL",
-        onDismiss = onDismiss
-    )
-}
-
-@Composable
-private fun UsageStatsPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    val textColor = DotzTheme.colors.text
-    DotzAlertDialog(
-        onDismissRequest = onDismiss,
-        title = "Mindful Usage Disclosure",
-        content = { 
-            Text(
-                "Dotz Launcher uses anonymized usage statistics to track your screen time and device unlocks. " +
-                "This information is processed only on your device to calculate your Focus Score and enable app usage limits. " +
-                "No usage data is ever collected or transmitted.", 
-                color = textColor.copy(alpha = 0.7f)
-            ) 
-        },
-        confirmButtonText = "ENABLE",
-        onConfirm = onGoToSettings,
-        dismissButtonText = "NOT NOW",
-        onDismiss = onDismiss
-    )
-}
-
-@Composable
-private fun NotificationPermissionDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    val textColor = DotzTheme.colors.text
-    DotzAlertDialog(
-        onDismissRequest = onDismiss,
-        title = "Enable Notifications",
-        content = { Text("Allow Dotz to read notifications.", color = textColor.copy(alpha = 0.7f)) },
-        confirmButtonText = "ENABLE",
-        onConfirm = onGoToSettings,
-        dismissButtonText = "SKIP",
-        onDismiss = onDismiss
-    )
-}
-
-@Composable
-private fun DefaultLauncherDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    val textColor = DotzTheme.colors.text
-    DotzAlertDialog(
-        onDismissRequest = onDismiss,
-        title = "Set as Default Launcher",
-        content = { Text("Use Dotz as your main home screen.", color = textColor.copy(alpha = 0.7f)) },
-        confirmButtonText = "SET DEFAULT",
-        onConfirm = onGoToSettings,
-        dismissButtonText = "SKIP",
-        onDismiss = onDismiss
-    )
-}
-
-@Composable
-private fun AppAccessDisclosureDialog(onAccept: () -> Unit) {
-    val textColor = DotzTheme.colors.text
-    DotzAlertDialog(
-        onDismissRequest = { },
-        title = "App Visibility Disclosure",
-        content = { 
-            Text(
-                "To function as a home screen, Dotz Launcher requires access to your list of installed applications. " +
-                "This allows you to assign apps to tiles and use the App Drawer. " +
-                "This data is used only to provide core launcher functionality and is never collected or shared.", 
-                color = textColor.copy(alpha = 0.7f)
-            ) 
-        },
-        confirmButtonText = "I UNDERSTAND",
-        onConfirm = onAccept
-    )
-}
-
-@Composable
-private fun UnassignedTileDialog(tileLabel: String, onDismiss: () -> Unit, onSelectApp: () -> Unit) {
-    val textColor = DotzTheme.colors.text
-    DotzAlertDialog(
-        onDismissRequest = onDismiss,
-        title = "Unassigned Tile",
-        content = { Text("Assign an app to $tileLabel?", color = textColor.copy(alpha = 0.7f)) },
-        confirmButtonText = "SELECT APP",
-        onConfirm = onSelectApp,
-        dismissButtonText = "CANCEL",
-        onDismiss = onDismiss
-    )
 }

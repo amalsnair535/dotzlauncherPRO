@@ -5,9 +5,6 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.dotz.launcherpro.data.DefaultApps
 import com.dotz.launcherpro.data.DotzPreferencesRepository
-import com.dotz.launcherpro.data.FastlaneDatabase
-import com.dotz.launcherpro.data.FastlaneEvent
-import com.dotz.launcherpro.data.FastlaneType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +32,6 @@ class DotzNotificationService : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var prefsRepository: DotzPreferencesRepository
-    private lateinit var database: FastlaneDatabase
     private var isFilterEnabled = false
     private var isBatchingEnabled = false
     private var lastBatchTime = 0L
@@ -103,8 +99,8 @@ class DotzNotificationService : NotificationListenerService() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        prefsRepository = DotzPreferencesRepository(this)
-        database = FastlaneDatabase.getDatabase(this)
+        val dotzApp = application as com.dotz.launcherpro.DotzApp
+        prefsRepository = dotzApp.prefsRepository
         serviceScope.launch {
             prefsRepository.settingsFlow.collectLatest { settings ->
                 isFilterEnabled = settings.notificationFilterEnabled
@@ -127,20 +123,6 @@ class DotzNotificationService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (!sbn.isOngoing) {
-            serviceScope.launch(Dispatchers.IO) {
-                val title = sbn.notification.extras.getCharSequence("android.title")?.toString() ?: "Notification"
-                val text = sbn.notification.extras.getCharSequence("android.text")?.toString() ?: ""
-                database.fastlaneDao().recordEvent(
-                    FastlaneEvent(
-                        type = FastlaneType.NOTIF_HISTORY,
-                        title = title,
-                        subtitle = text,
-                        packageName = sbn.packageName
-                    )
-                )
-            }
-        }
         rebuildCounts()
     }
 

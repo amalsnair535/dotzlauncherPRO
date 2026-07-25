@@ -10,8 +10,8 @@ interface StoreBridge {
     val monthlyPrice: StateFlow<String>
     val yearlyPrice: StateFlow<String>
     val lifetimePrice: StateFlow<String>
+    val isStoreConnected: StateFlow<Boolean>
 
     fun startBillingFlow(activity: Activity, productId: String)
     fun refreshPremiumStatus()
-    fun getCurrentLocation(callback: (Double, Double) -> Unit, fallback: () -> Unit)
 }

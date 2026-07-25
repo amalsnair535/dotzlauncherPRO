@@ -2,74 +2,31 @@ package com.dotz.launcherpro.viewmodel
 
 import android.app.Activity
 import android.app.Application
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
-import android.content.res.Configuration
-import android.hardware.camera2.CameraManager
-import android.icu.util.MeasureUnit
 import android.media.AudioManager
-import android.media.MediaMetadata
-import android.media.session.MediaController
-import android.media.session.MediaSessionManager
-import android.media.session.PlaybackState
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.net.Uri
-import android.net.wifi.WifiManager
-import android.os.BatteryManager
 import android.os.Build
-import android.os.Bundle
+import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
-import android.service.notification.StatusBarNotification
 import android.util.Log
 import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import com.dotz.launcherpro.data.*
-import com.dotz.launcherpro.data.FastlaneEvent
-import com.dotz.launcherpro.data.FastlaneType
-import com.dotz.launcherpro.data.FastlaneDatabase
 import com.dotz.launcherpro.manager.SponsoredContentManager
 import com.dotz.launcherpro.manager.UsageManager
 import com.dotz.launcherpro.manager.UsageStatsResult
 import com.dotz.launcherpro.services.DotzNotificationService
-import com.google.ads.mediation.admob.AdMobAdapter
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.OnUserEarnedRewardListener
-import com.google.android.gms.ads.nativead.NativeAd
-import com.google.android.gms.ads.nativead.NativeAdOptions
-import com.google.android.gms.ads.rewarded.RewardedAd
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
-import com.google.gson.Gson
-import com.google.gson.JsonObject
+import com.dotz.launcherpro.services.NotificationItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.text.SimpleDateFormat
 import java.util.*
 
 data class LauncherUiState(
@@ -87,7 +44,7 @@ data class LauncherUiState(
     val isTorchOn: Boolean = false,
     val isAirplaneModeOn: Boolean = false,
     val isDarkModeOn: Boolean = false,
-    val ringerMode: Int = 2, // 2 = NORMAL, 1 = VIBRATE, 0 = SILENT
+    val ringerMode: Int = 2,
     val isMobileDataEnabled: Boolean = true,
     val isDefaultLauncher: Boolean = false,
     val weatherTemp: String? = null,
@@ -98,11 +55,12 @@ data class LauncherUiState(
     val weatherAqiLabel: String? = null,
     val weatherLow: String? = null,
     val weatherHigh: String? = null,
-    val activeNotifications: List<com.dotz.launcherpro.services.NotificationItem> = emptyList(),
+    val activeNotifications: List<NotificationItem> = emptyList(),
     val blockedNotificationsCount: Int = 0,
     val nowPlayingTitle: String = "Not Playing",
     val nowPlayingArtist: String = "",
     val nowPlayingAlbum: String = "",
+    val nowPlayingPackage: String? = null,
     val isPlaying: Boolean = false,
     val playbackPosition: Long = 0,
     val playbackDuration: Long = 0,
@@ -118,123 +76,68 @@ data class LauncherUiState(
     val notificationsReceivedToday: Int = 0,
     val totalAppOpens: Int = 0,
     val focusScore: Int = 100,
+    val focusScoreHistory: List<Pair<String, Int>> = emptyList(),
     val focusSoundPlaying: String? = null,
+    val allApps: List<DrawerApp> = emptyList(),
     val topApps: List<DrawerApp> = emptyList(),
     val timelineItems: List<TimelineItem> = emptyList(),
-    val fastlaneStream: List<FastlaneEvent> = emptyList(),
     val upcomingEvents: List<com.dotz.launcherpro.manager.CalendarEvent> = emptyList(),
-    val suggestedApps: List<DrawerApp> = emptyList(),
     val nextAlarm: String? = null,
-    val dailySummary: String = "",
     val nativeAd: com.google.android.gms.ads.nativead.NativeAd? = null,
     val isAdLoading: Boolean = false,
+    val isStoreConnected: Boolean = false,
     val isLoaded: Boolean = false,
     val ultraFocusRemainingMillis: Long = 0,
     val hasUsageStatsPermission: Boolean = false,
     val currentThemeMode: ThemeMode = ThemeMode.DARK,
-    val installedIconPacks: List<Pair<String, String>> = emptyList()
+    val installedIconPacks: List<Pair<String, String>> = emptyList(),
+    val showUltraFocusExitReason: Boolean = false
 )
 
 enum class ThemeMode { LIGHT, DARK, CIRCADIAN, TRANSPARENT }
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val prefs = DotzPreferencesRepository(application)
-    private val storeBridge = StoreBridgeImpl(application, prefs)
+    private val dotzApp = application as com.dotz.launcherpro.DotzApp
+    private val prefs = dotzApp.prefsRepository
+    private val storeBridge = dotzApp.storeBridge
     private val usageManager = UsageManager(application)
-    private val fastlaneDb = FastlaneDatabase.getDatabase(application)
     private val calendarManager = com.dotz.launcherpro.manager.CalendarManager(application)
     private val alarmManager = application.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+    private val systemStateManager = dotzApp.systemStateManager
+    private val weatherManager = dotzApp.weatherManager
+    private val mediaManager = dotzApp.mediaManager
+    private val adsManager = dotzApp.adsManager
     val iconCache = IconCacheManager(application)
     private val pm: PackageManager = application.packageManager
     private val audioManager = application.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    private val cameraManager = application.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    private val wifiManager = application.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    private val bluetoothManager = application.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-    private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
-    private val mediaSessionManager = application.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-    private var activeController: MediaController? = null
 
-    private val mediaCallback = object : MediaController.Callback() {
-        override fun onMetadataChanged(metadata: MediaMetadata?) {
-            updateMediaInfo(metadata, activeController?.playbackState)
-        }
-        override fun onPlaybackStateChanged(state: PlaybackState?) {
-            updateMediaInfo(activeController?.metadata, state)
-        }
-    }
+    private var musicRevertJob: Job? = null
+    private var preMusicHeaderMode: String? = null
 
-    private val sessionListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
-        updateActiveController(controllers)
-    }
-
-    private var rewardedAd: RewardedAd? = null
-    private var nativeAd: NativeAd? = null
-    private val _nativeAdFlow = MutableStateFlow<NativeAd?>(null)
-    private val _isAdLoading = MutableStateFlow(false)
-    
     private val installedCache = mutableMapOf<String, Boolean>()
     private var cachedIsDefault = false
-    private var isCurrentlyCharging = false
+    private var sessionStartTime = System.currentTimeMillis()
     
-    /** 
-     * Creates a privacy-first AdRequest that forces Non-Personalized Ads (NPA).
-     * This prevents user profiling and data harvesting by the ad server.
-     */
-    private fun createPrivacyRequest(): AdRequest {
-        val extras = Bundle()
-        extras.putString("npa", "1")
-        return AdRequest.Builder()
-            .addNetworkExtrasBundle(AdMobAdapter::class.java, extras)
-            .build()
-    }
-
+    private var lastTiles: List<AppTile>? = null
+    private var lastTilesDeps: Any? = null
+    
+    private var lastTimeline: List<TimelineItem>? = null
+    private var lastTimelineDeps: Any? = null
+    
+    private var lastTopApps: List<DrawerApp>? = null
+    private var lastTopAppsDeps: Any? = null
+    
     fun loadRewardedAd(onAdLoaded: () -> Unit = {}) {
-        if (rewardedAd != null) {
-            onAdLoaded()
-            return
-        }
-        _isAdLoading.value = true
-        RewardedAd.load(getApplication(), "ca-app-pub-9236556912103771/9239680860", createPrivacyRequest(), object : RewardedAdLoadCallback() {
-            override fun onAdFailedToLoad(adError: LoadAdError) {
-                rewardedAd = null
-                _isAdLoading.value = false
-            }
-
-            override fun onAdLoaded(ad: RewardedAd) {
-                rewardedAd = ad
-                _isAdLoading.value = false
-                onAdLoaded()
-            }
-        })
+        adsManager.loadRewardedAd(onAdLoaded)
     }
 
     fun showRewardedAd(activity: Activity, onRewardEarned: () -> Unit) {
-        if (rewardedAd != null) {
-            rewardedAd?.show(activity, OnUserEarnedRewardListener {
-                onRewardEarned()
-                rewardedAd = null
-            })
-        } else {
-            loadRewardedAd {
-                rewardedAd?.show(activity, OnUserEarnedRewardListener {
-                    onRewardEarned()
-                    rewardedAd = null
-                })
-            }
-        }
+        adsManager.showRewardedAd(activity, onRewardEarned)
     }
 
     fun loadNativeAd() {
-        val adLoader = AdLoader.Builder(getApplication(), "ca-app-pub-9236556912103771/1133960139")
-            .forNativeAd { ad : NativeAd ->
-                nativeAd?.destroy()
-                nativeAd = ad
-                _nativeAdFlow.value = ad
-            }
-            .withNativeAdOptions(NativeAdOptions.Builder().build())
-            .build()
-        adLoader.loadAd(createPrivacyRequest())
+        adsManager.loadNativeAd()
     }
 
     fun grant24HourPremium() = viewModelScope.launch {
@@ -245,26 +148,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _uiState = MutableStateFlow(LauncherUiState(isDefaultLauncher = isDefaultLauncher()))
     val uiState: StateFlow<LauncherUiState> = _uiState.asStateFlow()
 
-    private val _batteryLevel = MutableStateFlow(-1)
-    private val _networkStatus = MutableStateFlow("None")
-    private val _isWifiEnabled = MutableStateFlow(value = false)
-    private val _isBluetoothEnabled = MutableStateFlow(value = false)
-    private val _isSilentMode = MutableStateFlow(value = false)
-    private val _isTorchOn = MutableStateFlow(value = false)
-    private val _isAirplaneModeOn = MutableStateFlow(value = false)
-    private val _isDarkModeOn = MutableStateFlow(value = false)
-    private val _ringerMode = MutableStateFlow(AudioManager.RINGER_MODE_NORMAL)
-    private val _isMobileDataEnabled = MutableStateFlow(true)
-    private val _weatherTemp = MutableStateFlow<String?>(null)
-    private val _weatherCondition = MutableStateFlow<String?>(null)
-    private val _weatherFeelsLike = MutableStateFlow<String?>(null)
-    private val _weatherSummary = MutableStateFlow<String?>(null)
-    private val _weatherAqi = MutableStateFlow<String?>(null)
-    private val _weatherAqiLabel = MutableStateFlow<String?>(null)
-    private val _weatherLow = MutableStateFlow<String?>(null)
-    private val _weatherHigh = MutableStateFlow<String?>(null)
-    private val _nowPlaying = MutableStateFlow<Triple<String, String, String>>(Triple("Not Playing", "", ""))
-    private val _playbackState = MutableStateFlow<Triple<Boolean, Long, Long>>(Triple(false, 0L, 0L))
     private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
     private val _timerTicker = MutableStateFlow(System.currentTimeMillis())
     private val _usageStats = MutableStateFlow(UsageStatsResult(emptyMap(), 0L, 0, 0))
@@ -273,20 +156,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _upcomingEvents = MutableStateFlow<List<com.dotz.launcherpro.manager.CalendarEvent>>(emptyList())
     private val _nextAlarm = MutableStateFlow<String?>(null)
-    private val _timelineSearchQuery = MutableStateFlow("")
-    private val _timelineFilter = MutableStateFlow<FastlaneType?>(null)
+    private val _showUltraFocusExitReason = MutableStateFlow(false)
 
     private val _isTimelineVisible = MutableStateFlow(false)
     fun setTimelineVisible(visible: Boolean) {
         _isTimelineVisible.value = visible
-    }
-
-    fun setTimelineSearchQuery(query: String) {
-        _timelineSearchQuery.value = query
-    }
-
-    fun setTimelineFilter(filter: FastlaneType?) {
-        _timelineFilter.value = filter
     }
 
     private val _isUiVisible = MutableStateFlow(true)
@@ -307,222 +181,51 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun startUltraFocusSession(minutes: Int) = viewModelScope.launch {
         val endTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
         prefs.setUltraFocusEndTime(endTime)
+        
+        try {
+            audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+        } catch (_: Exception) {}
     }
 
-    fun endUltraFocusSession() = viewModelScope.launch {
+    fun endUltraFocusSession(reason: String? = null) = viewModelScope.launch {
         prefs.setUltraFocusEndTime(0L)
+        _showUltraFocusExitReason.value = false
+        
+        try {
+            audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        } catch (_: Exception) {}
+    }
+
+    fun setUltraFocusApps(packages: List<String>) = viewModelScope.launch {
+        prefs.setUltraFocusApps(packages)
+    }
+
+    fun requestUltraFocusExit() {
+        _showUltraFocusExitReason.value = true
+    }
+
+    fun cancelUltraFocusExit() {
+        _showUltraFocusExitReason.value = false
     }
 
     private fun refreshIsDefault() {
         cachedIsDefault = isDefaultLauncher()
     }
 
-    private val WEATHER_REFRESH_INTERVAL = 30 * 60 * 1000L // 30 minutes
-
-    fun recordFastlaneEvent(type: FastlaneType, title: String, subtitle: String, packageName: String? = null) {
-        viewModelScope.launch(Dispatchers.IO) {
-            fastlaneDb.fastlaneDao().recordEvent(
-                FastlaneEvent(type = type, title = title, subtitle = subtitle, packageName = packageName)
-            )
-        }
-    }
-
-    private suspend fun checkCallHistory() {
-        val app = getApplication<Application>()
-        if (ContextCompat.checkSelfPermission(app, android.Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) return
-
-        val lastCheck = uiState.value.settings.lastCallCheckTime
-        val cursor = app.contentResolver.query(
-            android.provider.CallLog.Calls.CONTENT_URI,
-            arrayOf(android.provider.CallLog.Calls.NUMBER, android.provider.CallLog.Calls.DATE, android.provider.CallLog.Calls.CACHED_NAME, android.provider.CallLog.Calls.TYPE),
-            "${android.provider.CallLog.Calls.DATE} > ?",
-            arrayOf(lastCheck.toString()),
-            "${android.provider.CallLog.Calls.DATE} DESC"
-        )
-
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val number = it.getString(0)
-                val date = it.getLong(1)
-                val name = it.getString(2) ?: "Unknown"
-                val callType = it.getInt(3)
-                
-                val type = when (callType) {
-                    android.provider.CallLog.Calls.MISSED_TYPE -> FastlaneType.CALL_MISSED
-                    android.provider.CallLog.Calls.INCOMING_TYPE -> FastlaneType.CALL_INCOMING
-                    android.provider.CallLog.Calls.OUTGOING_TYPE -> FastlaneType.CALL_OUTGOING
-                    else -> FastlaneType.CALL_INCOMING
-                }
-                
-                val title = when (type) {
-                    FastlaneType.CALL_MISSED -> "Missed Call"
-                    FastlaneType.CALL_INCOMING -> "Incoming Call"
-                    FastlaneType.CALL_OUTGOING -> "Outgoing Call"
-                    else -> "Call Activity"
-                }
-                
-                recordFastlaneEvent(type, title, "From $name ($number)")
-                prefs.setLastCallCheckTime(date)
-            }
-        }
-    }
-
-    private suspend fun checkSMS() {
-        val app = getApplication<Application>()
-        if (ContextCompat.checkSelfPermission(app, android.Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) return
-
-        val lastCheck = uiState.value.settings.lastSMSCheckTime
-        val cursor = app.contentResolver.query(
-            android.net.Uri.parse("content://sms/inbox"),
-            arrayOf("address", "body", "date", "person"),
-            "date > ?",
-            arrayOf(lastCheck.toString()),
-            "date DESC"
-        )
-
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val address = it.getString(0)
-                val body = it.getString(1)
-                val date = it.getLong(2)
-                
-                recordFastlaneEvent(FastlaneType.SMS_RECEIVED, "New Message", "From $address: $body")
-                prefs.setLastSMSCheckTime(date)
-            }
-        }
-    }
-
-    private suspend fun checkNewPhotos() {
-        val app = getApplication<Application>()
-        if (ContextCompat.checkSelfPermission(app, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED &&
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-
-        val lastCheck = uiState.value.settings.lastPhotoCheckTime
-        val cursor = app.contentResolver.query(
-            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            arrayOf(android.provider.MediaStore.Images.Media.DISPLAY_NAME, android.provider.MediaStore.Images.Media.DATE_ADDED, android.provider.MediaStore.Images.Media.DATA),
-            "${android.provider.MediaStore.Images.Media.DATE_ADDED} > ?",
-            arrayOf((lastCheck / 1000).toString()),
-            "${android.provider.MediaStore.Images.Media.DATE_ADDED} DESC"
-        )
-
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val name = it.getString(0)
-                val date = it.getLong(1) * 1000
-                val path = it.getString(2)
-                
-                val type = if (path.contains("Screenshot", ignoreCase = true)) FastlaneType.CAMERA_SCREENSHOT else FastlaneType.CAMERA_PHOTO
-                val title = if (type == FastlaneType.CAMERA_SCREENSHOT) "New Screenshot" else "New Photo"
-                
-                recordFastlaneEvent(type, title, name)
-                prefs.setLastPhotoCheckTime(date)
-            }
-        }
-    }
-
-    private val batteryReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-            val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
-            
-            if (isCharging && _batteryLevel.value != -1 && !isCurrentlyCharging) {
-                recordFastlaneEvent(FastlaneType.BATTERY_STATUS, "Charging Started", "Power source connected")
-            }
-            isCurrentlyCharging = isCharging
-
-            val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-            if ((level != -1) && (scale != -1)) {
-                val pct = ((level * 100) / scale.toFloat()).toInt()
-                if (pct <= 15 && _batteryLevel.value > 15) {
-                    recordFastlaneEvent(FastlaneType.BATTERY_STATUS, "Battery Low", "$pct% remaining")
-                }
-                _batteryLevel.value = pct
-            }
-        }
-    }
-
-    private val systemReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                WifiManager.WIFI_STATE_CHANGED_ACTION -> {
-                    val enabled = wifiManager.isWifiEnabled
-                    if (enabled != _isWifiEnabled.value) {
-                        recordFastlaneEvent(FastlaneType.WIFI_STATUS, if (enabled) "WiFi Connected" else "WiFi Disconnected", "")
-                    }
-                    _isWifiEnabled.value = enabled
-                }
-                BluetoothAdapter.ACTION_STATE_CHANGED -> {
-                    val enabled = bluetoothAdapter?.isEnabled == true
-                    if (enabled != _isBluetoothEnabled.value) {
-                        recordFastlaneEvent(FastlaneType.BT_STATUS, if (enabled) "Bluetooth On" else "Bluetooth Off", "")
-                    }
-                    _isBluetoothEnabled.value = enabled
-                }
-                AudioManager.RINGER_MODE_CHANGED_ACTION -> {
-                    val mode = audioManager.ringerMode
-                    _ringerMode.value = mode
-                    _isSilentMode.value = mode != AudioManager.RINGER_MODE_NORMAL
-                }
-                Intent.ACTION_AIRPLANE_MODE_CHANGED -> {
-                    _isAirplaneModeOn.value = intent.getBooleanExtra("state", false)
-                }
-            }
-        }
-    }
-
-    private val packageReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            installedCache.clear()
-            _refreshTrigger.tryEmit(Unit)
-        }
-    }
-
-    private val torchCallback = object : CameraManager.TorchCallback() {
-        override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
-            super.onTorchModeChanged(cameraId, enabled)
-            _isTorchOn.value = enabled
-        }
-    }
-
-    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) { updateNetwork() }
-        override fun onLost(network: Network) { updateNetwork() }
-        override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) { updateNetwork() }
-
-        private fun updateNetwork() {
-            val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
-            _isMobileDataEnabled.value = isMobileDataEnabled()
-            _networkStatus.value = when {
-                caps == null -> "None"
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "LTE"
-                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Eth"
-                else -> "Online"
-            }
-        }
-    }
-
-    private var sessionStartTime = System.currentTimeMillis()
-
     init {
-        val app = getApplication<Application>()
-        
         // Update streak and reset focus time if it's a new day
         viewModelScope.launch {
             val settings = prefs.settingsFlow.first()
             val now = System.currentTimeMillis()
             val lastDate = settings.lastUsedDate
             
-            val calendarNow = java.util.Calendar.getInstance().apply { timeInMillis = now }
-            val calendarLast = java.util.Calendar.getInstance().apply { timeInMillis = lastDate }
+            val calendarNow = Calendar.getInstance().apply { timeInMillis = now }
+            val calendarLast = Calendar.getInstance().apply { timeInMillis = lastDate }
             
-            val isSameDay = calendarNow[java.util.Calendar.DAY_OF_YEAR] == calendarLast[java.util.Calendar.DAY_OF_YEAR] &&
-                           calendarNow[java.util.Calendar.YEAR] == calendarLast[java.util.Calendar.YEAR]
+            val isSameDay = calendarNow[Calendar.DAY_OF_YEAR] == calendarLast[Calendar.DAY_OF_YEAR] &&
+                           calendarNow[Calendar.YEAR] == calendarLast[Calendar.YEAR]
             
-            val isNextDay = !isSameDay && (now - lastDate < 48 * 60 * 60 * 1000) // roughly next day check
+            val isNextDay = !isSameDay && (now - lastDate < 48 * 60 * 60 * 1000)
             
             val newStreak = if (isNextDay) settings.focusStreak + 1 else if (isSameDay) settings.focusStreak else 1
             val newFocusTime = if (isSameDay) settings.focusTimeToday else 0L
@@ -536,170 +239,54 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Periodic update of focus time
         viewModelScope.launch {
             while (true) {
-                kotlinx.coroutines.delay(60000) // Update every minute
+                delay(60000)
                 updateSessionTime()
             }
         }
-        
-        // Register Battery Receiver
-        val batteryFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            app.registerReceiver(batteryReceiver, batteryFilter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            app.registerReceiver(batteryReceiver, batteryFilter)
+
+        // Automatic Header Switching (Music <-> Focus)
+        viewModelScope.launch {
+            mediaManager.playbackState.collectLatest { (isPlaying, _, _) ->
+                val settings = prefs.settingsFlow.first()
+                if (isPlaying) {
+                    musicRevertJob?.cancel()
+                    if (settings.homeHeaderMode != "music") {
+                        preMusicHeaderMode = settings.homeHeaderMode
+                        prefs.setHomeHeaderMode("music")
+                    }
+                } else {
+                    // If music was playing (mode is music) and we have a mode to revert to
+                    if (settings.homeHeaderMode == "music" && preMusicHeaderMode != null) {
+                        musicRevertJob?.cancel()
+                        musicRevertJob = launch {
+                            delay(30000) // 30 seconds wait
+                            preMusicHeaderMode?.let { revertMode ->
+                                prefs.setHomeHeaderMode(revertMode)
+                                preMusicHeaderMode = null
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        // Register System Toggles Receiver
-        val systemFilter = IntentFilter().apply {
-            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
-            addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
-            addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-        }
-        app.registerReceiver(systemReceiver, systemFilter)
-
-        // Initial System States
         refreshIsDefault()
-        _isWifiEnabled.value = wifiManager.isWifiEnabled
-        _isBluetoothEnabled.value = bluetoothAdapter?.isEnabled == true
-        _ringerMode.value = audioManager.ringerMode
-        _isSilentMode.value = audioManager.ringerMode != AudioManager.RINGER_MODE_NORMAL
-        _isAirplaneModeOn.value = Settings.Global.getInt(app.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
-        _isDarkModeOn.value = (app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        _isMobileDataEnabled.value = isMobileDataEnabled()
         
-        // Torch state tracking
-        try {
-            cameraManager.registerTorchCallback(torchCallback, null)
-        } catch (e: Exception) { e.printStackTrace() }
-
-        // Register Package Receiver
-        val pkgFilter = IntentFilter().apply {
-            addAction(Intent.ACTION_PACKAGE_ADDED)
-            addAction(Intent.ACTION_PACKAGE_REMOVED)
-            addAction(Intent.ACTION_PACKAGE_REPLACED)
-            addDataScheme("package")
-        }
-        app.registerReceiver(packageReceiver, pkgFilter)
-
-        // Register Network Callback
-        val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        try {
-            cm.registerNetworkCallback(NetworkRequest.Builder().build(), networkCallback)
-        } catch (e: Exception) { e.printStackTrace() }
-
-        refreshWeather()
-        
-        // Periodic update of weather and ticker
+        // Periodic background checks
         viewModelScope.launch {
             while (true) {
-                kotlinx.coroutines.delay(1000)
+                delay(500)
+                val settings = prefs.settingsFlow.first()
+                val ultraFocusActive = settings.ultraFocusEndTime > System.currentTimeMillis()
                 
-                val ultraFocusActive = prefs.settingsFlow.first().ultraFocusEndTime > System.currentTimeMillis()
-                
-                // Only update ticker if UI is visible or Ultra Focus is active
                 if (_isUiVisible.value || ultraFocusActive) {
                     _timerTicker.value = System.currentTimeMillis()
                 }
                 
-                // Frequent checks (every minute)
                 if (System.currentTimeMillis() % 60000 < 1000) {
                     refreshIsDefault()
                 }
-
-                // Weather check (every 30 mins)
-                if (System.currentTimeMillis() % WEATHER_REFRESH_INTERVAL < 1000) {
-                    refreshWeather()
-                }
             }
-        }
-
-        // Periodic update of usage stats, upcoming events and alarms
-        viewModelScope.launch(Dispatchers.IO) {
-            while (true) {
-                // Fetch upcoming events
-                try {
-                    _upcomingEvents.value = calendarManager.getUpcomingEvents(24)
-                } catch (e: Exception) { e.printStackTrace() }
-
-                // Fetch next alarm
-                try {
-                    val next = alarmManager.nextAlarmClock
-                    if (next != null) {
-                        val sdf = java.text.SimpleDateFormat("EEE HH:mm", java.util.Locale.getDefault())
-                        _nextAlarm.value = sdf.format(java.util.Date(next.triggerTime))
-                    } else {
-                        _nextAlarm.value = null
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
-
-                // Check for activity updates
-                try {
-                    checkCallHistory()
-                    checkSMS()
-                    checkNewPhotos()
-                    
-                    // Archive old events (older than 7 days)
-                    val threshold = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
-                    fastlaneDb.fastlaneDao().archive(threshold)
-                } catch (e: Exception) { e.printStackTrace() }
-
-                delay(300_000) // Every 5 minutes
-                _refreshTrigger.emit(Unit)
-            }
-        }
-        
-        // Register Media Session Listener
-        val componentName = ComponentName(app, DotzNotificationService::class.java)
-        try {
-            mediaSessionManager.addOnActiveSessionsChangedListener(sessionListener, componentName)
-            updateActiveController(mediaSessionManager.getActiveSessions(componentName))
-        } catch (e: Exception) { e.printStackTrace() }
-
-        // Periodic playback position and session check
-        viewModelScope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(1000)
-                
-                // Skip everything if UI isn't visible to save battery
-                if (!_isUiVisible.value) continue
-
-                val current = _playbackState.value
-                val timelineEnabled = _uiState.value.settings.enableTimeline
-                val timelineVisible = _isTimelineVisible.value
-
-                // Only update position if something is playing AND timeline is actually visible to user
-                if (current.component1() && timelineEnabled && timelineVisible) {
-                    val newPos = activeController?.playbackState?.position ?: current.component2()
-                    if (newPos != current.component2()) {
-                        _playbackState.value = Triple(current.component1(), newPos, current.component3())
-                    }
-                }
-
-                // If no active controller, or current one is not playing, check for other playing sessions
-                // but do this less frequently (e.g. every 5 seconds) to save battery
-                if (System.currentTimeMillis() % 5000 < 1000) {
-                    if (activeController == null || !current.component1()) {
-                        val componentName = ComponentName(app, DotzNotificationService::class.java)
-                        try {
-                            val sessions = mediaSessionManager.getActiveSessions(componentName)
-                            if (sessions.isNotEmpty()) {
-                                val playingSession = sessions.find { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-                                if (playingSession != null && playingSession != activeController) {
-                                    updateActiveController(sessions)
-                                } else if (activeController == null) {
-                                    updateActiveController(sessions)
-                                }
-                            }
-                        } catch (_: Exception) {}
-                    }
-                }
-            }
-        }
-
-        // Fetch icon packs in background
-        viewModelScope.launch(Dispatchers.IO) {
-            _installedIconPacks.value = getInstalledIconPacks()
         }
 
         // Heavy data updates (Apps & Usage)
@@ -710,7 +297,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 _usageStats.value = usage
 
                 val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
-                val apps = queryIntentActivities(intent)
+                val apps = pm.queryIntentActivities(intent, 0)
                     .map {
                         val pkg = it.activityInfo.packageName
                         val label = it.loadLabel(pm).toString()
@@ -719,6 +306,28 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     }
                     .distinctBy { it.packageName }
                 _installedAppsCache.value = apps
+                
+                // Auto-resolve tiles for OEM apps on first run or when apps change
+                autoResolveTiles()
+            }
+        }
+
+        // Events & Alarm Updates
+        viewModelScope.launch(Dispatchers.IO) {
+            _refreshTrigger.collect {
+                _upcomingEvents.value = calendarManager.getUpcomingEvents()
+                _nextAlarm.value = Settings.System.getString(getApplication<Application>().contentResolver, Settings.System.NEXT_ALARM_FORMATTED)
+            }
+        }
+
+        // Focus Score History tracking
+        viewModelScope.launch {
+            uiState.map { it.focusScore }.distinctUntilChanged().collect { calculatedScore ->
+                val settings = prefs.settingsFlow.first()
+                val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                if (settings.focusScoreHistory[isoDate] != calculatedScore) {
+                    prefs.updateFocusScoreHistory(isoDate, calculatedScore)
+                }
             }
         }
 
@@ -727,44 +336,44 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             combine(
                 prefs.settingsFlow,
                 DotzNotificationService.notificationCounts,
-                _batteryLevel,
-                _networkStatus,
-                _isWifiEnabled,
-                _isBluetoothEnabled,
-                _isSilentMode,
-                _isTorchOn,
-                _isAirplaneModeOn,
-                _isDarkModeOn,
-                _ringerMode,
-                _isMobileDataEnabled,
-                _weatherTemp,
-                _weatherCondition,
+                systemStateManager.batteryLevel,
+                systemStateManager.networkStatus,
+                systemStateManager.isWifiEnabled,
+                systemStateManager.isBluetoothEnabled,
+                systemStateManager.isSilentMode,
+                systemStateManager.isTorchOn,
+                systemStateManager.isAirplaneModeOn,
+                systemStateManager.isDarkModeOn,
+                systemStateManager.ringerMode,
+                systemStateManager.isMobileDataEnabled,
+                weatherManager.weatherTemp,
+                weatherManager.weatherCondition,
                 DotzNotificationService.notifications,
                 DotzNotificationService.blockedCount,
-                _nowPlaying,
-                _playbackState,
+                mediaManager.nowPlaying,
+                mediaManager.playbackState,
+                mediaManager.nowPlayingPackage,
+                mediaManager.lastPositionUpdateTime,
                 storeBridge.isPremium,
                 _usageStats,
                 _installedAppsCache,
                 _isTimelineVisible,
-                _nativeAdFlow,
-                _isAdLoading,
+                adsManager.nativeAdFlow,
+                adsManager.isAdLoading,
                 _timerTicker,
                 _installedIconPacks,
                 _upcomingEvents,
                 _nextAlarm,
-                _weatherFeelsLike,
-                _weatherSummary,
-                _weatherAqi,
-                _weatherAqiLabel,
-                _weatherLow,
-                _weatherHigh,
-                fastlaneDb.fastlaneDao().getStream(),
-                _timelineSearchQuery,
-                _timelineFilter
+                weatherManager.weatherFeelsLike,
+                weatherManager.weatherSummary,
+                weatherManager.weatherAqi,
+                weatherManager.weatherAqiLabel,
+                weatherManager.weatherLow,
+                weatherManager.weatherHigh,
+                storeBridge.isStoreConnected,
+                _showUltraFocusExitReason
             ) { args: Array<Any?> ->
                 val settings = args[0] as DotzSettings
-                @Suppress("UNCHECKED_CAST")
                 val notifCounts = args[1] as Map<String, Int>
                 val battery = args[2] as Int
                 val network = args[3] as String
@@ -778,82 +387,86 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val mobileData = args[11] as Boolean
                 val temp = args[12] as String?
                 val condition = args[13] as String?
-                @Suppress("UNCHECKED_CAST")
-                val notifications = args[14] as List<com.dotz.launcherpro.services.NotificationItem>
+                val notifications = args[14] as List<NotificationItem>
                 val blocked = args[15] as Int
-                @Suppress("UNCHECKED_CAST")
                 val nowPlaying = args[16] as Triple<String, String, String>
-                @Suppress("UNCHECKED_CAST")
                 val playback = args[17] as Triple<Boolean, Long, Long>
-                val isPremiumStatus = args[18] as Boolean
-                @Suppress("UNCHECKED_CAST")
-                val usageResult = args[19] as UsageStatsResult
-                @Suppress("UNCHECKED_CAST")
-                val allApps = args[20] as List<DrawerApp>
-                val timelineVisible = args[21] as Boolean
-                val nativeAd = args[22] as NativeAd?
-                val isAdLoading = args[23] as Boolean
-                val tickTime = args[24] as Long
-                @Suppress("UNCHECKED_CAST")
-                val iconPacks = args[25] as List<Pair<String, String>>
-                @Suppress("UNCHECKED_CAST")
-                val upcomingEvents = args[26] as List<com.dotz.launcherpro.manager.CalendarEvent>
-                val alarm = args[27] as String?
-                val feelsLike = args[28] as String?
-                val summary = args[29] as String?
-                val aqi = args[30] as String?
-                val aqiLabel = args[31] as String?
-                val low = args[32] as String?
-                val high = args[33] as String?
-                @Suppress("UNCHECKED_CAST")
-                val rawFastlaneEvents = args[34] as List<FastlaneEvent>
-                val searchQuery = args[35] as String
-                val activeFilter = args[36] as FastlaneType?
+                val nowPlayingPackage = args[18] as String?
+                val lastPositionUpdate = args[19] as Long
+                val isPremiumStatus = args[20] as Boolean
+                val usageResult = args[21] as UsageStatsResult
+                val allApps = args[22] as List<DrawerApp>
+                val timelineVisible = args[23] as Boolean
+                val nativeAd = args[24] as com.google.android.gms.ads.nativead.NativeAd?
+                val isAdLoading = args[25] as Boolean
+                val tickTime = args[26] as Long
+                val iconPacks = args[27] as List<Pair<String, String>>
+                val upcomingEvents = args[28] as List<com.dotz.launcherpro.manager.CalendarEvent>
+                val alarm = args[29] as String?
+                val feelsLike = args[30] as String?
+                val summary = args[31] as String?
+                val aqi = args[32] as String?
+                val aqiLabel = args[33] as String?
+                val low = args[34] as String?
+                val high = args[35] as String?
+                val storeConnected = args[36] as Boolean
+                val showExitReason = args[37] as Boolean
 
-                val isDefault = cachedIsDefault
+                val isPlaying = playback.first
+                val basePosition = playback.second
+                val duration = playback.third
+                val interpolatedPosition = if (isPlaying && duration > 0) {
+                    val elapsed = tickTime - lastPositionUpdate
+                    (basePosition + elapsed.coerceAtLeast(0L)).coerceAtMost(duration)
+                } else basePosition
+
                 val allUsage = usageResult.appStats
                 val totalTimeMillis = usageResult.totalScreenTime
-
-                val isCustomProfile = settings.activeProfileId != "default"
                 
+                val startOfDayCalendar = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val elapsedToday = System.currentTimeMillis() - startOfDayCalendar.timeInMillis
+                val focusTimeTodayMillis = (elapsedToday - totalTimeMillis).coerceAtLeast(0L)
+
                 val isCurrentlyPremium = settings.isPremium || isPremiumStatus || (settings.premiumExpiry > System.currentTimeMillis())
 
-                val allTilesUnordered = buildTilesFast(DefaultApps.allDefaults, settings, notifCounts, allUsage)
+                val currentTilesDeps = Triple(settings.tileOverrides, notifCounts, allUsage)
+                val allTilesUnordered = if (currentTilesDeps == lastTilesDeps && lastTiles != null) {
+                    lastTiles!!
+                } else {
+                    val built = buildTilesFast(DefaultApps.allDefaults, settings, notifCounts, allUsage)
+                    lastTiles = built
+                    lastTilesDeps = currentTilesDeps
+                    built
+                }
+                
                 val allTiles = settings.tileOrder.mapNotNull { id ->
                     allTilesUnordered.find { it.tileId == id }
                 }
 
-                // Filtering the Timeline
-                val fastlaneEvents = rawFastlaneEvents.filter { event ->
-                    val matchesSearch = if (searchQuery.isBlank()) true 
-                                       else event.title.contains(searchQuery, ignoreCase = true) || event.subtitle.contains(searchQuery, ignoreCase = true)
-                    val matchesFilter = if (activeFilter == null) true else event.type == activeFilter
-                    matchesSearch && matchesFilter
-                }
-
-                // Calculate Focus Score
-                // 100 points base. 
-                // Deduct 1 point for every unlock above 20.
-                // Deduct 1 point for every 10 minutes of screen time.
-                // Deduct 10 points for every emergency app drawer open.
-                val unlockPenalty = ((usageResult.unlockCount - 20).coerceAtLeast(0)) * 1
+                val unlockPenalty = ((usageResult.unlockCount - 15).coerceAtLeast(0)) * 2
                 val minutesUsed = totalTimeMillis / 60000
-                val screenTimePenalty = minutesUsed / 10
-                val emergencyPenalty = settings.emergencyDrawerOpens * 10
-                val calculatedScore = (100 - unlockPenalty - screenTimePenalty - emergencyPenalty).toInt().coerceIn(0, 100)
+                val screenTimePenalty = (minutesUsed / 4).toInt()
+                val emergencyPenalty = settings.emergencyDrawerOpens * 15
+                val calculatedScore = (100 - unlockPenalty - screenTimePenalty - emergencyPenalty).coerceIn(0, 100)
+                
+                val historyList = settings.focusScoreHistory.toList().sortedBy { it.first }
 
                 val p0 = allTiles.take(6)
                 val p1 = allTiles.drop(6).take(6)
-                val p2 = if (settings.enableExtraPage || isCustomProfile) allTiles.drop(12).take(if (isCustomProfile) 6 else settings.extraTileCount) else emptyList()
-                
-                val currentTime = System.currentTimeMillis()
-                val isUltraFocusActive = settings.ultraFocusEndTime > currentTime
-                val remainingMillis = if (isUltraFocusActive) settings.ultraFocusEndTime - tickTime else 0L
+                val p2 = if (settings.enableExtraPage) allTiles.drop(12).take(settings.extraTileCount) else emptyList()
 
-                val currentLayoutStyle = if (isUltraFocusActive) "ultra_focus" else settings.layoutStyle
-                val ultraFocusTiles = if (currentLayoutStyle == "ultra_focus") allTiles.take(18) else emptyList()
+                val ultraFocusTiles = settings.ultraFocusAppPackages.map { pkg ->
+                    val label = allApps.find { it.packageName == pkg }?.label ?: pkg.substringAfterLast('.').uppercase()
+                    AppTile(-1, pkg, label, Icons.Default.Apps)
+                }
 
-                // Calculate current ThemeMode
+                val ultraFocusRemaining = (settings.ultraFocusEndTime - System.currentTimeMillis()).coerceAtLeast(0L)
+
                 val themeMode = when {
                     settings.showWallpaper -> ThemeMode.TRANSPARENT
                     settings.useCircadianTheming -> ThemeMode.CIRCADIAN
@@ -861,18 +474,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     else -> ThemeMode.DARK
                 }
 
-                // Auto Grayscale Check (10 PM to 6 AM)
-                val calendar = Calendar.getInstance()
-                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                 val isNightTime = hour >= 22 || hour < 6
                 val effectiveGrayscale = settings.grayscaleMode || (settings.autoGrayscale && isNightTime)
+
+                val currentLayoutStyle = if (settings.ultraFocusEndTime > System.currentTimeMillis()) "ultra_focus" else settings.layoutStyle
 
                 val effectiveSettings = if (isCurrentlyPremium) {
                     settings.copy(grayscaleMode = effectiveGrayscale, isPremium = true, layoutStyle = currentLayoutStyle)
                 } else {
                     settings.copy(
                         tileTransparency = 1.0f,
-                        layoutStyle = if (isUltraFocusActive) "ultra_focus" else "classic",
+                        layoutStyle = if (settings.ultraFocusEndTime > System.currentTimeMillis()) "ultra_focus" else "classic",
                         showWallpaper = false,
                         useCircadianTheming = false,
                         grayscaleMode = effectiveGrayscale,
@@ -880,103 +493,54 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     )
                 }
 
-                val topApps = allApps
-                    .filter { it.usageTime != null }
-                    .sortedByDescending { app ->
-                        val time = app.usageTime ?: "0m"
-                        val hours = if (time.contains("h")) time.substringBefore("h").trim().toInt() else 0
-                        val mins = if (time.contains("m")) time.substringAfter("h", time).substringBefore("m").trim().toInt() else 0
-                        hours * 60 + mins
-                    }
-                    .take(5)
-
-                // Calculate Timeline Items within combine to ensure they have the latest data
-                val timeline = mutableListOf<TimelineItem>()
-                
-                // 1. Notifications
-                notifications.forEach { notif ->
-                    val type = when {
-                        notif.packageName.contains("dialer") || notif.packageName.contains("telecom") -> TimelineType.CALL
-                        notif.packageName.contains("message") || notif.packageName.contains("whatsapp") || notif.packageName.contains("telegram") -> TimelineType.MESSAGE
-                        else -> TimelineType.MESSAGE
-                    }
-                    timeline.add(TimelineItem(
-                        id = notif.key,
-                        type = type,
-                        title = notif.title ?: "Notification",
-                        subtitle = notif.text ?: "",
-                        timestamp = notif.postTime,
-                        packageName = notif.packageName,
-                        canReply = notif.canReply,
-                        notificationKey = notif.key
-                    ))
-                }
-
-                // 2. Music
-                if (nowPlaying.component1() != "Not Playing" && nowPlaying.component1().isNotBlank()) {
-                    timeline.add(TimelineItem(
-                        id = "music_${nowPlaying.component1()}",
-                        type = TimelineType.MUSIC,
-                        title = nowPlaying.component1(),
-                        subtitle = nowPlaying.component2(),
-                        timestamp = System.currentTimeMillis(),
-                        packageName = activeController?.packageName
-                    ))
-                }
-
-                // 3. App Launches (Fallback to primary tiles if usage stats are missing)
-                val appsToRecommend = if (topApps.isNotEmpty()) {
-                    topApps.take(3)
+                // Timeline logic (Memoized)
+                val currentTimelineDeps = Pair(notifications, nowPlaying.first)
+                val finalTimeline = if (currentTimelineDeps == lastTimelineDeps && lastTimeline != null) {
+                    lastTimeline!!
                 } else {
-                    p0.take(3).map { DrawerApp(it.packageName, it.label, it.usageTime, it.launchCount) }
-                }
-
-                // Smart Suggestions
-                val suggestedList = mutableListOf<DrawerApp>()
-                
-                if (hour in 7..9) { // Morning: Navigation/Mail
-                    allApps.find { it.packageName.contains("map") || it.packageName.contains("mail") }?.let { suggestedList.add(it) }
-                }
-                if (network == "WiFi" || ringer == AudioManager.RINGER_MODE_SILENT) {
-                    allApps.find { it.packageName.contains("work") || it.packageName.contains("slack") || it.packageName.contains("teams") }?.let { suggestedList.add(it) }
-                }
-                // Fallback to top apps if suggestions are few
-                if (suggestedList.size < 3) {
-                    suggestedList.addAll(topApps.take(3 - suggestedList.size))
-                }
-
-                appsToRecommend.forEach { app ->
-                    timeline.add(TimelineItem(
-                        id = "app_${app.packageName}",
-                        type = TimelineType.APP_LAUNCH,
-                        title = app.label,
-                        subtitle = if (app.usageTime != null) "Used for ${app.usageTime}" else "Frequent activity",
-                        timestamp = System.currentTimeMillis() - 10000,
-                        packageName = app.packageName
-                    ))
-                }
-
-                // 4. Final List Processing & Sponsored Insertion (Once per 24h, non-premium only)
-                val finalTimeline = timeline.sortedByDescending { it.timestamp }.distinctBy { it.id }.toMutableList()
-                
-                val dayMillis = 24 * 60 * 60 * 1000L
-                if (!isCurrentlyPremium && (currentTime - settings.lastSponsoredShowTime > dayMillis)) {
-                    val topPkg = topApps.firstOrNull()?.packageName
-                    val selectedAd = SponsoredContentManager.getRecommendedAd(topPkg, currentTime)
-
-                    // 3. Insert into the timeline after 6 regular items
-                    if (finalTimeline.size >= 6) {
-                        finalTimeline.add(6, selectedAd)
-                    } else {
-                        finalTimeline.add(selectedAd)
+                    val timeline = mutableListOf<TimelineItem>()
+                    notifications.forEach { notif ->
+                        val type = when {
+                            notif.packageName.contains("dialer") || notif.packageName.contains("telecom") -> TimelineType.CALL
+                            notif.packageName.contains("message") || notif.packageName.contains("whatsapp") || notif.packageName.contains("telegram") -> TimelineType.MESSAGE
+                            else -> TimelineType.MESSAGE
+                        }
+                        timeline.add(TimelineItem(
+                            id = notif.key,
+                            type = type,
+                            title = notif.title ?: "Notification",
+                            subtitle = notif.text ?: "",
+                            timestamp = notif.postTime,
+                            packageName = notif.packageName,
+                            canReply = notif.canReply,
+                            notificationKey = notif.key
+                        ))
                     }
+
+                    if (nowPlaying.first != "Not Playing" && nowPlaying.first.isNotBlank()) {
+                        timeline.add(TimelineItem(
+                            id = "music_current",
+                            type = TimelineType.MUSIC,
+                            title = nowPlaying.first,
+                            subtitle = nowPlaying.second,
+                            timestamp = System.currentTimeMillis(), // Keep it at the top while playing/active
+                            packageName = nowPlayingPackage
+                        ))
+                    }
+                    val result = timeline.sortedByDescending { it.timestamp }
+                    lastTimeline = result
+                    lastTimelineDeps = currentTimelineDeps
+                    result
                 }
 
-                // AI Daily Summary Calculation
-                val dailySummary = when {
-                    usageResult.unlockCount > 30 -> "You've unlocked your phone ${usageResult.unlockCount} times. Try to be more intentional."
-                    usageResult.totalScreenTime > 2 * 60 * 60 * 1000 -> "Screen time is over 2h today. Time for a digital break?"
-                    else -> "Focus is high. Keep it up."
+                val currentTopAppsDeps = allApps
+                val topApps = if (currentTopAppsDeps == lastTopAppsDeps && lastTopApps != null) {
+                    lastTopApps!!
+                } else {
+                    val result = allApps.sortedByDescending { it.launchCount }.take(5)
+                    lastTopApps = result
+                    lastTopAppsDeps = currentTopAppsDeps
+                    result
                 }
 
                 LauncherUiState(
@@ -993,10 +557,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isSilentMode = silent,
                     isTorchOn = torch,
                     isAirplaneModeOn = airplane,
-                    isDarkModeOn = themeMode == ThemeMode.DARK,
+                    isDarkModeOn = dark,
                     ringerMode = ringer,
                     isMobileDataEnabled = mobileData,
-                    isDefaultLauncher = isDefault,
+                    isDefaultLauncher = cachedIsDefault,
                     weatherTemp = temp,
                     weatherCondition = condition,
                     weatherFeelsLike = feelsLike,
@@ -1007,14 +571,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     weatherHigh = high,
                     activeNotifications = notifications,
                     blockedNotificationsCount = blocked,
-                    nowPlayingTitle = nowPlaying.component1(),
-                    nowPlayingArtist = nowPlaying.component2(),
-                    nowPlayingAlbum = nowPlaying.component3(),
-                    isPlaying = playback.component1(),
-                    playbackPosition = playback.component2(),
-                    playbackDuration = playback.component3(),
-                    focusTimeToday = formatDuration(totalTimeMillis),
+                    nowPlayingTitle = nowPlaying.first,
+                    nowPlayingArtist = nowPlaying.second,
+                    nowPlayingAlbum = nowPlaying.third,
+                    nowPlayingPackage = nowPlayingPackage,
+                    isPlaying = isPlaying,
+                    playbackPosition = interpolatedPosition,
+                    playbackDuration = duration,
+                    focusTimeToday = formatDuration(focusTimeTodayMillis),
+                    focusTimeMillis = focusTimeTodayMillis,
                     focusStreak = settings.focusStreak,
+                    isUpdateAvailable = false,
                     isPremium = isCurrentlyPremium,
                     isUpgradeAvailable = storeBridge.isUpgradeAvailable,
                     isLiteVersion = storeBridge.isLiteVersion,
@@ -1023,38 +590,31 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     notificationsReceivedToday = usageResult.notificationsReceived,
                     totalAppOpens = usageResult.totalAppOpens,
                     focusScore = calculatedScore,
+                    focusScoreHistory = historyList,
+                    allApps = allApps,
                     topApps = topApps,
                     timelineItems = finalTimeline,
-                    fastlaneStream = fastlaneEvents,
                     upcomingEvents = upcomingEvents,
-                    suggestedApps = suggestedList,
                     nextAlarm = alarm,
-                    dailySummary = dailySummary,
                     nativeAd = nativeAd,
                     isAdLoading = isAdLoading,
+                    isStoreConnected = storeConnected,
                     isLoaded = true,
-                    ultraFocusRemainingMillis = remainingMillis,
+                    ultraFocusRemainingMillis = ultraFocusRemaining,
                     hasUsageStatsPermission = usageManager.hasUsageStatsPermission(),
                     currentThemeMode = themeMode,
-                    installedIconPacks = iconPacks
+                    installedIconPacks = iconPacks,
+                    showUltraFocusExitReason = showExitReason
                 )
-            }.flowOn(Dispatchers.Default).collect { state ->
-                _uiState.value = state
+            }.collect { 
+                _uiState.value = it
             }
         }
-        
-        // Initial refresh
-        refreshState()
-        loadRewardedAd()
-        loadNativeAd()
-    }
 
-    fun checkForUpdates() {
-        // Removed for Play Store compliance
+        refreshState()
     }
 
     fun downloadUpdate(url: String) {
-        // Redirect to Play Store
         val app = getApplication<Application>()
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${app.packageName}"))
@@ -1067,32 +627,23 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun installApk(file: java.io.File) {
-        // Removed for Play Store compliance
-    }
-
     private fun updateSessionTime() {
         val now = System.currentTimeMillis()
-        val duration = now - sessionStartTime
-        sessionStartTime = now
+        val calendarNow = Calendar.getInstance().apply { timeInMillis = now }
         viewModelScope.launch {
             val settings = prefs.settingsFlow.first()
             val lastDate = settings.lastUsedDate
-            
-            val calendarNow = Calendar.getInstance().apply { timeInMillis = now }
             val calendarLast = Calendar.getInstance().apply { timeInMillis = lastDate }
             
             val isSameDay = calendarNow[Calendar.DAY_OF_YEAR] == calendarLast[Calendar.DAY_OF_YEAR] &&
                            calendarNow[Calendar.YEAR] == calendarLast[Calendar.YEAR]
             
             if (isSameDay) {
-                prefs.updateFocusStats(settings.focusStreak, now, settings.focusTimeToday + duration)
+                prefs.updateFocusStats(settings.focusStreak, now, settings.focusTimeToday)
             } else {
-                // New day reset
                 val isNextDay = (now - lastDate < 48 * 60 * 60 * 1000)
                 val newStreak = if (isNextDay) settings.focusStreak + 1 else 1
-                prefs.updateFocusStats(newStreak, now, duration, resetDrawerCount = true)
-                // Force a full usage stats refresh immediately on day change
+                prefs.updateFocusStats(newStreak, now, 0, resetDrawerCount = true)
                 _refreshTrigger.emit(Unit)
             }
         }
@@ -1106,70 +657,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
     }
 
-    private fun updateActiveController(controllers: List<MediaController>?) {
-        activeController?.unregisterCallback(mediaCallback)
-        // Prefer the one that is currently playing
-        activeController = controllers?.find { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            ?: controllers?.firstOrNull()
-        activeController?.registerCallback(mediaCallback)
-        updateMediaInfo(activeController?.metadata, activeController?.playbackState)
-    }
-
-    private fun updateMediaInfo(metadata: MediaMetadata?, state: PlaybackState?) {
-        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
-            ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
-            ?: metadata?.getText(MediaMetadata.METADATA_KEY_TITLE)?.toString()
-            ?: if (activeController != null) {
-                activeController?.packageName?.substringAfterLast('.')?.uppercase() ?: "ACTIVE SESSION"
-            } else "Not Playing"
-            
-        val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
-            ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
-            ?: if (activeController != null) "Ready to play" else "Play something to see info"
-
-        val album = metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
-        
-        val oldTitle = _nowPlaying.value.first
-        _nowPlaying.value = Triple(title, artist, album)
-        
-        if (title != "Not Playing" && title != oldTitle) {
-            recordFastlaneEvent(FastlaneType.MUSIC_TRACK, "Playing: $title", artist, activeController?.packageName)
-        }
-        
-        val isPlaying = state?.state == PlaybackState.STATE_PLAYING
-        val position = state?.position ?: 0L
-        val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
-
-        // Contextual Header: Auto-switch to music mode when playback starts
-        if (isPlaying && !_playbackState.value.first && title != "Not Playing") {
-            viewModelScope.launch {
-                val currentSettings = prefs.settingsFlow.first()
-                if (currentSettings.homeHeaderMode != "music") {
-                    prefs.setHomeHeaderMode("music")
-                }
-            }
-        }
-
-        _nowPlaying.value = Triple(title, artist, album)
-        _playbackState.value = Triple(isPlaying, position, duration)
-    }
-
     override fun onCleared() {
         super.onCleared()
-        val app = getApplication<Application>()
-        try {
-            app.unregisterReceiver(batteryReceiver)
-            app.unregisterReceiver(systemReceiver)
-            cameraManager.unregisterTorchCallback(torchCallback)
-            mediaSessionManager.removeOnActiveSessionsChangedListener(sessionListener)
-            activeController?.unregisterCallback(mediaCallback)
-            nativeAd?.destroy()
-        } catch (e: Exception) { e.printStackTrace() }
-
-        val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        try {
-            cm.unregisterNetworkCallback(networkCallback)
-        } catch (e: Exception) { e.printStackTrace() }
+        systemStateManager.stop()
+        mediaManager.stop()
+        adsManager.destroy()
     }
 
     // ── System Toggles ────────────────────────────────────────────────────────
@@ -1181,19 +673,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun toggleWifiDirect() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val intent = Intent(Settings.Panel.ACTION_WIFI)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                getApplication<Application>().startActivity(intent)
-            } else {
-                @Suppress("DEPRECATION")
-                wifiManager.isWifiEnabled = !wifiManager.isWifiEnabled
-            }
-        } catch (e: Exception) {
-            Log.e("DotzLauncher", "Failed to toggle WiFi: ${e.message}")
-            toggleWifi() // Fallback to settings
+        systemStateManager.isWifiEnabled.value.let { isEnabled ->
+             // Direct toggle logic? SystemStateManager doesn't have it yet.
+             // I'll keep it in VM for now and use wifiManager if possible.
         }
+        // Actually, just open settings for safety on modern Android
+        toggleWifi()
     }
 
     fun toggleBluetooth() {
@@ -1202,26 +687,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         getApplication<Application>().startActivity(intent)
     }
 
-    @Suppress("DEPRECATION")
     fun toggleBluetoothDirect() {
-        try {
-            val isEnabled = bluetoothAdapter?.isEnabled == true
-            val success = if (isEnabled) {
-                bluetoothAdapter?.disable() == true
-            } else {
-                bluetoothAdapter?.enable() == true
-            }
-
-            // If success is false, it likely means modern Android blocked the direct call
-            if (!success) {
-                toggleBluetooth()
-            }
-        } catch (_: SecurityException) {
-            // If permission is missing, opening settings is the only fallback
-            toggleBluetooth()
-        } catch (_: Exception) {
-            toggleBluetooth()
-        }
+        toggleBluetooth()
     }
 
     fun toggleSilentMode() {
@@ -1229,7 +696,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         
         if (!notificationManager.isNotificationPolicyAccessGranted) {
-            Toast.makeText(app, "Please grant 'Do Not Disturb' access to toggle silent mode.", Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(intent)
@@ -1245,32 +711,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         
         try {
             audioManager.ringerMode = newMode
-            val modeName = when (newMode) {
-                AudioManager.RINGER_MODE_NORMAL -> "Normal"
-                AudioManager.RINGER_MODE_VIBRATE -> "Vibrate"
-                AudioManager.RINGER_MODE_SILENT -> "Silent"
-                else -> "Normal"
-            }
-            Toast.makeText(app, "Mode: $modeName", Toast.LENGTH_SHORT).show()
-        } catch (e: SecurityException) {
-            Toast.makeText(app, "Please grant DND permission to change ringer mode.", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Log.e("DotzLauncher", "Failed to set ringer mode: ${e.message}")
-        }
+        } catch (_: Exception) {}
     }
 
     fun toggleTorch() {
+        val cameraManager = getApplication<Application>().getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
         try {
             val cameraIds = cameraManager.cameraIdList
             if (cameraIds.isNotEmpty()) {
-                cameraManager.setTorchMode(cameraIds[0], !_isTorchOn.value)
-            } else {
-                Toast.makeText(getApplication(), "Flashlight not available on this device", Toast.LENGTH_SHORT).show()
+                cameraManager.setTorchMode(cameraIds[0], !systemStateManager.isTorchOn.value)
             }
-        } catch (e: Exception) {
-            Log.e("DotzLauncher", "Failed to toggle torch: ${e.message}")
-            Toast.makeText(getApplication(), "Could not toggle flashlight", Toast.LENGTH_SHORT).show()
-        }
+        } catch (_: Exception) {}
     }
 
     fun toggleAirplaneMode() {
@@ -1279,9 +730,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         getApplication<Application>().startActivity(intent)
     }
 
-    fun toggleAirplaneModeDirect() {
-        toggleAirplaneMode() // Always requires settings on modern Android
-    }
+    fun toggleAirplaneModeDirect() = toggleAirplaneMode()
 
     fun toggleDarkMode() {
         val intent = Intent(Settings.ACTION_DISPLAY_SETTINGS)
@@ -1295,35 +744,29 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // ── Media Controls ────────────────────────────────────────────────────────
 
-    fun mediaPlayPause() {
-        if (_playbackState.value.component1()) activeController?.transportControls?.pause()
-        else activeController?.transportControls?.play()
-    }
+    fun mediaPlayPause() = mediaManager.playPause()
+    fun mediaSkipNext() = mediaManager.skipNext()
+    fun mediaSkipPrevious() = mediaManager.skipPrevious()
 
-    fun mediaSkipNext() {
-        activeController?.transportControls?.skipToNext()
-    }
-
-    fun mediaSkipPrevious() {
-        activeController?.transportControls?.skipToPrevious()
-    }
-
-    fun launchApp(packageName: String?) {
-        if (packageName == null) return
+    fun launchApp(packageName: String?): Boolean {
+        android.util.Log.d("LauncherViewModel", "launchApp requested for: $packageName")
+        if (packageName == null || packageName.isBlank()) return false
         val app = getApplication<Application>()
+        
+        if (!packageName.contains(".") && packageName.any { it.isDigit() }) {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$packageName"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            app.startActivity(intent)
+            return true
+        }
+
         val intent = app.packageManager.getLaunchIntentForPackage(packageName)
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             app.startActivity(intent)
-            
-            // Record Recent App launch in Fastlane
-            val label = try {
-                app.packageManager.getApplicationLabel(app.packageManager.getApplicationInfo(packageName, 0)).toString()
-            } catch (e: Exception) { packageName }
-            recordFastlaneEvent(FastlaneType.APP_OPEN, "Opened $label", "", packageName)
-        } else {
-            Toast.makeText(app, "Could not open app", Toast.LENGTH_SHORT).show()
+            return true
         }
+        return false
     }
 
     fun sendReply(notificationKey: String, message: String) {
@@ -1331,71 +774,44 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openMobileDataSettings() {
-        val app = getApplication<Application>()
         val intent = Intent(Settings.ACTION_DATA_ROAMING_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try {
-            app.startActivity(intent)
-        } catch (_: Exception) {
-            val fallback = Intent(Settings.ACTION_SETTINGS)
-            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            app.startActivity(fallback)
-        }
+        try { getApplication<Application>().startActivity(intent) } catch (_: Exception) {}
     }
 
     fun toggleMobileDataDirect() {
-        val app = getApplication<Application>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val intent = Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            app.startActivity(intent)
+            getApplication<Application>().startActivity(intent)
         } else {
             openMobileDataSettings()
         }
     }
 
     fun openDefaultLauncherSettings() {
-        val app = getApplication<Application>()
         val intent = Intent(Settings.ACTION_HOME_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try {
-            app.startActivity(intent)
-        } catch (_: Exception) {
-            val fallback = Intent(Settings.ACTION_SETTINGS)
-            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            app.startActivity(fallback)
-        }
+        try { getApplication<Application>().startActivity(intent) } catch (_: Exception) {}
     }
 
     fun openWallpaperPicker() {
-        val app = getApplication<Application>()
         val intent = Intent(Intent.ACTION_SET_WALLPAPER)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try {
-            app.startActivity(intent)
-        } catch (_: Exception) {
-            Toast.makeText(app, "No wallpaper picker found", Toast.LENGTH_SHORT).show()
-        }
+        try { getApplication<Application>().startActivity(intent) } catch (_: Exception) {}
     }
 
     fun openWeatherApp() {
-        refreshWeather()
+        weatherManager.refreshWeather()
         val app = getApplication<Application>()
-        val intents = listOf(
-            Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("dynact://weather") }, // Google Weather
-            Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("googleweather://") },
-            Intent().apply { setClassName("com.google.android.googlequicksearchbox", "com.google.android.apps.gsa.staticpages.Paths") },
+        val intents = listOfNotNull(
+            Intent(Intent.ACTION_VIEW, Uri.parse("dynact://weather")),
             pm.getLaunchIntentForPackage("com.google.android.apps.magellan"),
-            pm.getLaunchIntentForPackage("com.accuweather.android"),
-            pm.getLaunchIntentForPackage("com.weather.Weather"),
-            pm.getLaunchIntentForPackage("com.samsung.android.weather"),
-            pm.getLaunchIntentForPackage("com.miui.weather2"),
-            Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("https://www.google.com/search?q=weather") } // Fallback to browser
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=weather"))
         )
-
         for (intent in intents) {
             try {
-                intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 app.startActivity(intent)
                 return
             } catch (_: Exception) {}
@@ -1403,184 +819,51 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openDigitalWellbeing() {
-        val app = getApplication<Application>()
         val intent = Intent(Intent.ACTION_MAIN).apply {
             component = ComponentName("com.google.android.apps.wellbeing", "com.google.android.apps.wellbeing.home.TopLevelSettingsActivity")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        try {
-            app.startActivity(intent)
-        } catch (_: Exception) {
-            // Fallback for non-pixel/Google devices
-            try {
-                val fallback = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                app.startActivity(fallback)
-            } catch (_: Exception) {}
-        }
+        try { getApplication<Application>().startActivity(intent) } catch (_: Exception) {}
     }
 
     fun refreshWeather(force: Boolean = false) {
-        viewModelScope.launch {
-            val settings = prefs.settingsFlow.first()
-            if (!force && !settings.showWeatherInfo) return@launch
-            
-            val now = System.currentTimeMillis()
-            if (!force && (now - settings.lastWeatherFetchTime < WEATHER_REFRESH_INTERVAL)) return@launch
-
-            prefs.setLastWeatherFetchTime(now)
-            storeBridge.getCurrentLocation(
-                callback = { lat: Double, lon: Double -> fetchWeather(lat, lon) },
-                fallback = { fetchWeather() }
-            )
-        }
-    }
-
-    private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
-        viewModelScope.launch {
-            try {
-                // 1. Start both requests in parallel using async
-                val weatherDeferred = async(Dispatchers.IO) {
-                    try {
-                        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
-                        java.net.URL(url).readText()
-                    } catch (e: Exception) { null }
-                }
-
-                val aqiDeferred = async(Dispatchers.IO) {
-                    try {
-                        val url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=$lat&longitude=$lon&current=us_aqi"
-                        java.net.URL(url).readText()
-                    } catch (e: Exception) { null }
-                }
-
-                // 2. Wait for both results
-                val weatherResult = weatherDeferred.await() as String?
-                val aqiResult = aqiDeferred.await() as String?
-
-                if (weatherResult != null) {
-                    val weatherJson = Gson().fromJson(weatherResult, JsonObject::class.java)
-                    val current = weatherJson.getAsJsonObject("current")
-                    val daily = weatherJson.getAsJsonObject("daily")
-
-                    if (current != null) {
-                        val temp = current.get("temperature_2m").asDouble
-                        val feelsLike = current.get("apparent_temperature").asDouble
-                        val weatherCode = current.get("weather_code").asInt
-                        
-                        val low = daily?.get("temperature_2m_min")?.asJsonArray?.get(0)?.asDouble ?: 0.0
-                        val high = daily?.get("temperature_2m_max")?.asJsonArray?.get(0)?.asDouble ?: 0.0
-
-                        val condition = mapWmoCode(weatherCode)
-                        
-                        _weatherTemp.value = "${temp.toInt()}°"
-                        _weatherCondition.value = condition
-                        _weatherFeelsLike.value = "Feels like ${feelsLike.toInt()}°"
-                        _weatherLow.value = "${low.toInt()}°"
-                        _weatherHigh.value = "${high.toInt()}°"
-                        _weatherSummary.value = "The skies will be ${condition.lowercase()}. The low will be ${low.toInt()}°."
-                    }
-                }
-
-                if (aqiResult != null) {
-                    val aqiJson = Gson().fromJson(aqiResult, JsonObject::class.java)
-                    val aqiCurrent = aqiJson.getAsJsonObject("current")
-                    if (aqiCurrent != null) {
-                        val usAqi = aqiCurrent.get("us_aqi").asInt
-                        _weatherAqi.value = usAqi.toString()
-                        _weatherAqiLabel.value = when {
-                            usAqi <= 50 -> "Good"
-                            usAqi <= 100 -> "Moderate"
-                            usAqi <= 150 -> "Unhealthy for Sensitive Groups"
-                            usAqi <= 200 -> "Unhealthy"
-                            usAqi <= 300 -> "Very Unhealthy"
-                            else -> "Hazardous"
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("DotzWeather", "Failed to fetch weather: ${e.message}")
-                prefs.setLastWeatherFetchTime(0L)
-                if (_weatherTemp.value == null) {
-                    _weatherTemp.value = "--°"
-                    _weatherCondition.value = "Offline"
-                }
-            }
-        }
-    }
-
-    private fun java.net.URL.readText(): String {
-        val connection = openConnection() as java.net.HttpURLConnection
-        connection.connectTimeout = 10000
-        connection.readTimeout = 10000
-        return connection.inputStream.bufferedReader().use { it.readText() }
-    }
-
-    private fun mapWmoCode(code: Int): String {
-        return when (code) {
-            0 -> "Clear"
-            1, 2, 3 -> "Partly Cloudy"
-            45, 48 -> "Foggy"
-            51, 53, 55 -> "Drizzle"
-            61, 63, 65 -> "Rain"
-            66, 67 -> "Freezing Rain"
-            71, 73, 75 -> "Snow"
-            77 -> "Snow grains"
-            80, 81, 82 -> "Rain Showers"
-            85, 86 -> "Snow Showers"
-            95, 96, 99 -> "Thunderstorm"
-            else -> "Cloudy"
-        }
+        weatherManager.refreshWeather(force)
     }
 
     private fun isDefaultLauncher(): Boolean {
-        val intent = Intent(Intent.ACTION_MAIN)
-        intent.addCategory(Intent.CATEGORY_HOME)
-        val res = pm.resolveActivity(intent, 0) // Check all, not just default
-        if (res == null) return false
-        
-        val currentDefault = res.activityInfo.packageName
-        val myPackage = getApplication<Application>().packageName
-        
-        // If it's the system resolver or settings, we are definitely NOT the default
-        if (currentDefault == "android" || 
-            currentDefault == "com.android.settings" || 
-            currentDefault == "com.google.android.permissioncontroller" ||
-            currentDefault == "com.android.internal.app.ResolverActivity") {
-            return false
-        }
-        
-        return currentDefault == myPackage
+        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
+        val res = pm.resolveActivity(intent, 0)
+        return res?.activityInfo?.packageName == getApplication<Application>().packageName
     }
-
-    private fun isMobileDataEnabled(): Boolean {
-        return try {
-            val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val method = cm.javaClass.getDeclaredMethod("getMobileDataEnabled")
-            method.isAccessible = true
-            method.invoke(cm) as Boolean
-        } catch (e: Exception) {
-            // Fallback for newer Android or if reflection fails
-            val caps = (getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
-                .getNetworkCapabilities(null)
-            caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
-        }
-    }
-
-    // ── Logic ────────────────────────────────────────────────────────────
 
     fun refreshState() {
         _refreshTrigger.tryEmit(Unit)
-        val app = getApplication<Application>()
-        val componentName = ComponentName(app, DotzNotificationService::class.java)
-        try {
-            updateActiveController(mediaSessionManager.getActiveSessions(componentName))
-        } catch (_: Exception) {}
     }
 
-    fun refreshTimeline() {
-        // Timeline is now computed reactively in the combine block
-        refreshState()
+    fun refreshTimeline() = refreshState()
+
+    private fun autoResolveTiles() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val settings = prefs.settingsFlow.first()
+            val allApps = _installedAppsCache.value
+            if (allApps.isEmpty()) return@launch
+
+            DefaultApps.allDefaults.take(12).forEach { defaultTile ->
+                val tileId = defaultTile.tileId
+                // Only auto-resolve if no manual override exists
+                if (!settings.tileOverrides.containsKey(tileId)) {
+                    val smartMatches = getInstalledAppsForTile(tileId, "default")
+                    if (smartMatches.isNotEmpty()) {
+                        val bestMatch = smartMatches.first()
+                        // If the best match is different from the hardcoded default, auto-select it
+                        if (bestMatch.packageName != defaultTile.packageName) {
+                            Log.d("LauncherViewModel", "Auto-resolving tile $tileId to ${bestMatch.packageName}")
+                            updateTileOverride(tileId, bestMatch.packageName, bestMatch.label.uppercase())
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun buildTilesFast(
@@ -1592,7 +875,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return defaults.map { tile ->
             val pkg = settings.tileOverrides[tile.tileId] ?: resolvePackage(tile.packageName)
             val label = settings.tileLabels[tile.tileId] ?: tile.label
-            val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
+            val installed = isInstalled(pkg) || pkg == dotzApp.packageName
             
             val stats = allUsage[pkg]
             val usageTime = stats?.component1()
@@ -1601,57 +884,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val count = if (settings.showNotificationDots) {
                 val raw = notifCounts[pkg] ?: -1
                 val isNumericAllowed = tile.tileId in 0..2 || DefaultApps.numericBadgePackages.contains(pkg)
-                
                 if (raw > 0 && settings.showNumericalCounts && isNumericAllowed) raw
                 else if (raw >= 0) 0
                 else -1
-            } else {
-                -1
-            }
-            tile.copy(
-                packageName = pkg, 
-                label = label, 
-                badgeCount = count, 
-                isInstalled = installed,
-                usageTime = usageTime,
-                launchCount = launchCount
-            )
-        }
-    }
+            } else -1
 
-    private fun buildTiles(
-        defaults: List<AppTile>,
-        settings: DotzSettings,
-        notifCounts: Map<String, Int>
-    ): List<AppTile> {
-        val usageResult = if (usageManager.hasUsageStatsPermission()) usageManager.getAllAppStatsToday() else UsageStatsResult(emptyMap(), 0L, 0, 0)
-        val allStats = usageResult.appStats
-        
-        return defaults.map { tile ->
-            val pkg = settings.tileOverrides[tile.tileId] ?: resolvePackage(tile.packageName)
-            val label = settings.tileLabels[tile.tileId] ?: tile.label
-            val installed = isInstalled(pkg) || pkg == getApplication<Application>().packageName
-            
-            val stats = allStats[pkg]
-            val usageTime = stats?.component1()
-            val launchCount = stats?.component2() ?: 0
-            
-            val count = if (settings.showNotificationDots) {
-                val raw = notifCounts[pkg] ?: -1
-                // Show numerical counts for Dialer (0), WhatsApp (1), and Messaging (2) tiles, 
-                // OR if the package is in the explicit numeric list.
-                val isNumericAllowed = tile.tileId in 0..2 || DefaultApps.numericBadgePackages.contains(pkg)
-                
-                if (raw > 0 && settings.showNumericalCounts && isNumericAllowed) {
-                    raw
-                } else if (raw >= 0) {
-                    0
-                } else {
-                    -1
-                }
-            } else {
-                -1
-            }
             tile.copy(
                 packageName = pkg, 
                 label = label, 
@@ -1694,274 +931,161 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setShowNotificationDots(value: Boolean) = viewModelScope.launch {
-        prefs.setShowNotificationDots(value)
-    }
-
-    fun setShowNumericalCounts(value: Boolean) = viewModelScope.launch {
-        prefs.setShowNumericalCounts(value)
-    }
-
-    fun setNotificationFilterEnabled(value: Boolean) = viewModelScope.launch {
-        prefs.setNotificationFilterEnabled(value)
-    }
-
-    fun setIsLightMode(value: Boolean) = viewModelScope.launch {
+    fun setShowNotificationDots(value: Boolean) = viewModelScope.launch { prefs.setShowNotificationDots(value) }
+    fun setShowNumericalCounts(value: Boolean) = viewModelScope.launch { prefs.setShowNumericalCounts(value) }
+    fun setNotificationFilterEnabled(value: Boolean) = viewModelScope.launch { prefs.setNotificationFilterEnabled(value) }
+    fun setIsLightMode(value: Boolean) = viewModelScope.launch { 
         prefs.setIsLightMode(value)
-        iconCache.clearCache() // Icons might need re-rendering for light mode if grayscale is on
+        iconCache.clearCache()
     }
-
-    fun setGrayscaleMode(value: Boolean) = viewModelScope.launch {
+    fun setGrayscaleMode(value: Boolean) = viewModelScope.launch { 
         prefs.setGrayscaleMode(value)
         iconCache.clearCache()
     }
-
-    fun setAutoGrayscale(value: Boolean) = viewModelScope.launch {
+    fun setAutoGrayscale(value: Boolean) = viewModelScope.launch { 
         prefs.setAutoGrayscale(value)
         iconCache.clearCache()
     }
-
-    fun setVerticalScrolling(value: Boolean) = viewModelScope.launch {
-        prefs.setVerticalScrolling(value)
-    }
-
-    fun setEnableExtraPage(value: Boolean) = viewModelScope.launch {
-        prefs.setEnableExtraPage(value)
-    }
-
-    fun setExtraTileCount(value: Int) = viewModelScope.launch {
-        prefs.setExtraTileCount(value)
-    }
-
+    fun setVerticalScrolling(value: Boolean) = viewModelScope.launch { prefs.setVerticalScrolling(value) }
+    fun setEnableExtraPage(value: Boolean) = viewModelScope.launch { prefs.setEnableExtraPage(value) }
+    fun setExtraTileCount(value: Int) = viewModelScope.launch { prefs.setExtraTileCount(value) }
     fun setShowWeatherInfo(value: Boolean) = viewModelScope.launch {
         prefs.setShowWeatherInfo(value)
         if (value) refreshWeather(force = true)
     }
-
-    fun setShowMindfulUsage(value: Boolean) = viewModelScope.launch {
-        prefs.setShowMindfulUsage(value)
-    }
-
-    fun setEnableTimeline(value: Boolean) = viewModelScope.launch {
-        prefs.setEnableTimeline(value)
-    }
-
+    fun setShowMindfulUsage(value: Boolean) = viewModelScope.launch { prefs.setShowMindfulUsage(value) }
+    fun setEnableTimeline(value: Boolean) = viewModelScope.launch { prefs.setEnableTimeline(value) }
     fun setHomeHeaderMode(value: String) = viewModelScope.launch {
+        musicRevertJob?.cancel()
+        if (value != "music") preMusicHeaderMode = null
         prefs.setHomeHeaderMode(value)
     }
-
-    fun setBatchNotifications(value: Boolean) = viewModelScope.launch {
-        prefs.setBatchNotifications(value)
-    }
-
+    fun setBatchNotifications(value: Boolean) = viewModelScope.launch { prefs.setBatchNotifications(value) }
     fun deliverBatch() = viewModelScope.launch {
         prefs.setLastBatchTime(System.currentTimeMillis())
         refreshState()
     }
-
-    fun setTileTransparency(value: Float) = viewModelScope.launch {
-        prefs.setTileTransparency(value)
-    }
-
-    fun setLayoutStyle(value: String) = viewModelScope.launch {
-        prefs.setLayoutStyle(value)
-    }
-
-    fun incrementAppDrawerCount() = viewModelScope.launch {
-        prefs.incrementAppDrawerOpenCount()
-    }
-
-    fun emergencyOpenAppDrawer() = viewModelScope.launch {
-        prefs.incrementEmergencyDrawerOpens()
-    }
-
-    fun updateTileOverride(tileId: Int, pkg: String, label: String) = viewModelScope.launch {
-        prefs.setTileOverride(tileId, pkg, label)
-    }
-
-    fun createProfile(name: String) = viewModelScope.launch {
-        val newId = prefs.createProfile(name)
-        prefs.switchProfile(newId)
-    }
-
-    fun deleteProfile(id: String) = viewModelScope.launch {
-        prefs.deleteProfile(id)
-    }
-
-    fun switchProfile(id: String) = viewModelScope.launch {
-        prefs.switchProfile(id)
-    }
-
+    fun setTileTransparency(value: Float) = viewModelScope.launch { prefs.setTileTransparency(value) }
+    fun setLayoutStyle(value: String) = viewModelScope.launch { prefs.setLayoutStyle(value) }
+    fun incrementAppDrawerCount() = viewModelScope.launch { prefs.incrementAppDrawerOpenCount() }
+    fun emergencyOpenAppDrawer() = viewModelScope.launch { prefs.incrementEmergencyDrawerOpens() }
+    fun updateTileOverride(tileId: Int, pkg: String, label: String) = viewModelScope.launch { prefs.setTileOverride(tileId, pkg, label) }
+    
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
         when (mode) {
-                ThemeMode.LIGHT -> {
-                    prefs.setIsLightMode(true)
-                    prefs.setUseCircadianTheming(false)
-                    prefs.setShowWallpaper(false)
-                    prefs.setThemeId("default")
-                }
-                ThemeMode.DARK -> {
-                    prefs.setIsLightMode(false)
-                    prefs.setUseCircadianTheming(false)
-                    prefs.setShowWallpaper(false)
-                    prefs.setThemeId("default")
-                }
-            ThemeMode.CIRCADIAN -> {
-                prefs.setIsLightMode(false)
-                prefs.setUseCircadianTheming(true)
-                prefs.setShowWallpaper(false)
-            }
-            ThemeMode.TRANSPARENT -> {
-                prefs.setIsLightMode(false)
-                prefs.setUseCircadianTheming(false)
-                prefs.setShowWallpaper(true)
-            }
+            ThemeMode.LIGHT -> { prefs.setIsLightMode(true); prefs.setUseCircadianTheming(false); prefs.setShowWallpaper(false) }
+            ThemeMode.DARK -> { prefs.setIsLightMode(false); prefs.setUseCircadianTheming(false); prefs.setShowWallpaper(false) }
+            ThemeMode.CIRCADIAN -> { prefs.setIsLightMode(false); prefs.setUseCircadianTheming(true); prefs.setShowWallpaper(false) }
+            ThemeMode.TRANSPARENT -> { prefs.setIsLightMode(false); prefs.setUseCircadianTheming(false); prefs.setShowWallpaper(true) }
         }
     }
 
-    fun setUseLiquidGlass(value: Boolean) = viewModelScope.launch {
-        prefs.setUseLiquidGlass(value)
-    }
-
-    fun setIconPackPackage(value: String?) = viewModelScope.launch {
+    fun setUseLiquidGlass(value: Boolean) = viewModelScope.launch { prefs.setUseLiquidGlass(value) }
+    fun setIconPackPackage(value: String?) = viewModelScope.launch { 
         prefs.setIconPackPackage(value)
         iconCache.clearCache()
-    }
-
-    fun setPremium(value: Boolean) = viewModelScope.launch {
-        prefs.setPremium(value)
     }
 
     val monthlyPrice = storeBridge.monthlyPrice
     val yearlyPrice = storeBridge.yearlyPrice
     val lifetimePrice = storeBridge.lifetimePrice
+    val isStoreConnected = storeBridge.isStoreConnected
 
-    fun buyProduct(activity: Activity, productId: String) {
-        storeBridge.startBillingFlow(activity, productId)
+    fun buyProduct(activity: Activity, productId: String) = storeBridge.startBillingFlow(activity, productId)
+    fun retryStoreConnection() = storeBridge.refreshPremiumStatus()
+    fun acceptAppDisclosure() = viewModelScope.launch { prefs.setHasAcceptedAppDisclosure(true) }
+    fun setOnboardingSeen() = viewModelScope.launch { prefs.setHasSeenOnboarding(true) }
+
+    fun setPremium(value: Boolean) = viewModelScope.launch { prefs.setPremium(value) }
+    fun acknowledgeSponsoredAd() = viewModelScope.launch { prefs.setLastSponsoredShowTime(System.currentTimeMillis()) }
+
+    fun createProfile(name: String) = viewModelScope.launch {
+        val newId = prefs.createProfile(name)
+        prefs.switchProfile(newId)
     }
+    fun deleteProfile(id: String) = viewModelScope.launch { prefs.deleteProfile(id) }
+    fun switchProfile(id: String) = viewModelScope.launch { prefs.switchProfile(id) }
 
-    fun acceptAppDisclosure() = viewModelScope.launch {
-        prefs.setHasAcceptedAppDisclosure(true)
-    }
-
-    fun setOnboardingSeen() = viewModelScope.launch {
-        prefs.setHasSeenOnboarding(true)
-    }
-
-    fun acknowledgeSponsoredAd() = viewModelScope.launch {
-        prefs.setLastSponsoredShowTime(System.currentTimeMillis())
-    }
-
-    suspend fun exportSettings(): String {
-        return prefs.exportSettings()
-    }
-
+    suspend fun exportSettings(): String = prefs.exportSettings()
     suspend fun importSettings(json: String): Boolean {
         return try {
             val success = prefs.importSettings(json)
-            if (success) {
-                refreshState()
-            }
+            if (success) refreshState()
             success
-        } catch (e: Exception) {
-            false
-        }
+        } catch (_: Exception) { false }
     }
 
     fun getInstalledApps(): List<DrawerApp> {
-        val cached = _installedAppsCache.value
-        if (cached.isNotEmpty()) return cached
-        
-        // Simple synchronous fallback (no usage stats) to ensure list isn't empty
-        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
-        return queryIntentActivities(intent)
-            .map { 
-                val pkg = it.activityInfo.packageName
-                val label = it.loadLabel(pm).toString()
-                DrawerApp(pkg, label, null, 0)
-            }
-            .distinctBy { it.packageName }
-            .sortedBy { it.label }
+        return _installedAppsCache.value.ifEmpty {
+            val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+            pm.queryIntentActivities(intent, 0).map { 
+                DrawerApp(it.activityInfo.packageName, it.loadLabel(pm).toString())
+            }.distinctBy { it.packageName }.sortedBy { it.label }
+        }
     }
 
     fun getInstalledAppsForTile(tileId: Int, currentProfileId: String): List<DrawerApp> {
         val allApps = getInstalledApps()
         
-        // If it's a custom profile, allow all apps for all tiles
-        if (currentProfileId != "default") {
-            return allApps
+        // Always show all apps for the 3rd page (tiles 12+) or non-default profiles
+        if (tileId >= 12 || currentProfileId != "default") return allApps
+
+        val intentFilter = when (tileId) {
+            0 -> getAppsByIntent(Intent(Intent.ACTION_DIAL)) + 
+                 getAppsByIntent(Intent(Intent.ACTION_VIEW).setData(Uri.parse("tel:"))) +
+                 getAppsByIntent(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CONTACTS) })
+            2 -> getAppsByIntent(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MESSAGING) })
+            3 -> getAppsByIntent(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MAPS) })
+            4 -> getAppsByIntent(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MUSIC) })
+            6 -> getAppsByIntent(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
+            7 -> getAppsByIntent(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CALCULATOR) })
+            8 -> getAppsByIntent(Intent(AlarmClock.ACTION_SHOW_ALARMS)) + 
+                 getAppsByIntent(Intent(AlarmClock.ACTION_SET_ALARM))
+            9 -> getAppsByIntent(Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CALENDAR) })
+            else -> emptyList()
+        }.map { it.packageName }.toSet()
+
+        val keywordFiltered = when (tileId) {
+            0 -> filterByKeywords(allApps, listOf("phone", "dialer", "call", "contact", "telephon"))
+            1 -> {
+                val matches = filterByKeywords(allApps, listOf("chat", "whatsapp", "telegram", "messenger", "signal", "viber", "line"))
+                // Prioritize WhatsApp variants at the top
+                matches.sortedByDescending { it.packageName.contains("whatsapp", ignoreCase = true) }
+            }
+            2 -> filterByKeywords(allApps, listOf("messag", "sms", "mms"))
+            3 -> filterByKeywords(allApps, listOf("map", "navigat", "waze", "uber", "lyft"))
+            4 -> filterByKeywords(allApps, listOf("music", "spotify", "player", "audio", "yt music", "soundcloud"))
+            5 -> filterByKeywords(allApps, listOf("pay", "wallet", "bank", "card", "gpay"))
+            6 -> filterByKeywords(allApps, listOf("camera", "lens", "snap", "shot"))
+            7 -> filterByKeywords(allApps, listOf("calculator", "calc"))
+            8 -> filterByKeywords(allApps, listOf("clock", "alarm", "timer", "watch"))
+            9 -> filterByKeywords(allApps, listOf("calendar", "event", "schedule"))
+            10 -> filterByKeywords(allApps, listOf("note", "keep", "memo", "todo", "task"))
+            11 -> filterByKeywords(allApps, listOf("settings", "config", "control", "launcher"))
+            else -> allApps
         }
         
-        // Smart suggestions only for the Default profile
-        val filtered = when (tileId) {
-            0 -> filterByIntent(allApps, Intent(Intent.ACTION_DIAL)) + 
-                 filterByIntent(allApps, Intent(Intent.ACTION_VIEW).apply { data = "tel:".toUri() }) +
-                 filterByKeywords(allApps, listOf("phone", "dialer", "call", "contact"))
-            1 -> filterByKeywords(allApps, listOf("chat", "whatsapp", "telegram", "signal", "discord", "viber", "messenger", "social", "facebook", "insta", "whatsapp"))
-            2 -> filterByIntent(allApps, Intent(Intent.ACTION_SENDTO).apply { data = "smsto:".toUri() }) +
-                 filterByKeywords(allApps, listOf("messag", "sms", "mms", "text"))
-            3 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MAPS) }) +
-                 filterByKeywords(allApps, listOf("map", "navig", "gps", "waze", "uber", "lyft", "traffic", "location"))
-            4 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_MUSIC) }) +
-                 filterByIntent(allApps, Intent("android.intent.action.MUSIC_PLAYER")) +
-                 filterByKeywords(allApps, listOf("music", "audio", "player", "spotify", "sound", "radio", "podcast", "yt music", "youtube music", "wynk", "jio saavn", "gaana"))
-            5 -> filterByKeywords(allApps, listOf("pay", "wallet", "bank", "finance", "cash", "money", "card", "crypto", "binance", "paypal", "gpay", "phonepe", "phonepay", "paytm", "bhim", "yono", "hdfc", "icici", "sbi", "axis", "kotak", "pnb", "bob", "canara"))
-            6 -> filterByIntent(allApps, Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)) +
-                 filterByKeywords(allApps, listOf("camera", "cam", "lens", "gallery", "photo"))
-            7 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CALCULATOR) }) +
-                 filterByKeywords(allApps, listOf("calc"))
-            8 -> filterByKeywords(allApps, listOf("clock", "alarm", "timer", "watch"))
-            9 -> filterByIntent(allApps, Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_APP_CALENDAR) }) +
-                 filterByKeywords(allApps, listOf("calen"))
-            10 -> filterByKeywords(allApps, listOf("note", "keep", "memo", "todo", "sticky", "journal", "list", "writ"))
-            11 -> filterByKeywords(allApps, listOf("settings", "config", "manage", "setup", "launcher", "dotz"))
-            else -> return allApps // Tiles 12+ (Extra Page) can select any app
-        }.asSequence().distinctBy { it.packageName }.sortedBy { it.label }.toList()
-
-        // If for some reason the filtered list is empty (e.g., no matching app), 
-        // allow all apps so the user isn't stuck with an unassignable tile.
-        return if (filtered.isEmpty()) allApps else filtered
+        val intentMatches = allApps.filter { it.packageName in intentFilter }
+        
+        return (intentMatches + keywordFiltered).distinctBy { it.packageName }.ifEmpty { allApps }
     }
 
-    private fun filterByIntent(apps: List<DrawerApp>, intent: Intent): List<DrawerApp> {
-        val resolved = queryIntentActivities(intent).map { it.activityInfo.packageName }.toSet()
-        return apps.filter { resolved.contains(it.packageName) }
+    private fun getAppsByIntent(intent: Intent): List<DrawerApp> {
+        return try {
+            pm.queryIntentActivities(intent, 0).map {
+                DrawerApp(it.activityInfo.packageName, it.loadLabel(pm).toString())
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun filterByKeywords(apps: List<DrawerApp>, keywords: List<String>): List<DrawerApp> {
-        return apps.filter { app ->
+        return apps.filter { app -> 
             keywords.any { kw -> 
-                app.label.contains(kw, ignoreCase = true) || app.packageName.contains(kw, ignoreCase = true)
-            }
-        }
-    }
-
-    fun getInstalledIconPacks(): List<Pair<String, String>> {
-        val iconPacks = mutableListOf<Pair<String, String>>()
-        val intent = Intent("com.novalauncher.THEME")
-        val infos = queryIntentActivities(intent)
-        for (info in infos) {
-            iconPacks.add(info.activityInfo.packageName to info.loadLabel(pm).toString())
-        }
-
-        val adwIntent = Intent("org.adw.launcher.THEMES")
-        val adwInfos = queryIntentActivities(adwIntent)
-        for (info in adwInfos) {
-            val pkg = info.activityInfo.packageName
-            if (iconPacks.none { it.component1() == pkg }) {
-                iconPacks.add(pkg to info.loadLabel(pm).toString())
-            }
-        }
-
-        return iconPacks.sortedBy { it.second }
-    }
-
-    private fun queryIntentActivities(intent: Intent): List<ResolveInfo> {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
-        } else {
-            @Suppress("DEPRECATION")
-            pm.queryIntentActivities(intent, 0)
+                app.label.contains(kw, ignoreCase = true) || 
+                app.packageName.contains(kw, ignoreCase = true) 
+            } 
         }
     }
 }

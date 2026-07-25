@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0.0] - 2026-07-25
+
+### Added
+- **Android 16 Support**: Updated project to target Android 16 (API 36), ensuring compatibility with the latest platform features and predictive back navigation.
+- **Google Play Billing 8.0.0**: Migrated to the latest Billing Library with support for automatic service reconnection and improved purchase flows.
+- **Architectural Refactor**: Decoupled the monolithic `LauncherViewModel` into specialized managers (`SystemStateManager`, `WeatherManager`, `MediaManager`, `AdsManager`, `LocationManager`) for better maintainability and testability.
+- **Ultra Focus UX Enhancements**: Added a dedicated "Select Apps" prompt when focus mode is empty and implemented real-time search for faster app selection.
+
+### Improved
+- **Performance Engine**: Implemented a new state memoization system that drastically reduces CPU and battery usage by preventing redundant re-calculations of the UI state.
+- **R8 Optimizations**: Re-enabled **R8 Full Mode** and added **Class Repackaging** to significantly reduce APK size and improve runtime performance.
+
+## [6.0.9] - 2026-07-04
+
+### Added
+- **AGP 9.3.0 Upgrade**: Updated Android Gradle Plugin to version 9.3.0 for enhanced build performance and R8 optimizations.
+- **Deep Code Optimization**: Enabled `repackageclasses` and `allowaccessmodification` in R8 to further reduce app size and improve runtime speed.
+- **Gradle 8.12**: Upgraded Gradle wrapper to 8.12 for better build stability and compatibility with modern build tools.
+
+## [6.0.8] - 2026-07-04
+
+### Added
+- **R8 Full Mode**: Migrated to R8 Full Mode for more aggressive code optimization and smaller app footprints.
+- **Advanced Resource Shrinking**: Enabled optimized resource shrinking to strip away unused assets more effectively.
+
+### Fixed
+- **Android 15 Compatibility**: Migrated away from deprecated system bar color APIs and display cutout modes to comply with Android 15 edge-to-edge enforcement.
+- **Vector Resource Stability**: Cleaned up XML declarations and standardized vector path data for better cross-platform rendering performance.
+
+### Improved
+- **Performance**: Refined hardware-level detection for high refresh rate displays (120Hz/144Hz).
+- **UI Experience**: Polished "Liquid Glass" tile rendering and improved Focus History chart accuracy in the Timeline.
+
 ## [6.0.6] - 2026-07-04
 
 ### Fixed

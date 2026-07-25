@@ -3,26 +3,20 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
     namespace = "com.dotz.launcherpro"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.dotz.launcherpro"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 42
-        versionName = "6.0.6"
+        targetSdk = 36
+        versionCode = 48
+        versionName = "7.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        // Strip unused localized resources to save space
-        androidResources {
-            localeFilters += "en"
-        }
     }
 
     signingConfigs {
@@ -54,6 +48,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            val releaseSigningConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfig.storeFile != null && releaseSigningConfig.storePassword != null && releaseSigningConfig.keyPassword != null) {
+                signingConfig = releaseSigningConfig
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -83,13 +83,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     buildFeatures {
         compose = true
     }
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 dependencies {
@@ -113,8 +110,5 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
     implementation(libs.okhttp)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.runtime)
-    kapt(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.ui.tooling)
 }

@@ -3,7 +3,8 @@ package com.dotz.launcherpro.manager
 import android.content.ContentUris
 import android.content.Context
 import android.provider.CalendarContract
-import java.util.*
+import java.util.Calendar
+import java.util.Date
 
 data class CalendarEvent(
     val title: String,

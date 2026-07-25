@@ -31,6 +31,15 @@ class MainActivity : AppCompatActivity() {
             WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER
         )
 
+        // Ensure app draws behind cutouts for true edge-to-edge
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            } else {
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+
         // Modern full-screen immersive mode
         enableEdgeToEdge()
         val controller = WindowInsetsControllerCompat(window, window.decorView)

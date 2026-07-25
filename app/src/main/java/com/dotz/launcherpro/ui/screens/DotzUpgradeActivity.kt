@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +47,7 @@ class DotzUpgradeActivity : ComponentActivity() {
         setContent {
             val uiState by viewModel.uiState.collectAsState()
             val lifetimePrice by viewModel.lifetimePrice.collectAsState()
+            val isStoreConnected by viewModel.isStoreConnected.collectAsState()
 
             // Close screen if premium status becomes true
             LaunchedEffect(uiState.isPremium) {
@@ -60,8 +60,12 @@ class DotzUpgradeActivity : ComponentActivity() {
                 UpgradeScreen(
                     onBack = { finish() },
                     lifetimePrice = lifetimePrice,
+                    isStoreConnected = isStoreConnected,
                     onUpgrade = { planId ->
                         viewModel.buyProduct(this, planId)
+                    },
+                    onRetry = {
+                        viewModel.retryStoreConnection()
                     }
                 )
             }
@@ -73,7 +77,9 @@ class DotzUpgradeActivity : ComponentActivity() {
 private fun UpgradeScreen(
     onBack: () -> Unit,
     lifetimePrice: String,
-    onUpgrade: (String) -> Unit
+    isStoreConnected: Boolean,
+    onUpgrade: (String) -> Unit,
+    onRetry: () -> Unit
 ) {
     Scaffold(
         containerColor = DotzTheme.colors.background,
@@ -116,7 +122,7 @@ private fun UpgradeScreen(
                     letterSpacing = 2.sp
                 )
                 Text(
-                    "PRO FEATURE THAT NO ONE WANTS 🙄",
+                    "UNLOCK FULL POTENTIAL",
                     fontSize = 12.sp,
                     color = DotzTheme.colors.text.copy(alpha = 0.5f),
                     fontWeight = FontWeight.Medium,
@@ -141,7 +147,7 @@ private fun UpgradeScreen(
                     name = "Lifetime Access",
                     price = lifetimePrice,
                     isSelected = true,
-                    badge = "PRO FEATURE THAT NO ONE WANTS 🙄"
+                    badge = "BEST VALUE"
                 ) { /* Only one plan available */ }
                 Spacer(Modifier.height(40.dp))
             }
@@ -149,21 +155,42 @@ private fun UpgradeScreen(
             // Subscribe Button
             item {
                 Button(
-                    onClick = { onUpgrade("dotz_pro_lifetime") },
+                    onClick = { 
+                        if (isStoreConnected) {
+                            onUpgrade("dotz_launcher_pro") 
+                        } else {
+                            onRetry()
+                        }
+                    },
+                    enabled = true, // Always enabled for debugging
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = DotzTheme.colors.text,
-                        contentColor = DotzTheme.colors.background
+                        contentColor = DotzTheme.colors.background,
+                        disabledContainerColor = DotzTheme.colors.text.copy(alpha = 0.3f),
+                        disabledContentColor = DotzTheme.colors.background.copy(alpha = 0.5f)
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        "GET LIFETIME ACCESS",
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    if (isStoreConnected) {
+                        Text(
+                            "GET LIFETIME ACCESS",
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = DotzTheme.colors.background,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text("RETRY STORE CONNECTION", fontSize = 14.sp)
+                        }
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
@@ -260,8 +287,17 @@ private fun PlanCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(name, color = DotzTheme.colors.text, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        name, 
+                        color = DotzTheme.colors.text, 
+                        fontWeight = FontWeight.Bold, 
+                        fontSize = 16.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                     if (badge != null) {
                         Spacer(Modifier.width(8.dp))
                         Box(
@@ -269,7 +305,13 @@ private fun PlanCard(
                                 .background(DotzTheme.colors.text, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text(badge, color = DotzTheme.colors.background, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                badge, 
+                                color = DotzTheme.colors.background, 
+                                fontSize = 9.sp, 
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
                         }
                     }
                 }

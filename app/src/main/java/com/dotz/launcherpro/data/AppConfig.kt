@@ -132,6 +132,7 @@ object DefaultApps {
     val packageFallbacks = mapOf(
         "com.google.android.dialer"         to listOf("com.samsung.android.dialer", "com.android.dialer"),
         "com.google.android.apps.messaging" to listOf("com.samsung.android.messaging", "com.android.mms"),
+        "com.whatsapp"                      to listOf("com.whatsapp.w4b"),
         "com.android.camera2"               to listOf("com.samsung.android.camera2", "com.google.android.GoogleCamera"),
         "com.google.android.apps.walletnfcrel" to listOf("com.samsung.android.spay"),
         "com.google.android.keep"           to listOf("com.miui.notes", "com.colornote.notepad")

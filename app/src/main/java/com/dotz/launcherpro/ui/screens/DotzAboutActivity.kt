@@ -1,6 +1,5 @@
 package com.dotz.launcherpro.ui.screens
 
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent

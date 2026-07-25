@@ -40,7 +40,7 @@ data class DotzSettings(
     val showMindfulUsage: Boolean = true,
     val showWallpaper: Boolean = false,
     val enableTimeline: Boolean = true,
-    val homeHeaderMode: String = "toggles", // "toggles", "music", or "stats"
+    val homeHeaderMode: String = "stats", // "toggles", "music", or "stats"
     val tileTransparency: Float = 1.0f,
     val layoutStyle: String = "classic",
     /** JSON-serialized map of tileId -> packageName overrides */
@@ -64,15 +64,13 @@ data class DotzSettings(
     val lastSponsoredShowTime: Long = 0,
     val batchNotifications: Boolean = false,
     val lastBatchTime: Long = 0,
-    val lastCallCheckTime: Long = 0,
-    val lastSMSCheckTime: Long = 0,
-    val lastMediaCheckTime: Long = 0,
-    val lastPhotoCheckTime: Long = 0,
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
     val ultraFocusEndTime: Long = 0,
+    val ultraFocusAppPackages: List<String> = emptyList(),
     val emergencyDrawerOpens: Int = 0,
+    val focusScoreHistory: Map<String, Int> = emptyMap(), // ISO Date String -> Score
 )
 
 object PrefsKeys {
@@ -116,15 +114,13 @@ object PrefsKeys {
     val LAST_SPONSORED_SHOW_TIME = longPreferencesKey("last_sponsored_show_time")
     val BATCH_NOTIFICATIONS     = booleanPreferencesKey("batch_notifications")
     val LAST_BATCH_TIME          = longPreferencesKey("last_batch_time")
-    val LAST_CALL_CHECK_TIME     = longPreferencesKey("last_call_check_time")
-    val LAST_SMS_CHECK_TIME      = longPreferencesKey("last_sms_check_time")
-    val LAST_MEDIA_CHECK_TIME    = longPreferencesKey("last_media_check_time")
-    val LAST_PHOTO_CHECK_TIME    = longPreferencesKey("last_photo_check_time")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
     val ULTRA_FOCUS_END_TIME    = longPreferencesKey("ultra_focus_end_time")
+    val ULTRA_FOCUS_APP_PACKAGES = stringPreferencesKey("ultra_focus_app_packages")
     val EMERGENCY_DRAWER_OPENS  = intPreferencesKey("emergency_drawer_opens")
+    val FOCUS_SCORE_HISTORY     = stringPreferencesKey("focus_score_history")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -161,6 +157,16 @@ class DotzPreferencesRepository(private val context: Context) {
                 emptyList<LauncherProfile>()
             }
 
+            val historyJson = prefs[PrefsKeys.FOCUS_SCORE_HISTORY]
+            val historyMap = if (historyJson != null) {
+                try {
+                    val type = object : com.google.gson.reflect.TypeToken<Map<String, Int>>() {}.type
+                    Gson().fromJson<Map<String, Int>>(historyJson, type)
+                } catch (e: Exception) { emptyMap<String, Int>() }
+            } else {
+                emptyMap<String, Int>()
+            }
+
             DotzSettings(
                 showNotificationDots = prefs[PrefsKeys.SHOW_NOTIFICATION_DOTS] ?: true,
                 showNumericalCounts  = prefs[PrefsKeys.SHOW_NUMERICAL_COUNTS]  ?: true,
@@ -177,7 +183,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 showMindfulUsage     = prefs[PrefsKeys.SHOW_MINDFUL_USAGE]       ?: true,
                 showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: false,
                 enableTimeline       = prefs[PrefsKeys.ENABLE_TIMELINE]          ?: true,
-                homeHeaderMode       = prefs[PrefsKeys.HOME_HEADER_MODE]         ?: "toggles",
+                homeHeaderMode       = prefs[PrefsKeys.HOME_HEADER_MODE]         ?: "stats",
                 tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
                 layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
                 tileOverrides        = overrides,
@@ -200,15 +206,13 @@ class DotzPreferencesRepository(private val context: Context) {
                 lastSponsoredShowTime = prefs[PrefsKeys.LAST_SPONSORED_SHOW_TIME] ?: 0,
                 batchNotifications = prefs[PrefsKeys.BATCH_NOTIFICATIONS] ?: false,
                 lastBatchTime = prefs[PrefsKeys.LAST_BATCH_TIME] ?: 0,
-                lastCallCheckTime = prefs[PrefsKeys.LAST_CALL_CHECK_TIME] ?: 0,
-                lastSMSCheckTime = prefs[PrefsKeys.LAST_SMS_CHECK_TIME] ?: 0,
-                lastMediaCheckTime = prefs[PrefsKeys.LAST_MEDIA_CHECK_TIME] ?: 0,
-                lastPhotoCheckTime = prefs[PrefsKeys.LAST_PHOTO_CHECK_TIME] ?: 0,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
                 profiles             = profilesList,
                 ultraFocusEndTime    = prefs[PrefsKeys.ULTRA_FOCUS_END_TIME] ?: 0L,
-                emergencyDrawerOpens = prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] ?: 0
+                ultraFocusAppPackages = prefs[PrefsKeys.ULTRA_FOCUS_APP_PACKAGES]?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
+                emergencyDrawerOpens = prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] ?: 0,
+                focusScoreHistory    = historyMap
             )
         }
 
@@ -356,22 +360,6 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.LAST_BATCH_TIME] = value }
     }
 
-    suspend fun setLastCallCheckTime(value: Long) {
-        context.dataStore.edit { it[PrefsKeys.LAST_CALL_CHECK_TIME] = value }
-    }
-
-    suspend fun setLastSMSCheckTime(value: Long) {
-        context.dataStore.edit { it[PrefsKeys.LAST_SMS_CHECK_TIME] = value }
-    }
-
-    suspend fun setLastMediaCheckTime(value: Long) {
-        context.dataStore.edit { it[PrefsKeys.LAST_MEDIA_CHECK_TIME] = value }
-    }
-
-    suspend fun setLastPhotoCheckTime(value: Long) {
-        context.dataStore.edit { it[PrefsKeys.LAST_PHOTO_CHECK_TIME] = value }
-    }
-
     suspend fun setTileTransparency(value: Float) {
         context.dataStore.edit { it[PrefsKeys.TILE_TRANSPARENCY] = value }
     }
@@ -510,6 +498,30 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.ULTRA_FOCUS_END_TIME] = time }
     }
 
+    suspend fun setUltraFocusApps(packages: List<String>) {
+        context.dataStore.edit { it[PrefsKeys.ULTRA_FOCUS_APP_PACKAGES] = packages.joinToString(",") }
+    }
+
+    suspend fun updateFocusScoreHistory(date: String, score: Int) {
+        context.dataStore.edit { prefs ->
+            val currentJson = prefs[PrefsKeys.FOCUS_SCORE_HISTORY]
+            val type = object : com.google.gson.reflect.TypeToken<MutableMap<String, Int>>() {}.type
+            val currentMap: MutableMap<String, Int> = if (currentJson != null) {
+                try { Gson().fromJson(currentJson, type) } catch (e: Exception) { mutableMapOf() }
+            } else mutableMapOf()
+            
+            currentMap[date] = score
+            
+            // Keep only last 14 days to prevent bloat
+            if (currentMap.size > 14) {
+                val keysToRemove = currentMap.keys.sorted().take(currentMap.size - 14)
+                keysToRemove.forEach { currentMap.remove(it) }
+            }
+            
+            prefs[PrefsKeys.FOCUS_SCORE_HISTORY] = Gson().toJson(currentMap)
+        }
+    }
+
     /** Read a single tile label override (used for display in app grid) */
     fun tileLabelFlow(tileId: Int): Flow<String?> =
         context.dataStore.data.map { it[PrefsKeys.tileLabel(tileId)] }
@@ -551,6 +563,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.TILE_ORDER] = settings.tileOrder.joinToString(",")
                 prefs[PrefsKeys.ACTIVE_PROFILE_ID] = settings.activeProfileId
                 prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(settings.profiles)
+                prefs[PrefsKeys.FOCUS_SCORE_HISTORY] = Gson().toJson(settings.focusScoreHistory)
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

@@ -88,16 +88,50 @@ class IconCacheManager(private val context: Context) {
         return File(cacheDir, fileName)
     }
 
-    fun getIcon(packageName: String, iconPackPackage: String?, grayscale: Boolean): Bitmap? {
+    fun getIcon(
+        packageName: String, 
+        iconPackPackage: String?, 
+        grayscale: Boolean,
+        reqWidth: Int = 192,
+        reqHeight: Int = 192
+    ): Bitmap? {
         val file = getCacheFile(packageName, iconPackPackage, grayscale)
         if (file.exists()) {
             return try {
-                BitmapFactory.decodeFile(file.absolutePath)
+                decodeSampledBitmapFromFile(file.absolutePath, reqWidth, reqHeight)
             } catch (e: Exception) {
                 null
             }
         }
         return null
+    }
+
+    private fun decodeSampledBitmapFromFile(path: String, reqWidth: Int, reqHeight: Int): Bitmap? {
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        BitmapFactory.decodeFile(path, options)
+
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+        options.inJustDecodeBounds = false
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888
+        
+        return BitmapFactory.decodeFile(path, options)
+    }
+
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
     }
 
     fun saveIcon(packageName: String, iconPackPackage: String?, grayscale: Boolean, drawable: Drawable) {

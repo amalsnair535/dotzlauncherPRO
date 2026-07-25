@@ -1,7 +1,9 @@
 package com.dotz.launcherpro.ui.screens
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -84,6 +86,16 @@ class DotzSettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ensure app draws behind cutouts for true edge-to-edge
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = if (android.os.Build.VERSION.SDK_INT >= 35) {
+                android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            } else {
+                android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+
         enableEdgeToEdge()
         
         setContent {
@@ -434,6 +446,15 @@ private fun DotzSettingsScreen(
                     icon = Icons.Default.Psychology,
                     subtitle = stringResource(R.string.settings_subtitle_ultra_focus),
                     onClick = { showUltraFocusDurationDialog = true }
+                )
+                Divider()
+                SettingsActionRow(
+                    label = "Select Ultra Focus Apps",
+                    icon = Icons.Default.AppRegistration,
+                    subtitle = "Pick up to 7 apps for focus sessions",
+                    onClick = {
+                        context.startActivity(Intent(context, UltraFocusAppSelectionActivity::class.java))
+                    }
                 )
                 Divider()
                 SettingsToggleRow(

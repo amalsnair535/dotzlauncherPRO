@@ -1,7 +1,6 @@
 package com.dotz.launcherpro.ui.theme
 
 import android.os.Build
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*

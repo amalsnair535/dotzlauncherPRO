@@ -18,14 +18,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.READ_CALL_LOG" />
-    <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
@@ -34,6 +28,7 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
+        android:name=".DotzApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -90,6 +85,13 @@
             android:name=".ui.screens.DotzUpgradeActivity"
             android:exported="false"
             android:label="Upgrade"
+            android:theme="@style/Theme.DotzLauncher" />
+
+        <!-- Ultra Focus App Selection Activity -->
+        <activity
+            android:name=".ui.screens.UltraFocusAppSelectionActivity"
+            android:exported="false"
+            android:label="Select Focus Apps"
             android:theme="@style/Theme.DotzLauncher" />
 
         <!-- AdMob App ID -->

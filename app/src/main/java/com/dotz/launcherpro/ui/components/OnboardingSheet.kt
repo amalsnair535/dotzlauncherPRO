@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@file:OptIn(ExperimentalFoundationApi::class)
 package com.dotz.launcherpro.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi

@@ -1,15 +1,12 @@
 package com.dotz.launcherpro.ui.components
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Reply
@@ -37,6 +34,7 @@ import com.dotz.launcherpro.data.TimelineItem
 import com.dotz.launcherpro.data.TimelineType
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -46,6 +44,149 @@ data class MindfulnessInfo(
     val usageTime: String?,
     val launchCount: Int
 )
+
+@Composable
+fun FocusHistoryChart(
+    history: List<Pair<String, Int>>,
+    hasPermission: Boolean,
+    onEnablePermission: () -> Unit
+) {
+    var selectedDate by remember { mutableStateOf<String?>(null) }
+    
+    Column(modifier = Modifier.padding(vertical = 16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "FOCUS HISTORY",
+                style = MaterialTheme.typography.labelMedium,
+                color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                letterSpacing = 1.5.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            if (hasPermission && (history.isNotEmpty() || selectedDate != null)) {
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val displayDate = selectedDate ?: today
+                val score = history.toMap()[displayDate] ?: if (displayDate == today) 100 else 0
+                
+                Text(
+                    text = if (selectedDate != null && selectedDate != today) "$displayDate: $score%" else "$score%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (score >= 80) DotzTheme.colors.accent else DotzTheme.colors.text.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        if (!hasPermission) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DotzTheme.colors.text.copy(alpha = 0.05f))
+                    .clickable { onEnablePermission() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "TAP TO ENABLE ACCURATE STATS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DotzTheme.colors.text.copy(alpha = 0.4f),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            return@Column
+        }
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            val calendar = Calendar.getInstance()
+            // Find current week's Monday
+            val currentDay = calendar.get(Calendar.DAY_OF_WEEK)
+            val daysToSubtract = if (currentDay == Calendar.SUNDAY) 6 else currentDay - Calendar.MONDAY
+            calendar.add(Calendar.DATE, -daysToSubtract)
+            
+            val historyMap = history.toMap()
+            val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+
+            (0..6).forEach { i ->
+                val day = calendar.clone() as Calendar
+                day.add(Calendar.DATE, i)
+                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(day.time)
+                val score = historyMap[dateStr] ?: 0
+                val isToday = dateStr == SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val isFuture = day.timeAfter(Date())
+
+                val barHeight = (score.toFloat() / 100f).coerceIn(0.05f, 1f) * 80f
+                
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable {
+                        if (!isFuture) {
+                            selectedDate = if (selectedDate == dateStr) null else dateStr
+                        }
+                    }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(24.dp)
+                            .height(80.dp),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        // Background track
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = if (selectedDate == dateStr) DotzTheme.colors.text.copy(alpha = 0.1f)
+                                            else DotzTheme.colors.text.copy(alpha = 0.03f),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                        )
+                        // Score bar
+                        if (!isFuture) {
+                            Box(
+                                modifier = Modifier
+                                    .width(24.dp)
+                                    .height(barHeight.dp)
+                                    .background(
+                                        color = if (selectedDate == dateStr) DotzTheme.colors.accent
+                                                else if (score >= 80) DotzTheme.colors.accent
+                                                else if (isToday) DotzTheme.colors.text.copy(alpha = 0.4f)
+                                                else DotzTheme.colors.text.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = dayLabels[i],
+                        fontSize = 10.sp,
+                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isToday) DotzTheme.colors.text else DotzTheme.colors.text.copy(alpha = 0.3f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun Calendar.timeAfter(date: Date): Boolean {
+    val other = Calendar.getInstance()
+    other.time = date
+    if (get(Calendar.YEAR) > other.get(Calendar.YEAR)) return true
+    if (get(Calendar.YEAR) < other.get(Calendar.YEAR)) return false
+    return get(Calendar.DAY_OF_YEAR) > other.get(Calendar.DAY_OF_YEAR)
+}
 
 @Composable
 fun MindfulnessDialog(
@@ -109,7 +250,7 @@ fun TimelineCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
+            .padding(vertical = 4.dp)
             .then(
                 if (isGlass) {
                     Modifier.drawBehind {
@@ -121,25 +262,26 @@ fun TimelineCard(
                                 end = androidx.compose.ui.geometry.Offset.Infinite
                             ),
                             size = size,
-                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(20.dp.toPx()),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx()),
                             style = androidx.compose.ui.graphics.drawscope.Stroke(width = strokeWidth)
                         )
                     }
                 } else Modifier
             ),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(24.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = if (item.type == TimelineType.MUSIC) Alignment.Top else Alignment.CenterVertically
             ) {
+                // Icon
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(DotzTheme.colors.text.copy(alpha = 0.05f))
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DotzTheme.colors.text.copy(alpha = 0.03f))
                         .clickable { onItemClick(item.packageName) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -156,56 +298,63 @@ fun TimelineCard(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Text(
                             text = item.title,
                             color = DotzTheme.colors.text,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            ),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
                         )
-                        if (item.type == TimelineType.SPONSORED) {
-                            SponsoredBadge(Modifier.padding(start = 8.dp))
-                        }
-                        Spacer(Modifier.weight(1f))
+                        
                         Text(
                             text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(item.timestamp)),
                             color = DotzTheme.colors.text.copy(alpha = 0.3f),
-                            fontSize = 10.sp
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            modifier = Modifier.padding(start = 8.dp)
                         )
                     }
-                    Text(
-                        text = item.subtitle,
-                        color = DotzTheme.colors.text.copy(alpha = 0.5f),
-                        fontSize = 12.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    
+                    if (item.subtitle.isNotBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = item.subtitle,
+                            color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
 
             if (item.type == TimelineType.MUSIC) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onSkipPrevious) {
-                        Icon(Icons.Default.SkipPrevious, "Previous Track", tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.SkipPrevious, "Previous Track", tint = DotzTheme.colors.text, modifier = Modifier.size(24.dp))
                     }
+                    Spacer(Modifier.width(24.dp))
                     IconButton(onClick = onPlayPause) {
                         Icon(
                             if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             if (isPlaying) "Pause" else "Play",
                             tint = DotzTheme.colors.text,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
+                    Spacer(Modifier.width(24.dp))
                     IconButton(onClick = onSkipNext) {
-                        Icon(Icons.Default.SkipNext, "Next Track", tint = DotzTheme.colors.text, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.SkipNext, "Next Track", tint = DotzTheme.colors.text, modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -308,24 +457,6 @@ fun PremiumBadge(modifier: Modifier = Modifier) {
             fontSize = 7.sp, 
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp), 
             fontWeight = FontWeight.Black
-        )
-    }
-}
-
-@Composable
-fun SponsoredBadge(modifier: Modifier = Modifier) {
-    Surface(
-        color = DotzTheme.colors.accent.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(4.dp),
-        modifier = modifier
-    ) {
-        Text(
-            text = "SPONSORED", 
-            color = DotzTheme.colors.accent.copy(alpha = 0.8f), 
-            fontSize = 6.sp, 
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp), 
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
         )
     }
 }

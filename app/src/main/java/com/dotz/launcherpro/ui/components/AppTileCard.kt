@@ -1,7 +1,6 @@
 @file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 package com.dotz.launcherpro.ui.components
 
-import android.content.Context
 import android.graphics.drawable.Drawable
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -105,7 +104,7 @@ fun AppTileCard(
         iconCache.getIcon(tile.packageName, iconPackPackage, true)
     }
 
-    val colorFilter = if (cachedBitmap == null) {
+    val colorFilter = if (grayscale && cachedBitmap == null) {
         // Only apply color filter if we didn't get a grayscale-rendered bitmap from cache
         ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
     } else null
