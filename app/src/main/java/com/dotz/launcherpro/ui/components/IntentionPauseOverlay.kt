@@ -1,27 +1,61 @@
 package com.dotz.launcherpro.ui.components
 
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.delay
 
 @Composable
-fun IntentionPauseOverlay(onFinished: () -> Unit, onCancel: () -> Unit) {
+fun IntentionPauseOverlay(
+    useBiometric: Boolean = false,
+    onFinished: () -> Unit,
+    onCancel: () -> Unit
+) {
     var timeLeft by remember { mutableStateOf(3) }
+    val context = LocalContext.current
     
     LaunchedEffect(Unit) {
-        while (timeLeft > 0) {
-            delay(1000)
-            timeLeft--
+        if (!useBiometric) {
+            while (timeLeft > 0) {
+                delay(1000)
+                timeLeft--
+            }
+            onFinished()
         }
-        onFinished()
+    }
+
+    val authenticate = {
+        val executor = ContextCompat.getMainExecutor(context)
+        val biometricPrompt = BiometricPrompt(
+            context as FragmentActivity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    onFinished()
+                }
+            }
+        )
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Intention Check")
+            .setSubtitle("Confirm your intention to open this app")
+            .setNegativeButtonText("Never mind")
+            .build()
+
+        biometricPrompt.authenticate(promptInfo)
     }
 
     Surface(
@@ -47,12 +81,25 @@ fun IntentionPauseOverlay(onFinished: () -> Unit, onCancel: () -> Unit) {
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(48.dp))
-            Text(
-                "$timeLeft",
-                style = MaterialTheme.typography.displayLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Black
-            )
+            
+            if (useBiometric) {
+                Button(
+                    onClick = { authenticate() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.height(56.dp).fillMaxWidth(0.7f)
+                ) {
+                    Text("AUTHENTICATE TO OPEN", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Text(
+                    "$timeLeft",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Black
+                )
+            }
+            
             Spacer(Modifier.height(64.dp))
             Button(
                 onClick = onCancel,
@@ -64,3 +111,4 @@ fun IntentionPauseOverlay(onFinished: () -> Unit, onCancel: () -> Unit) {
         }
     }
 }
+

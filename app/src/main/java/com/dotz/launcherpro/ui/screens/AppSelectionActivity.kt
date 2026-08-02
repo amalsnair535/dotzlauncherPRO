@@ -51,15 +51,15 @@ class AppSelectionActivity : ComponentActivity() {
         if (tileId == -1) { finish(); return }
 
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
+            val theme by viewModel.themeState.collectAsState()
             
             // Force a solid background for selection screen to prevent UI ghosting/glitching
-            val selectionSettings = remember(uiState.settings) {
-                uiState.settings.copy(showWallpaper = false)
+            val selectionSettings = remember(theme.settings) {
+                theme.settings.copy(showWallpaper = false)
             }
 
-            val installedApps = remember(uiState.settings.activeProfileId, tileId) {
-                viewModel.getInstalledAppsForTile(tileId, uiState.settings.activeProfileId)
+            val installedApps = remember(theme.settings.activeProfileId, tileId) {
+                viewModel.getInstalledAppsForTile(tileId, theme.settings.activeProfileId)
             }
 
             DotzTheme(settings = selectionSettings) {
@@ -71,13 +71,19 @@ class AppSelectionActivity : ComponentActivity() {
                         apps    = installedApps,
                         title   = "SELECT $tileLabel APP",
                         onBack  = { finish() }
-                    ) { pkg, label ->
-                        viewModel.updateTileOverride(tileId, pkg, label.uppercase())
+                    ) { pkg, comp, label ->
+                        viewModel.updateTileOverride(tileId, pkg, comp, label.uppercase())
                         finish()
                     }
                 }
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.dotz.launcherpro.R.anim.stay, com.dotz.launcherpro.R.anim.slide_down)
     }
 }
 
@@ -87,7 +93,7 @@ private fun AppSelectionScreen(
     apps: List<DrawerApp>,
     title: String,
     onBack: () -> Unit,
-    onSelect: (String, String) -> Unit,
+    onSelect: (String, String?, String) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = remember(query, apps) {
@@ -143,12 +149,13 @@ private fun AppSelectionScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filtered, key = { it.packageName }) { app ->
+                items(filtered, key = { "${it.packageName}|${it.componentName}" }) { app ->
                     AppRow(
                         pkg = app.packageName, 
                         label = app.label, 
+                        component = app.componentName,
                         onClick = { 
-                            onSelect(app.packageName, app.label)
+                            onSelect(app.packageName, app.componentName, app.label)
                         }
                     )
                 }
@@ -158,13 +165,13 @@ private fun AppSelectionScreen(
 }
 
 @Composable
-private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
+private fun AppRow(pkg: String, label: String, component: String?, onClick: () -> Unit) {
     val context = LocalContext.current
-    var icon by remember(pkg) { mutableStateOf<Drawable?>(null) }
+    var icon by remember(pkg, component) { mutableStateOf<Drawable?>(null) }
     
-    LaunchedEffect(pkg) {
+    LaunchedEffect(pkg, component) {
         withContext(Dispatchers.IO) {
-            icon = loadIcon(context, pkg)
+            icon = loadIcon(context, pkg, component)
         }
     }
 
@@ -179,7 +186,12 @@ private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
     ) {
         Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
             icon?.let { drawable ->
-                val bmp = remember(drawable) { drawable.toBitmap().asImageBitmap() }
+                val bmp = remember(drawable) { 
+                    val target = 128
+                    val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth.coerceAtMost(target) else target
+                    val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight.coerceAtMost(target) else target
+                    drawable.toBitmap(width, height).asImageBitmap() 
+                }
                 Image(
                     bitmap             = bmp,
                     contentDescription = label,
@@ -190,11 +202,21 @@ private fun AppRow(pkg: String, label: String, onClick: () -> Unit) {
         Spacer(Modifier.width(16.dp))
         Column {
             Text(label, color = DotzTheme.colors.text, style = MaterialTheme.typography.bodyLarge)
-            Text(pkg, color = DotzTheme.colors.text.copy(alpha = 0.35f), style = MaterialTheme.typography.labelSmall)
+            val subtext = if (component != null && component.startsWith(pkg)) {
+                component.removePrefix(pkg)
+            } else {
+                pkg
+            }
+            Text(subtext, color = DotzTheme.colors.text.copy(alpha = 0.35f), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
-private fun loadIcon(context: Context, pkg: String): Drawable? = try {
-    context.packageManager.getApplicationIcon(pkg)
+private fun loadIcon(context: Context, pkg: String, component: String?): Drawable? = try {
+    if (component != null) {
+        val compName = android.content.ComponentName(pkg, component)
+        context.packageManager.getActivityIcon(compName)
+    } else {
+        context.packageManager.getApplicationIcon(pkg)
+    }
 } catch (_: Exception) { null }

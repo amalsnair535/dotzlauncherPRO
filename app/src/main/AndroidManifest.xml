@@ -18,6 +18,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -57,42 +58,42 @@
             android:name=".ui.screens.DotzSettingsActivity"
             android:exported="false"
             android:label="@string/settings_title"
-            android:theme="@style/Theme.DotzLauncher" />
+            android:theme="@style/Theme.DotzLauncher.Settings" />
 
         <!-- App Selection Activity -->
         <activity
             android:name=".ui.screens.AppSelectionActivity"
             android:exported="false"
             android:label="@string/app_selection_title"
-            android:theme="@style/Theme.DotzLauncher" />
+            android:theme="@style/Theme.DotzLauncher.Settings" />
 
         <!-- App Selection List Activity -->
         <activity
             android:name=".ui.screens.AppSelectionListActivity"
             android:exported="false"
             android:label="App Selection"
-            android:theme="@style/Theme.DotzLauncher" />
+            android:theme="@style/Theme.DotzLauncher.Settings" />
 
         <!-- About Activity -->
         <activity
             android:name=".ui.screens.DotzAboutActivity"
             android:exported="false"
             android:label="About"
-            android:theme="@style/Theme.DotzLauncher" />
+            android:theme="@style/Theme.DotzLauncher.Settings" />
 
         <!-- Upgrade Activity -->
         <activity
             android:name=".ui.screens.DotzUpgradeActivity"
             android:exported="false"
             android:label="Upgrade"
-            android:theme="@style/Theme.DotzLauncher" />
+            android:theme="@style/Theme.DotzLauncher.Settings" />
 
         <!-- Ultra Focus App Selection Activity -->
         <activity
             android:name=".ui.screens.UltraFocusAppSelectionActivity"
             android:exported="false"
             android:label="Select Focus Apps"
-            android:theme="@style/Theme.DotzLauncher" />
+            android:theme="@style/Theme.DotzLauncher.Settings" />
 
         <!-- AdMob App ID -->
         <meta-data

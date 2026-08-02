@@ -1,0 +1,6 @@
+- [x] Fix warnings in `MainActivity.kt`
+- [x] Fix warnings in `DotzHomeScreen.kt`
+- [x] Fix warnings in `LauncherViewModel.kt`
+- [x] Fix warnings in `AppGrid.kt`
+- [x] Fix warnings in `AdsManager.kt`
+- [x] Verify build with `:app:assembleDebug`

@@ -58,6 +58,15 @@ class SystemStateManager(private val app: Application) {
     private val _isTorchOn = MutableStateFlow(false)
     val isTorchOn = _isTorchOn.asStateFlow()
 
+    fun setTorchState(on: Boolean) {
+        _isTorchOn.value = on
+    }
+
+    fun setRingerMode(mode: Int) {
+        _ringerMode.value = mode
+        _isSilentMode.value = mode != AudioManager.RINGER_MODE_NORMAL
+    }
+
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
@@ -77,15 +86,22 @@ class SystemStateManager(private val app: Application) {
                     val mode = audioManager.ringerMode
                     _ringerMode.value = mode
                     _isSilentMode.value = mode != AudioManager.RINGER_MODE_NORMAL
+                    android.util.Log.d("SystemStateManager", "Ringer mode changed: $mode")
                 }
-                Intent.ACTION_AIRPLANE_MODE_CHANGED -> _isAirplaneModeOn.value = intent.getBooleanExtra("state", false)
+                Intent.ACTION_AIRPLANE_MODE_CHANGED -> {
+                    val state = intent.getBooleanExtra("state", false)
+                    _isAirplaneModeOn.value = state
+                    android.util.Log.d("SystemStateManager", "Airplane mode changed: $state")
+                }
             }
         }
     }
 
     private val torchCallback = object : CameraManager.TorchCallback() {
         override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
+            // Usually the back camera is "0"
             _isTorchOn.value = enabled
+            android.util.Log.d("SystemStateManager", "Torch mode changed: $cameraId -> $enabled")
         }
     }
 

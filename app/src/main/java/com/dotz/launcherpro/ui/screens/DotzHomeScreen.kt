@@ -2,7 +2,6 @@
 package com.dotz.launcherpro.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -10,6 +9,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import com.dotz.launcherpro.data.AppTile
 import com.dotz.launcherpro.data.IconCacheManager
@@ -49,6 +50,7 @@ import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.ui.theme.DotzType
 import com.dotz.launcherpro.ui.theme.blend
+import com.dotz.launcherpro.viewmodel.AppShortcut
 import com.dotz.launcherpro.viewmodel.LauncherUiState
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 import java.text.SimpleDateFormat
@@ -58,14 +60,24 @@ import kotlin.math.abs
 @Composable
 fun DotzHomeScreen(
     viewModel: LauncherViewModel,
-    uiState: LauncherUiState,
-    onLauncherSettingsTap: () -> Unit
+    onLauncherSettingsTap: () -> Unit,
 ) {
     val context = LocalContext.current
     val iconCache = viewModel.iconCache
 
+    // --- High-Performance Atomic State Observation ---
+    val theme by viewModel.themeState.collectAsState()
+    val system by viewModel.systemHeaderState.collectAsState()
+    val weather by viewModel.weatherState.collectAsState()
+    val media by viewModel.mediaState.collectAsState()
+    val focus by viewModel.focusState.collectAsState()
+    val tiles by viewModel.tilesState.collectAsState()
+    val timeline by viewModel.timelineState.collectAsState()
+    
+    val settings = theme.settings
+
     // --- Migrated Fragment Logic (Dialogs & State) ---
-    var showNotifPermDialog by remember { mutableStateOf(false) }
+    var showNotifPermDialog by remember { mutableStateOf(value = false) }
     var showDefaultLauncherDialog by remember { mutableStateOf(false) }
     var hasDismissedDefaultDialog by remember { mutableStateOf(false) }
     var showAppAccessDisclosure by remember { mutableStateOf(false) }
@@ -77,7 +89,12 @@ fun DotzHomeScreen(
     var showAppDrawerConfirmDialog by remember { mutableStateOf(false) }
     var hasAcceptedLocally by remember { mutableStateOf(false) }
     var showOnboarding by remember { mutableStateOf(false) }
-    var showIntentionPause by remember { mutableStateOf<String?>(null) }
+    var showIntentionPause by remember { mutableStateOf<Pair<String, String?>?>(null) } // pkg to component
+    var selectedShortcutTile by remember { mutableStateOf<AppTile?>(null) }
+    var appShortcuts by remember { mutableStateOf<List<AppShortcut>>(emptyList()) }
+    var editingNote by remember { mutableStateOf<Pair<String, String>?>(null) } // id to text
+    var isClockEditMode by remember { mutableStateOf(false) }
+    var isHeaderEditMode by remember { mutableStateOf(false) }
 
     val hapticPulse = {
         val vibrator = context.getSystemService(Vibrator::class.java)
@@ -94,7 +111,7 @@ fun DotzHomeScreen(
 
     val handleHomeScreenTap = {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastTapTime < 500) {
+        if ((currentTime - lastTapTime) < 500) {
             tapCount++
         } else {
             tapCount = 1
@@ -109,28 +126,20 @@ fun DotzHomeScreen(
         }
     }
 
-    // --- Liquid Glass Animation (Optimized) ---
+    // --- Liquid Glass Theme ---
     val isGlass = DotzTheme.colors.isGlass
-    val infiniteTransition = rememberInfiniteTransition(label = "LiquidGlass")
-    val animOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "Offset"
-    )
 
-    val launchApp = { pkg: String ->
+    val launchApp = { pkg: String, comp: String? ->
         val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
         if (isSocial && showIntentionPause == null) {
-            showIntentionPause = pkg
+            showIntentionPause = pkg to comp
         } else {
-            val success = viewModel.launchApp(pkg)
+            val success = viewModel.launchApp(pkg, comp)
             if (!success) {
                 // Handle unassigned
-                tileToAssign = (uiState.page0Tiles + uiState.page1Tiles + uiState.page2Tiles).find { it.packageName == pkg }
+                tileToAssign = (tiles.page0Tiles + tiles.page1Tiles + tiles.page2Tiles).find { 
+                    it.packageName == pkg && it.componentName == comp 
+                }
                 if (tileToAssign == null && pkg.isNotBlank()) {
                     Toast.makeText(context, "Could not open app", Toast.LENGTH_SHORT).show()
                 }
@@ -138,37 +147,33 @@ fun DotzHomeScreen(
         }
     }
 
-    LaunchedEffect(uiState.isLoaded, uiState.settings.hasAcceptedAppDisclosure, hasAcceptedLocally, uiState.settings.hasSeenOnboarding) {
-        if (uiState.isLoaded && uiState.settings.hasSeenOnboarding && !uiState.settings.hasAcceptedAppDisclosure && !hasAcceptedLocally) {
-            showAppAccessDisclosure = true
-        } else {
-            showAppAccessDisclosure = false
-        }
+    LaunchedEffect(tiles.isLoaded, settings.hasAcceptedAppDisclosure, hasAcceptedLocally, settings.hasSeenOnboarding) {
+        showAppAccessDisclosure = tiles.isLoaded && settings.hasSeenOnboarding && !settings.hasAcceptedAppDisclosure && !hasAcceptedLocally
     }
 
-    LaunchedEffect(uiState.settings.hasSeenOnboarding) {
-        if (uiState.settings.hasSeenOnboarding) {
+    LaunchedEffect(settings.hasSeenOnboarding) {
+        if (settings.hasSeenOnboarding) {
             val isNotifEnabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
                 ?.contains(context.packageName) == true
             if (!isNotifEnabled) showNotifPermDialog = true
-            if (uiState.settings.showMindfulUsage && !uiState.hasUsageStatsPermission) showUsageStatsDialog = true
+            if (settings.showMindfulUsage && !focus.hasUsageStatsPermission) showUsageStatsDialog = true
         }
     }
 
-    LaunchedEffect(uiState.isDefaultLauncher, uiState.settings.hasSeenOnboarding) {
-        if (uiState.settings.hasSeenOnboarding && !uiState.isDefaultLauncher && !hasDismissedDefaultDialog) {
+    LaunchedEffect(theme.isDefaultLauncher, settings.hasSeenOnboarding) {
+        if (settings.hasSeenOnboarding && !theme.isDefaultLauncher && !hasDismissedDefaultDialog) {
             showDefaultLauncherDialog = true
         }
     }
 
-    LaunchedEffect(uiState.isLoaded, uiState.settings.hasSeenOnboarding) {
-        if (uiState.isLoaded && !uiState.settings.hasSeenOnboarding) {
+    LaunchedEffect(tiles.isLoaded, settings.hasSeenOnboarding) {
+        if (tiles.isLoaded && !settings.hasSeenOnboarding) {
             showOnboarding = true
         }
     }
 
     // --- Root Pager Setup (Timeline <-> Tiles) ---
-    val rootPagerState = rememberPagerState(initialPage = 1, pageCount = { 2 })
+    val rootPagerState = rememberPagerState(initialPage = 1) { 2 }
     
     val rootPagerDescription = if (rootPagerState.currentPage == 0) "Timeline view" else "Tiles view"
 
@@ -189,10 +194,10 @@ fun DotzHomeScreen(
     }
 
     val backgroundModifier = when {
-        uiState.settings.showWallpaper -> {
+        settings.showWallpaper -> {
             Modifier.background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent),
+                    colors = listOf(Color.Black.copy(alpha = 0.10f), Color.Transparent),
                     endY = 400f
                 )
             )
@@ -207,8 +212,8 @@ fun DotzHomeScreen(
             Modifier.drawBehind {
                 val brush = Brush.linearGradient(
                     colors = listOf(baseColor, color1, baseColor, color2, baseColor),
-                    start = androidx.compose.ui.geometry.Offset(animOffset, animOffset),
-                    end = androidx.compose.ui.geometry.Offset(animOffset + 1000f, animOffset + 1000f),
+                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(1000f, 1000f),
                     tileMode = androidx.compose.ui.graphics.TileMode.Mirror
                 )
                 drawRect(brush = brush)
@@ -220,7 +225,7 @@ fun DotzHomeScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().then(backgroundModifier)) {
-        if (uiState.settings.layoutStyle == "ultra_focus") {
+        if (settings.layoutStyle == "ultra_focus") {
             // Static Ultra Focus Mode (No Horizontal Pager, No Scroll)
             Column(
                 modifier = Modifier
@@ -236,29 +241,22 @@ fun DotzHomeScreen(
                         .weight(0.25f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = currentTime(context),
-                            style = DotzType.timeStyle().copy(fontSize = 36.sp, fontWeight = FontWeight.Light),
-                            color = DotzTheme.colors.text
-                        )
-                        Text(
-                            text = currentDate(),
-                            style = DotzType.dateStyle().copy(fontSize = 11.sp, letterSpacing = 2.sp),
-                            color = DotzTheme.colors.text.copy(alpha = 0.5f)
-                        )
-                    }
+                    ClockRenderer(
+                        style = settings.clockStyle,
+                        time = currentTime(context),
+                        date = currentDate()
+                    )
                 }
                 
                 UltraFocusLayout(
-                    tiles = uiState.ultraFocusTiles,
-                    remainingMillis = uiState.ultraFocusRemainingMillis,
+                    tiles = tiles.ultraFocusTiles,
+                    remainingMillis = focus.ultraFocusRemainingMillis,
                     onTileTap = { tile ->
                         if (tile.packageName == context.packageName) onLauncherSettingsTap()
-                        else launchApp(tile.packageName)
+                        else launchApp(tile.packageName, tile.componentName)
                     },
                     onSelectApps = {
-                        context.startActivity(Intent(context, com.dotz.launcherpro.ui.screens.UltraFocusAppSelectionActivity::class.java))
+                        context.startActivity(Intent(context, UltraFocusAppSelectionActivity::class.java))
                     },
                     onEndSession = viewModel::requestUltraFocusExit,
                     modifier = Modifier.weight(0.75f)
@@ -268,19 +266,37 @@ fun DotzHomeScreen(
             HorizontalPager(
                 state = rootPagerState,
                 modifier = Modifier.fillMaxSize().semantics { contentDescription = rootPagerDescription },
-                userScrollEnabled = uiState.settings.enableTimeline
+                userScrollEnabled = settings.enableTimeline && !isClockEditMode && !isHeaderEditMode
             ) { rootPageIndex ->
                 if (rootPageIndex == 0) {
                     // Page 0: Timeline
-                    TimelinePageContent(uiState, viewModel) { mindfulnessApp = it }
+                    TimelinePageContent(
+                        timeline = timeline,
+                        focus = focus,
+                        theme = theme,
+                        media = media,
+                        viewModel = viewModel,
+                        onEditJournal = { id, text -> editingNote = id to text },
+                        onGoToPremium = onLauncherSettingsTap
+                    )
                 } else {
                     // Page 1: Tiles & Header
                     TilesPageContent(
-                        uiState = uiState,
+                        tiles = tiles,
+                        system = system,
+                        weather = weather,
+                        media = media,
+                        theme = theme,
+                        focus = focus,
+                        timeline = timeline,
                         viewModel = viewModel,
                         iconCache = iconCache,
                         headerAlpha = headerAlpha,
                         swapSourceTile = swapSourceTile,
+                        isClockEditMode = isClockEditMode,
+                        onClockEditModeChange = { isClockEditMode = it },
+                        isHeaderEditMode = isHeaderEditMode,
+                        onHeaderEditModeChange = { isHeaderEditMode = it },
                         onTileTap = { tile ->
                             if (swapSourceTile != null) {
                                 if (swapSourceTile!!.tileId != tile.tileId) {
@@ -290,25 +306,45 @@ fun DotzHomeScreen(
                                 swapSourceTile = null
                             } else {
                                 val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(tile.packageName)
-                                if (uiState.settings.showMindfulUsage && tile.launchCount >= 3 && isSocial) {
-                                    mindfulnessApp = MindfulnessInfo(tile.packageName, tile.label, tile.usageTime, tile.launchCount)
+                                if (settings.showMindfulUsage && tile.launchCount >= 3 && isSocial) {
+                                    mindfulnessApp = MindfulnessInfo(tile.packageName, tile.label, tile.usageTime, tile.launchCount, tile.componentName)
                                 } else if (tile.packageName == context.packageName) {
                                     onLauncherSettingsTap()
                                 } else {
-                                    launchApp(tile.packageName)
+                                    launchApp(tile.packageName, tile.componentName)
                                 }
                             }
                         },
                         onTileLongPress = { tile ->
                             hapticPulse()
-                            swapSourceTile = tile
+                            if (settings.editModeEnabled) {
+                                swapSourceTile = tile
+                            } else {
+                                appShortcuts = viewModel.getShortcutsForApp(tile.packageName)
+                                if (appShortcuts.isNotEmpty()) {
+                                    selectedShortcutTile = tile
+                                } else {
+                                    // Fallback to Edit Mode or Show Toast
+                                    Toast.makeText(context, "Long press to Edit enabled in Settings", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         },
                         onLauncherSettingsTap = onLauncherSettingsTap,
                         onOpenDrawer = {
                             hapticPulse()
                             showAppDrawerConfirmDialog = true
                         },
-                        onBackgroundTap = handleHomeScreenTap
+                        onBackgroundTap = handleHomeScreenTap,
+                        onSwipeDown = {
+                            try {
+                                val statusbarService = context.getSystemService("statusbar")
+                                val statusbarManager = Class.forName("android.app.StatusBarManager")
+                                val method = statusbarManager.getMethod("expandNotificationsPanel")
+                                method.invoke(statusbarService)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
                     )
                 }
             }
@@ -319,16 +355,17 @@ fun DotzHomeScreen(
             val installedApps = remember { viewModel.getInstalledApps() }
             AppDrawerSheet(
                 apps = installedApps,
+                suggestedApps = tiles.suggestedApps,
                 onDismiss = { showAppDrawer = false },
-                onLaunch = { pkg ->
-                    val app = installedApps.find { it.packageName == pkg }
+                onLaunch = { pkg, comp ->
+                    val app = installedApps.find { it.packageName == pkg && it.componentName == comp }
                     val isSocial = com.dotz.launcherpro.data.DefaultApps.isSocialMediaApp(pkg)
-                    if (app != null && uiState.settings.showMindfulUsage && app.launchCount >= 3 && isSocial) {
+                    if (app != null && settings.showMindfulUsage && app.launchCount >= 3 && isSocial) {
                         showAppDrawer = false
-                        mindfulnessApp = MindfulnessInfo(pkg, app.label, app.usageTime, app.launchCount)
+                        mindfulnessApp = MindfulnessInfo(pkg, app.label, app.usageTime, app.launchCount, comp)
                     } else {
                         showAppDrawer = false
-                        launchApp(pkg)
+                        launchApp(pkg, comp)
                     }
                 }
             )
@@ -336,8 +373,8 @@ fun DotzHomeScreen(
 
         if (showAppDrawerConfirmDialog) {
             AppDrawerConfirmDialog(
-                openCount = uiState.settings.appDrawerOpenCount,
-                totalAppOpens = uiState.totalAppOpens,
+                openCount = settings.appDrawerOpenCount,
+                totalAppOpens = focus.totalAppOpens,
                 onDismiss = { showAppDrawerConfirmDialog = false },
                 onConfirm = {
                     showAppDrawerConfirmDialog = false
@@ -360,8 +397,9 @@ fun DotzHomeScreen(
                 onDismiss = { mindfulnessApp = null },
                 onConfirm = {
                     val pkg = info.pkg
+                    val comp = info.comp
                     mindfulnessApp = null
-                    launchApp(pkg)
+                    launchApp(pkg, comp)
                 }
             )
         }
@@ -427,7 +465,7 @@ fun DotzHomeScreen(
                     val tLabel = tileToAssign?.label
                     tileToAssign = null
                     context.startActivity(
-                        Intent(context, com.dotz.launcherpro.ui.screens.AppSelectionActivity::class.java)
+                        Intent(context, AppSelectionActivity::class.java)
                             .putExtra("tileId", tId)
                             .putExtra("tileLabel", tLabel)
                     )
@@ -435,21 +473,30 @@ fun DotzHomeScreen(
             )
         }
 
-        showIntentionPause?.let { pkg ->
+        showIntentionPause?.let { (pkg, comp) ->
             IntentionPauseOverlay(
+                useBiometric = settings.useBiometricPause && settings.isPremium,
                 onFinished = {
                     showIntentionPause = null
-                    val intent = context.packageManager.getLaunchIntentForPackage(pkg)
-                    if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(intent)
-                    }
+                    viewModel.launchApp(pkg, comp)
                 },
                 onCancel = { showIntentionPause = null }
             )
         }
 
-        if (uiState.showUltraFocusExitReason) {
+        selectedShortcutTile?.let { tile ->
+            AppShortcutDialog(
+                tile = tile,
+                shortcuts = appShortcuts,
+                onDismiss = { selectedShortcutTile = null },
+                onShortcutClick = { shortcut ->
+                    selectedShortcutTile = null
+                    viewModel.launchShortcut(shortcut)
+                }
+            )
+        }
+
+        if (focus.showUltraFocusExitReason) {
             UltraFocusExitDialog(
                 onDismiss = viewModel::cancelUltraFocusExit,
                 onConfirm = { reason ->
@@ -457,26 +504,56 @@ fun DotzHomeScreen(
                 }
             )
         }
+
+        editingNote?.let { (id, text) ->
+            EditNoteDialog(
+                initialText = text,
+                onDismiss = { editingNote = null },
+                onSave = { newText ->
+                    editingNote = null
+                    viewModel.updateJournalEntry(id, newText)
+                }
+            )
+        }
+
+        focus.weeklyReflection?.let { reflection ->
+            WeeklyReflectionDialog(
+                reflection = reflection,
+                onDismiss = viewModel::dismissWeeklyReflection
+            )
+        }
     }
 }
 
 @Composable
 private fun TilesPageContent(
-    uiState: LauncherUiState,
+    tiles: com.dotz.launcherpro.viewmodel.TilesState,
+    system: com.dotz.launcherpro.viewmodel.SystemHeaderState,
+    weather: com.dotz.launcherpro.viewmodel.WeatherState,
+    media: com.dotz.launcherpro.viewmodel.MediaState,
+    theme: com.dotz.launcherpro.viewmodel.ThemeState,
+    focus: com.dotz.launcherpro.viewmodel.FocusState,
+    timeline: com.dotz.launcherpro.viewmodel.TimelineState,
     viewModel: LauncherViewModel,
     iconCache: IconCacheManager,
     headerAlpha: Float,
     swapSourceTile: AppTile?,
+    isClockEditMode: Boolean,
+    onClockEditModeChange: (Boolean) -> Unit,
+    isHeaderEditMode: Boolean,
+    onHeaderEditModeChange: (Boolean) -> Unit,
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit,
     onLauncherSettingsTap: () -> Unit,
     onOpenDrawer: () -> Unit,
-    onBackgroundTap: () -> Unit
+    onBackgroundTap: () -> Unit,
+    onSwipeDown: () -> Unit
 ) {
+    val settings = theme.settings
     val pages = listOfNotNull(
-        uiState.page0Tiles,
-        uiState.page1Tiles,
-        uiState.page2Tiles.takeIf { it.isNotEmpty() }
+        tiles.page0Tiles,
+        tiles.page1Tiles,
+        tiles.page2Tiles.takeIf { it.isNotEmpty() }
     )
     val tilesPagerState = rememberPagerState(pageCount = { pages.size })
 
@@ -488,7 +565,20 @@ private fun TilesPageContent(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(onTap = { onBackgroundTap() })
+                detectTapGestures(
+                    onTap = { onBackgroundTap() }
+                )
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        // Detect Swipe Down (threshold 100px, mostly vertical)
+                        if (dragAmount.y > 20 && abs(dragAmount.y) > abs(dragAmount.x) * 2) {
+                            onSwipeDown()
+                            change.consume()
+                        }
+                    }
+                )
             }
             .statusBarsPadding()
             .navigationBarsPadding()
@@ -502,40 +592,48 @@ private fun TilesPageContent(
                 .graphicsLayer { alpha = headerAlpha }
         ) {
             StaticHeader(
-                batteryLevel  = uiState.batteryLevel,
-                networkStatus = uiState.networkStatus,
-                weatherTemp   = uiState.weatherTemp,
-                weatherCondition = uiState.weatherCondition,
-                weatherFeelsLike = uiState.weatherFeelsLike,
-                weatherSummary = uiState.weatherSummary,
-                weatherAqi = uiState.weatherAqi,
-                weatherAqiLabel = uiState.weatherAqiLabel,
-                weatherLow = uiState.weatherLow,
-                weatherHigh = uiState.weatherHigh,
-                showWeatherInfo = uiState.settings.showWeatherInfo,
-                isWifiEnabled = uiState.isWifiEnabled,
-                isBluetoothEnabled = uiState.isBluetoothEnabled,
-                isSilentMode = uiState.isSilentMode,
-                isTorchOn = uiState.isTorchOn,
-                isAirplaneModeOn = uiState.isAirplaneModeOn,
-                isDarkModeOn = uiState.isDarkModeOn,
-                ringerMode = uiState.ringerMode,
-                isMobileDataEnabled = uiState.isMobileDataEnabled,
-                transparency = uiState.settings.tileTransparency,
-                headerMode = uiState.settings.homeHeaderMode,
-                nowPlayingTitle = uiState.nowPlayingTitle,
-                nowPlayingArtist = uiState.nowPlayingArtist,
-                isPlaying = uiState.isPlaying,
-                playbackPosition = uiState.playbackPosition,
-                playbackDuration = uiState.playbackDuration,
-                unlockCount = uiState.unlockCount,
-                notificationsReceived = uiState.notificationsReceivedToday,
-                totalAppOpens = uiState.totalAppOpens,
-                focusScore = uiState.focusScore,
+                batteryLevel  = system.battery,
+                networkStatus = system.network,
+                weatherTemp   = weather.temp,
+                weatherCondition = weather.condition,
+                weatherFeelsLike = weather.feelsLike,
+                weatherAqi = weather.aqi,
+                weatherAqiLabel = weather.aqiLabel,
+                weatherLow = weather.low,
+                weatherHigh = weather.high,
+                showWeatherInfo = settings.showWeatherInfo,
+                isWifiEnabled = system.wifi,
+                isBluetoothEnabled = system.bluetooth,
+                isSilentMode = system.silent,
+                isTorchOn = system.torch,
+                isAirplaneModeOn = system.airplane,
+                isDarkModeOn = system.dark,
+                ringerMode = system.ringer,
+                isMobileDataEnabled = system.mobileData,
+                transparency = settings.tileTransparency,
+                headerMode = settings.homeHeaderMode,
+                clockStyle = settings.clockStyle,
+                isEditMode = isClockEditMode,
+                onEditModeChange = onClockEditModeChange,
+                onClockStyleChange = viewModel::setClockStyle,
+                isHeaderEditMode = isHeaderEditMode,
+                onHeaderEditModeChange = onHeaderEditModeChange,
+                onHeaderModeChange = viewModel::setHomeHeaderMode,
+                isPremium = settings.isPremium,
+                nowPlayingTitle = media.title,
+                nowPlayingArtist = media.artist,
+                isPlaying = media.isPlaying,
+                playbackPosition = media.position,
+                playbackDuration = media.duration,
+                unlockCount = focus.unlockCount,
+                notificationsReceived = focus.notificationsReceivedToday,
+                totalAppOpens = focus.totalAppOpens,
+                focusScore = focus.focusScore,
+                blockedCount = timeline.blockedNotificationsCount,
                 onPlayPause = viewModel::mediaPlayPause,
                 onSkipNext = viewModel::mediaSkipNext,
                 onSkipPrevious = viewModel::mediaSkipPrevious,
-                onMusicClick = { viewModel.launchApp(uiState.nowPlayingPackage) },
+                onMusicClick = { viewModel.launchApp(media.packageName) },
                 onLauncherSettingsTap = onLauncherSettingsTap,
                 onWifiToggle = viewModel::toggleWifiDirect,
                 onBluetoothToggle = viewModel::toggleBluetoothDirect,
@@ -560,7 +658,7 @@ private fun TilesPageContent(
         Box(
             modifier = Modifier
                 .weight(0.62f) // Increased from 0.60
-                .pointerInput(uiState.settings.verticalScrolling) {
+                .pointerInput(settings.verticalScrolling) {
                     // Logic to handle App Drawer gestures
                     var totalX = 0f
                     var totalY = 0f
@@ -581,7 +679,7 @@ private fun TilesPageContent(
                                 val absX = abs(totalX)
                                 val absY = abs(totalY)
 
-                                if (uiState.settings.verticalScrolling) {
+                                if (settings.verticalScrolling) {
                                     // Swipe LEFT for drawer (threshold 180px, tight slope)
                                     if (absX > 180 && absX > absY * 2.5f && totalX < -180) {
                                         triggered = true; onOpenDrawer(); change.consume()
@@ -598,19 +696,19 @@ private fun TilesPageContent(
                     )
                 }
         ) {
-            if (uiState.settings.verticalScrolling) {
+            if (settings.verticalScrolling) {
                 VerticalPager(
                     state = tilesPagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { pageIndex ->
-                    PagerContent(uiState, pages[pageIndex], iconCache, swapSourceTile?.tileId, onTileTap, onTileLongPress)
+                    PagerContent(settings, pages[pageIndex], iconCache, swapSourceTile?.tileId, onTileTap, onTileLongPress)
                 }
             } else {
                 HorizontalPager(
                     state = tilesPagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { pageIndex ->
-                    PagerContent(uiState, pages[pageIndex], iconCache, swapSourceTile?.tileId, onTileTap, onTileLongPress)
+                    PagerContent(settings, pages[pageIndex], iconCache, swapSourceTile?.tileId, onTileTap, onTileLongPress)
                 }
             }
         }
@@ -619,13 +717,18 @@ private fun TilesPageContent(
 
 @Composable
 private fun TimelinePageContent(
-    uiState: LauncherUiState,
+    timeline: com.dotz.launcherpro.viewmodel.TimelineState,
+    focus: com.dotz.launcherpro.viewmodel.FocusState,
+    theme: com.dotz.launcherpro.viewmodel.ThemeState,
+    media: com.dotz.launcherpro.viewmodel.MediaState,
     viewModel: LauncherViewModel,
-    onMindfulLaunch: (MindfulnessInfo) -> Unit
+    onEditJournal: (String, String) -> Unit,
+    onGoToPremium: () -> Unit
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val textColor = DotzTheme.colors.text
+    val settings = theme.settings
     
     Column(
         modifier = Modifier
@@ -637,7 +740,7 @@ private fun TimelinePageContent(
     ) {
         // --- Header Section ---
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
@@ -648,25 +751,126 @@ private fun TimelinePageContent(
             )
             
             Text(
-                text = uiState.focusTimeToday.uppercase(),
+                text = focus.focusTimeToday.uppercase(),
                 style = DotzType.dateStyle().copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                 color = textColor.copy(alpha = 0.4f)
             )
         }
 
+        // --- Quick Capture ---
+        QuickCaptureHeader(onSave = viewModel::addJournalEntry)
+
         // --- Focus History ---
         FocusHistoryChart(
-            history = uiState.focusScoreHistory,
-            hasPermission = uiState.hasUsageStatsPermission,
+            history = focus.focusScoreHistory,
+            hasPermission = focus.hasUsageStatsPermission,
             onEnablePermission = {
                 PermissionManager.openUsageAccessSettings(context)
             }
         )
 
+        // --- PRO Sale Banner ---
+        if (!theme.isPremium && theme.isUpgradeAvailable) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onGoToPremium() },
+                color = DotzTheme.colors.accent.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, DotzTheme.colors.accent.copy(alpha = 0.2f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Star, 
+                        null, 
+                        tint = DotzTheme.colors.accent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Limited Flash Sale", 
+                            color = textColor, 
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            "Get Dotz PRO at 50% OFF", 
+                            color = textColor.copy(alpha = 0.6f),
+                            fontSize = 13.sp
+                        )
+                    }
+                    Text(
+                        "50% OFF", 
+                        color = DotzTheme.colors.accent, 
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+        }
+
+        // --- Update Banner ---
+        if (theme.isUpdateAvailable) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { 
+                        (context as? androidx.activity.ComponentActivity)?.let {
+                            viewModel.startUpdateFlow(it)
+                        }
+                    },
+                color = DotzTheme.colors.accent.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, DotzTheme.colors.accent.copy(alpha = 0.2f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Update, 
+                        null, 
+                        tint = DotzTheme.colors.accent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Update Available", 
+                            color = textColor, 
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            "A new version of Dotz is ready.", 
+                            color = textColor.copy(alpha = 0.6f),
+                            fontSize = 13.sp
+                        )
+                    }
+                    Text(
+                        "UPDATE", 
+                        color = DotzTheme.colors.accent, 
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+        }
+
         // --- Content with Vertical Line ---
         Box(modifier = Modifier.fillMaxWidth()) {
             // The Vertical Timeline Line
-            if (uiState.timelineItems.isNotEmpty() || uiState.upcomingEvents.isNotEmpty() || uiState.nextAlarm != null) {
+            if (timeline.timelineItems.isNotEmpty() || timeline.upcomingEvents.isNotEmpty() || timeline.nextAlarm != null) {
                 Box(
                     modifier = Modifier
                         .padding(start = 12.dp)
@@ -686,7 +890,7 @@ private fun TimelinePageContent(
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 // --- Upcoming Section ---
-                if (uiState.upcomingEvents.isNotEmpty() || uiState.nextAlarm != null) {
+                if (timeline.upcomingEvents.isNotEmpty() || timeline.nextAlarm != null) {
                     TimelineSectionWrapper(textColor) {
                         Text(
                             text = "UPCOMING",
@@ -695,7 +899,7 @@ private fun TimelinePageContent(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         
-                        uiState.nextAlarm?.let { alarm ->
+                        timeline.nextAlarm?.let { alarm ->
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
                                 Icon(Icons.Default.NotificationsActive, null, tint = DotzTheme.colors.accent, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(8.dp))
@@ -703,14 +907,14 @@ private fun TimelinePageContent(
                             }
                         }
 
-                        uiState.upcomingEvents.take(3).forEach { event ->
+                        timeline.upcomingEvents.take(3).forEach { event ->
                             UpcomingEventCard(event = event)
                         }
                     }
                 }
 
                 // --- Notifications ---
-                if (uiState.timelineItems.isEmpty()) {
+                if (timeline.timelineItems.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -726,24 +930,32 @@ private fun TimelinePageContent(
                         )
                     }
                 } else {
-                    uiState.timelineItems.forEach { item ->
+                    timeline.timelineItems.forEach { item ->
                         TimelineSectionWrapper(textColor) {
                             TimelineCard(
                                 item = item,
-                                onItemClick = { pkg -> if (pkg != null) viewModel.launchApp(pkg) },
+                                onItemClick = { pkg, comp -> pkg?.let { viewModel.launchApp(it, comp) } },
                                 onPlayPause = viewModel::mediaPlayPause,
                                 onSkipNext = viewModel::mediaSkipNext,
                                 onSkipPrevious = viewModel::mediaSkipPrevious,
                                 onReply = viewModel::sendReply,
-                                isPlaying = uiState.isPlaying
+                                onDeleteJournal = viewModel::deleteJournalEntry,
+                                onEditJournal = onEditJournal,
+                                isPlaying = media.isPlaying
                             )
                         }
                     }
                 }
             }
         }
-        
-        Spacer(Modifier.height(80.dp))
+    }
+
+    // Weekly Reflection Dialog
+    if (focus.weeklyReflection != null) {
+        WeeklyReflectionDialog(
+            reflection = focus.weeklyReflection,
+            onDismiss = viewModel::dismissWeeklyReflection
+        )
     }
 }
 
@@ -776,21 +988,21 @@ private fun TimelineSectionWrapper(
 
 @Composable
 private fun PagerContent(
-    uiState: LauncherUiState,
+    settings: com.dotz.launcherpro.data.DotzSettings,
     tiles: List<AppTile>,
     iconCache: IconCacheManager,
     highlightedTileId: Int?,
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit
 ) {
-    if (uiState.settings.layoutStyle == "list") {
+    if (settings.layoutStyle == "list") {
         AppList(
             tiles = tiles,
             iconCache = iconCache,
-            grayscale = uiState.settings.grayscaleMode,
-            iconPackPackage = uiState.settings.iconPackPackage,
-            showBadges = uiState.settings.showNotificationDots,
-            transparency = uiState.settings.tileTransparency,
+            grayscale = settings.grayscaleMode,
+            iconPackPackage = settings.iconPackPackage,
+            showBadges = settings.showNotificationDots,
+            transparency = settings.tileTransparency,
             highlightedTileId = highlightedTileId,
             onTileTap = onTileTap,
             onTileLongPress = onTileLongPress,
@@ -800,14 +1012,138 @@ private fun PagerContent(
         AppGrid(
             tiles = tiles,
             iconCache = iconCache,
-            grayscale = uiState.settings.grayscaleMode,
-            iconPackPackage = uiState.settings.iconPackPackage,
-            showBadges = uiState.settings.showNotificationDots,
-            transparency = uiState.settings.tileTransparency,
+            grayscale = settings.grayscaleMode,
+            iconPackPackage = settings.iconPackPackage,
+            showBadges = settings.showNotificationDots,
+            transparency = settings.tileTransparency,
             highlightedTileId = highlightedTileId,
             onTileTap = onTileTap,
             onTileLongPress = onTileLongPress,
             modifier = Modifier.fillMaxSize()
         )
     }
+}
+
+@Composable
+private fun QuickCaptureHeader(onSave: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val textColor = DotzTheme.colors.text
+    
+    Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Quick note...", color = textColor.copy(alpha = 0.3f), fontSize = 14.sp) },
+            shape = RoundedCornerShape(16.dp),
+            singleLine = true,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done
+            ),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                onDone = {
+                    if (text.isNotBlank()) {
+                        onSave(text)
+                        text = ""
+                    }
+                }
+            ),
+            trailingIcon = {
+                if (text.isNotBlank()) {
+                    IconButton(
+                        onClick = {
+                            onSave(text)
+                            text = ""
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, null, tint = textColor)
+                    }
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = textColor.copy(alpha = 0.3f),
+                unfocusedBorderColor = textColor.copy(alpha = 0.1f),
+                cursorColor = textColor
+            )
+        )
+    }
+}
+
+@Composable
+private fun AppShortcutDialog(
+    tile: AppTile,
+    shortcuts: List<AppShortcut>,
+    onDismiss: () -> Unit,
+    onShortcutClick: (AppShortcut) -> Unit
+) {
+    val textColor = DotzTheme.colors.text
+    DotzAlertDialog(
+        onDismissRequest = onDismiss,
+        title = tile.label,
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                shortcuts.forEach { shortcut ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { onShortcutClick(shortcut) },
+                        color = textColor.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Launch,
+                                null,
+                                tint = textColor.copy(alpha = 0.4f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Text(shortcut.label, color = textColor, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButtonText = "CLOSE",
+        onConfirm = onDismiss
+    )
+}
+
+@Composable
+private fun EditNoteDialog(
+    initialText: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var text by remember { mutableStateOf(initialText) }
+    val textColor = DotzTheme.colors.text
+    
+    DotzAlertDialog(
+        onDismissRequest = onDismiss,
+        title = "Edit Note",
+        content = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Write something...", fontSize = 14.sp) },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = textColor.copy(alpha = 0.3f),
+                    unfocusedBorderColor = textColor.copy(alpha = 0.1f),
+                    cursorColor = textColor
+                )
+            )
+        },
+        confirmButtonText = "SAVE",
+        confirmButtonEnabled = text.isNotBlank(),
+        onConfirm = { onSave(text) },
+        dismissButtonText = "CANCEL",
+        onDismiss = onDismiss
+    )
 }

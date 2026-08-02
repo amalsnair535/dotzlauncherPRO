@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -45,24 +46,26 @@ class DotzUpgradeActivity : ComponentActivity() {
         controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
 
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
+            val theme by viewModel.themeState.collectAsState()
+            val monthlyPrice by viewModel.monthlyPrice.collectAsState()
             val lifetimePrice by viewModel.lifetimePrice.collectAsState()
             val isStoreConnected by viewModel.isStoreConnected.collectAsState()
 
             // Close screen if premium status becomes true
-            LaunchedEffect(uiState.isPremium) {
-                if (uiState.isPremium) {
+            LaunchedEffect(theme.isPremium) {
+                if (theme.isPremium) {
                     finish()
                 }
             }
 
-            DotzTheme(settings = uiState.settings) {
+            DotzTheme(settings = theme.settings) {
                 UpgradeScreen(
                     onBack = { finish() },
+                    monthlyPrice = monthlyPrice,
                     lifetimePrice = lifetimePrice,
                     isStoreConnected = isStoreConnected,
-                    onUpgrade = { planId ->
-                        viewModel.buyProduct(this, planId)
+                    onUpgrade = { productId ->
+                        viewModel.buyProduct(this, productId)
                     },
                     onRetry = {
                         viewModel.retryStoreConnection()
@@ -71,16 +74,25 @@ class DotzUpgradeActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.dotz.launcherpro.R.anim.stay, com.dotz.launcherpro.R.anim.slide_down)
+    }
 }
 
 @Composable
 private fun UpgradeScreen(
     onBack: () -> Unit,
+    monthlyPrice: String,
     lifetimePrice: String,
     isStoreConnected: Boolean,
     onUpgrade: (String) -> Unit,
     onRetry: () -> Unit
 ) {
+    var selectedProductId by remember { mutableStateOf("dotz_launcher_pro") }
+
     Scaffold(
         containerColor = DotzTheme.colors.background,
         topBar = {
@@ -133,22 +145,40 @@ private fun UpgradeScreen(
 
             // Features List
             item {
+                SaleBanner()
+                Spacer(Modifier.height(24.dp))
+                FeatureRow("Atmospheric Custom Themes")
+                FeatureRow("Premium Clock Styles")
                 FeatureRow("Transparent Mode (Custom Wallpapers)")
-                FeatureRow("Circadian Theming (Dynamic UI Colors)")
-                FeatureRow("Tile Transparency Control")
-                FeatureRow("Modern List Layout")
-                FeatureRow("Complete Ad-Free Experience")
+                FeatureRow("Modern Liquid Glass Effect")
+                FeatureRow("Advanced Fonts & Transparency")
+                FeatureRow("Biometric Intention Lock")
+                FeatureRow("Unlimited Smart Profiles")
+                FeatureRow("100% Ad-Free Experience")
                 Spacer(Modifier.height(40.dp))
             }
 
             // Plans
             item {
                 PlanCard(
+                    name = "Monthly Access",
+                    price = monthlyPrice,
+                    originalPrice = calculateOriginalPrice(monthlyPrice),
+                    description = "3 Days Free Trial Included",
+                    isSelected = selectedProductId == "dotz_pro_monthly",
+                    badge = "50% OFF"
+                ) { selectedProductId = "dotz_pro_monthly" }
+                
+                Spacer(Modifier.height(16.dp))
+
+                PlanCard(
                     name = "Lifetime Access",
                     price = lifetimePrice,
-                    isSelected = true,
-                    badge = "BEST VALUE"
-                ) { /* Only one plan available */ }
+                    originalPrice = calculateOriginalPrice(lifetimePrice),
+                    isSelected = selectedProductId == "dotz_launcher_pro",
+                    badge = "50% OFF"
+                ) { selectedProductId = "dotz_launcher_pro" }
+                
                 Spacer(Modifier.height(40.dp))
             }
 
@@ -157,12 +187,12 @@ private fun UpgradeScreen(
                 Button(
                     onClick = { 
                         if (isStoreConnected) {
-                            onUpgrade("dotz_launcher_pro") 
+                            onUpgrade(selectedProductId) 
                         } else {
                             onRetry()
                         }
                     },
-                    enabled = true, // Always enabled for debugging
+                    enabled = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -175,8 +205,13 @@ private fun UpgradeScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     if (isStoreConnected) {
+                        val btnText = if (selectedProductId == "dotz_pro_monthly") {
+                            "START 3-DAY FREE TRIAL"
+                        } else {
+                            "GET LIFETIME ACCESS"
+                        }
                         Text(
-                            "GET LIFETIME ACCESS",
+                            btnText,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         )
@@ -261,9 +296,42 @@ private fun FeatureRow(text: String) {
 }
 
 @Composable
+private fun SaleBanner() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp)),
+        color = DotzTheme.colors.accent.copy(alpha = 0.15f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, DotzTheme.colors.accent.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "FLASH SALE: 50% OFF",
+                color = DotzTheme.colors.accent,
+                fontWeight = FontWeight.Black,
+                fontSize = 14.sp,
+                letterSpacing = 1.sp
+            )
+            Text(
+                "LIMITED TIME OFFER • NEXT 30 DAYS",
+                color = DotzTheme.colors.text.copy(alpha = 0.6f),
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun PlanCard(
     name: String,
     price: String,
+    originalPrice: String? = null,
+    description: String? = null,
     isSelected: Boolean,
     badge: String? = null,
     onClick: () -> Unit
@@ -315,7 +383,29 @@ private fun PlanCard(
                         }
                     }
                 }
-                Text(price, color = DotzTheme.colors.text.copy(alpha = 0.5f), fontSize = 13.sp)
+                
+                if (description != null) {
+                    Text(
+                        description,
+                        color = DotzTheme.colors.accent.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                    if (originalPrice != null) {
+                        Text(
+                            originalPrice,
+                            color = DotzTheme.colors.text.copy(alpha = 0.3f),
+                            fontSize = 13.sp,
+                            textDecoration = TextDecoration.LineThrough
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(price, color = DotzTheme.colors.text.copy(alpha = 0.8f), fontSize = 15.sp, fontWeight = FontWeight.Black)
+                }
             }
             
             RadioButton(
@@ -327,5 +417,18 @@ private fun PlanCard(
                 )
             )
         }
+    }
+}
+
+private fun calculateOriginalPrice(price: String): String {
+    // Basic logic to double the price: ₹499 -> ₹998
+    return try {
+        val digits = price.filter { it.isDigit() }
+        if (digits.isEmpty()) return price
+        val value = digits.toInt()
+        val originalValue = value * 2
+        price.replace(digits, originalValue.toString())
+    } catch (_: Exception) {
+        price
     }
 }

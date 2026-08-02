@@ -1,5 +1,6 @@
 package com.dotz.launcherpro.manager
 
+import android.os.Build
 import com.dotz.launcherpro.data.DotzPreferencesRepository
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -10,8 +11,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 
 class WeatherManager(
+    private val app: android.app.Application,
     private val prefs: DotzPreferencesRepository,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private val httpClient: okhttp3.OkHttpClient
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val WEATHER_REFRESH_INTERVAL = 30 * 60 * 1000L
@@ -40,6 +43,9 @@ class WeatherManager(
     private val _weatherHigh = MutableStateFlow<String?>(null)
     val weatherHigh = _weatherHigh.asStateFlow()
 
+    private val _locationName = MutableStateFlow<String?>(null)
+    val locationName = _locationName.asStateFlow()
+
     fun refreshWeather(force: Boolean = false) {
         scope.launch {
             val settings = prefs.settingsFlow.first()
@@ -59,17 +65,50 @@ class WeatherManager(
     private fun fetchWeather(lat: Double = 51.5074, lon: Double = 0.1278) {
         scope.launch {
             try {
+                val settings = prefs.settingsFlow.first()
+                val unit = settings.weatherUnit
+                val isFahrenheit = unit == "imperial"
+                
+                // Resolve Location Name
+                async(Dispatchers.IO) {
+                    try {
+                        val geocoder = android.location.Geocoder(app, java.util.Locale.getDefault())
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            geocoder.getFromLocation(lat, lon, 1) { addresses ->
+                                if (addresses.isNotEmpty()) {
+                                    val address = addresses[0]
+                                    _locationName.value = address.locality ?: address.subAdminArea ?: address.adminArea
+                                }
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocation(lat, lon, 1)
+                            if (!addresses.isNullOrEmpty()) {
+                                val address = addresses[0]
+                                _locationName.value = address.locality ?: address.subAdminArea ?: address.adminArea
+                            }
+                        }
+                    } catch (e: Exception) { _locationName.value = null }
+                }
+
                 val weatherDeferred = async(Dispatchers.IO) {
                     try {
-                        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto"
-                        java.net.URL(url).readText()
+                        val unitParam = if (isFahrenheit) "&temperature_unit=fahrenheit" else ""
+                        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto$unitParam"
+                        val request = okhttp3.Request.Builder().url(url).build()
+                        httpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) response.body?.string() else null
+                        }
                     } catch (e: Exception) { null }
                 }
 
                 val aqiDeferred = async(Dispatchers.IO) {
                     try {
                         val url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=$lat&longitude=$lon&current=us_aqi"
-                        java.net.URL(url).readText()
+                        val request = okhttp3.Request.Builder().url(url).build()
+                        httpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) response.body?.string() else null
+                        }
                     } catch (e: Exception) { null }
                 }
 

@@ -36,9 +36,9 @@ class UltraFocusAppSelectionActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
-            val selectionSettings = remember(uiState.settings) {
-                uiState.settings.copy(showWallpaper = false)
+            val theme by viewModel.themeState.collectAsState()
+            val selectionSettings = remember(theme.settings) {
+                theme.settings.copy(showWallpaper = false)
             }
 
             DotzTheme(settings = selectionSettings) {
@@ -48,7 +48,7 @@ class UltraFocusAppSelectionActivity : ComponentActivity() {
                 ) {
                     UltraFocusAppSelectionScreen(
                         allApps = viewModel.getInstalledApps().sortedBy { it.label.lowercase() },
-                        selectedPackages = uiState.settings.ultraFocusAppPackages,
+                        selectedPackages = theme.settings.ultraFocusAppPackages,
                         onBack = { finish() },
                         onSave = { packages ->
                             viewModel.setUltraFocusApps(packages)
@@ -58,6 +58,12 @@ class UltraFocusAppSelectionActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.dotz.launcherpro.R.anim.stay, com.dotz.launcherpro.R.anim.slide_down)
     }
 }
 
@@ -140,18 +146,20 @@ private fun UltraFocusAppSelectionScreen(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredApps, key = { it.packageName }) { app ->
-                    val isChecked = selected.contains(app.packageName)
+                items(filteredApps, key = { "${it.packageName}|${it.componentName}" }) { app ->
+                    val appKey = if (app.componentName != null) "${app.packageName}|${app.componentName}" else app.packageName
+                    val isChecked = selected.contains(appKey)
                     AppSelectionRow(
                         label = app.label,
                         pkg = app.packageName,
+                        component = app.componentName,
                         isChecked = isChecked,
                         onClick = {
                             if (isChecked) {
-                                selected = selected - app.packageName
+                                selected = selected - appKey
                             } else {
                                 if (selected.size < 7) {
-                                    selected = selected + app.packageName
+                                    selected = selected + appKey
                                 } else {
                                     Toast.makeText(context, "Maximum 7 apps allowed", Toast.LENGTH_SHORT).show()
                                 }
@@ -165,7 +173,7 @@ private fun UltraFocusAppSelectionScreen(
 }
 
 @Composable
-private fun AppSelectionRow(label: String, pkg: String, isChecked: Boolean, onClick: () -> Unit) {
+private fun AppSelectionRow(label: String, pkg: String, component: String?, isChecked: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,8 +185,13 @@ private fun AppSelectionRow(label: String, pkg: String, isChecked: Boolean, onCl
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(label, color = DotzTheme.colors.text, fontSize = 14.sp, fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal)
+            val subtext = if (component != null && component.startsWith(pkg)) {
+                component.removePrefix(pkg)
+            } else {
+                pkg
+            }
             Text(
-                pkg,
+                subtext,
                 color = DotzTheme.colors.text.copy(alpha = 0.35f),
                 fontSize = 11.sp,
                 maxLines = 1

@@ -19,11 +19,11 @@ fun AppGrid(
     grayscale: Boolean,
     iconPackPackage: String?,
     showBadges: Boolean,
+    modifier: Modifier = Modifier,
     transparency: Float = 1.0f,
     highlightedTileId: Int? = null,
     onTileTap: (AppTile) -> Unit,
     onTileLongPress: (AppTile) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val rows = tiles.chunked(2)
 
@@ -31,7 +31,7 @@ fun AppGrid(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically) // Center grid vertically for better balance
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically), // Center grid vertically for better balance
     ) {
         rows.forEach { rowTiles ->
             Row(

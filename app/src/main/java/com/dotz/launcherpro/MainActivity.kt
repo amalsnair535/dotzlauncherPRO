@@ -15,6 +15,7 @@ import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         window.setBackgroundDrawableResource(android.R.color.transparent)
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER,
-            WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER
+            WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER,
         )
 
         // Ensure app draws behind cutouts for true edge-to-edge
@@ -50,15 +51,21 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            DotzTheme(settings = uiState.settings) {
+            
+            // Start background tasks once UI is ready
+            LaunchedEffect(Unit) {
+                viewModel.startBackgroundTasks()
+            }
+
+            DotzTheme(settings = uiState.theme.settings) {
                 DotzHomeScreen(
-                    viewModel = viewModel,
-                    uiState = uiState,
-                    onLauncherSettingsTap = {
-                        val intent = android.content.Intent(this, com.dotz.launcherpro.ui.screens.DotzSettingsActivity::class.java)
-                        startActivity(intent)
-                    }
-                )
+                    viewModel = viewModel
+                ) {
+                    val intent = android.content.Intent(this, com.dotz.launcherpro.ui.screens.DotzSettingsActivity::class.java)
+                    startActivity(intent)
+                    @Suppress("DEPRECATION")
+                    overridePendingTransition(R.anim.slide_up, R.anim.stay)
+                }
             }
         }
     }
@@ -87,7 +94,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.setUiVisible(true)
+        viewModel.setUiVisible(visible = true)
         // Re-apply immersive mode
         WindowInsetsControllerCompat(window, window.decorView).apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -97,6 +104,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        viewModel.setUiVisible(false)
+        viewModel.setUiVisible(visible = false)
     }
 }

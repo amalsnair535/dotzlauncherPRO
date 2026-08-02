@@ -35,6 +35,7 @@ class DotzNotificationService : NotificationListenerService() {
     private var isFilterEnabled = false
     private var isBatchingEnabled = false
     private var lastBatchTime = 0L
+    private var batchIntervalHours = 4
 
     companion object {
         /** Map of packageName → notification count (0 means "dot only") */
@@ -106,6 +107,7 @@ class DotzNotificationService : NotificationListenerService() {
                 isFilterEnabled = settings.notificationFilterEnabled
                 isBatchingEnabled = settings.batchNotifications
                 lastBatchTime = settings.lastBatchTime
+                batchIntervalHours = settings.notificationBatchInterval
                 rebuildCounts()
             }
         }
@@ -137,8 +139,8 @@ class DotzNotificationService : NotificationListenerService() {
             var blocked = 0
             
             val now = System.currentTimeMillis()
-            val hourMillis = 4 * 60 * 60 * 1000L // 4 hours for testing/default
-            val shouldHold = isBatchingEnabled && (now - lastBatchTime < hourMillis)
+            val intervalMillis = batchIntervalHours * 60 * 60 * 1000L
+            val shouldHold = isBatchingEnabled && (now - lastBatchTime < intervalMillis)
 
             activeNotifications?.forEach { sbn ->
                 if (!sbn.isOngoing) {

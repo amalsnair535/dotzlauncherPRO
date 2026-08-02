@@ -55,7 +55,7 @@
     <string name="settings_item_grayscale_auto">Grayscale Auto-Schedule</string>
     <string name="settings_subtitle_grayscale_auto">Turns on after 10 PM</string>
     <string name="settings_item_liquid_glass">Liquid Glass Effect</string>
-    <string name="settings_subtitle_liquid_glass">Animated glassmorphism for all themes</string>
+    <string name="settings_subtitle_liquid_glass">Glassmorphism for all themes</string>
     <string name="settings_item_ultra_focus">Start Ultra Focus Session</string>
     <string name="settings_subtitle_ultra_focus">Minimal essentials for a set time</string>
     <string name="settings_item_timeline">Timeline</string>
@@ -87,7 +87,7 @@
     <string name="settings_item_about_dotz">About Dotz</string>
 
     <string name="dialog_pro_feature_title">PRO Feature</string>
-    <string name="dialog_pro_feature_message">Transparency, Wallpapers, and Layouts are exclusive to Dotz PRO.</string>
+    <string name="dialog_pro_feature_message">This is a Dotz PRO feature. Unlock full customization and themes.</string>
     <string name="btn_go_pro">GO PRO</string>
 
     <string name="dialog_new_profile_title">New Profile</string>
@@ -96,7 +96,7 @@
 
     <string name="label_default">Default</string>
     <string name="premium_promo_title">Get Dotz PRO</string>
-    <string name="premium_promo_subtitle">Unlock wallpapers, profiles, and more.</string>
+    <string name="premium_promo_subtitle">Unlock custom colors, clock styles, and profiles.</string>
     <string name="dialog_select_icon_pack">Select Icon Pack</string>
     <string name="label_tile_transparency">Tile Transparency</string>
     <string name="label_tile_layout">Tile Layout</string>

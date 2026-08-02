@@ -22,10 +22,11 @@ data class AppTile(
     val badgeCount: Int = -1,
     val isInstalled: Boolean = true,
     val usageTime: String? = null,
-    val launchCount: Int = 0
+    val launchCount: Int = 0,
+    val componentName: String? = null
 )
 
-enum class TimelineType { CALL, MESSAGE, PHOTO, MUSIC, APP_LAUNCH, CALENDAR, SPONSORED }
+enum class TimelineType { CALL, MESSAGE, PHOTO, MUSIC, APP_LAUNCH, CALENDAR, SPONSORED, JOURNAL }
 
 data class TimelineItem(
     val id: String,
@@ -36,41 +37,17 @@ data class TimelineItem(
     val packageName: String? = null,
     val extra: String? = null,
     val canReply: Boolean = false,
-    val notificationKey: String? = null
+    val notificationKey: String? = null,
+    val componentName: String? = null
 )
 
 data class DrawerApp(
     val packageName: String,
     val label: String,
     val usageTime: String? = null,
-    val launchCount: Int = 0
+    val launchCount: Int = 0,
+    val componentName: String? = null
 )
-
-enum class TileType {
-    CALL, WHATSAPP, MESSAGE, MAPS, MUSIC, PAY,
-    CAMERA, CALCULATOR, CLOCK, CALENDAR, NOTES, SETTINGS
-}
-
-object AppFonts {
-    val allFonts = listOf(
-        "default" to "System Default",
-        "nokia" to "Nokia Sans",
-        "inter" to "Inter",
-        "manrope" to "Manrope",
-        "roboto" to "Roboto",
-        "ibm_plex_sans" to "IBM Plex Sans",
-        "space_grotesk" to "Space Grotesk",
-        "outfit" to "Outfit",
-        "jakarta" to "Plus Jakarta Sans",
-        "sora" to "Sora",
-        "jetbrains_mono" to "JetBrains Mono",
-        "ibm_plex_mono" to "IBM Plex Mono",
-        "space_mono" to "Space Mono",
-        "dm_sans" to "DM Sans",
-        "instrument" to "Instrument Sans",
-        "work_sans" to "Work Sans"
-    )
-}
 
 object DefaultApps {
 

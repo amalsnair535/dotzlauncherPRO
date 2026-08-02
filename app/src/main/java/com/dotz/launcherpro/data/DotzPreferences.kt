@@ -41,6 +41,7 @@ data class DotzSettings(
     val showWallpaper: Boolean = false,
     val enableTimeline: Boolean = true,
     val homeHeaderMode: String = "stats", // "toggles", "music", or "stats"
+    val weatherUnit: String = "metric", // "metric" or "imperial"
     val tileTransparency: Float = 1.0f,
     val layoutStyle: String = "classic",
     /** JSON-serialized map of tileId -> packageName overrides */
@@ -64,6 +65,7 @@ data class DotzSettings(
     val lastSponsoredShowTime: Long = 0,
     val batchNotifications: Boolean = false,
     val lastBatchTime: Long = 0,
+    val notificationBatchInterval: Int = 4, // in hours
     val tileOrder: List<Int> = (0..17).toList(),
     val activeProfileId: String = "default",
     val profiles: List<LauncherProfile> = emptyList(),
@@ -71,6 +73,21 @@ data class DotzSettings(
     val ultraFocusAppPackages: List<String> = emptyList(),
     val emergencyDrawerOpens: Int = 0,
     val focusScoreHistory: Map<String, Int> = emptyMap(), // ISO Date String -> Score
+    val editModeEnabled: Boolean = false,
+    val journalEntriesJson: String = "[]",
+    val lastWeeklyReflectionDate: String = "", // YYYY-WW (Year and Week number)
+    val dailyStatsJson: String = "{}", // Date -> DailyStats(unlocks, notifications, screenTime, blocked)
+    val fontId: String = "default",
+    val useBiometricPause: Boolean = false,
+    val customAccentColor: Int? = null,
+    val clockStyle: String = "classic"
+)
+
+data class DailyStats(
+    val unlocks: Int,
+    val notifications: Int,
+    val screenTime: Long,
+    val blocked: Int
 )
 
 object PrefsKeys {
@@ -89,6 +106,7 @@ object PrefsKeys {
     val SHOW_WALLPAPER          = booleanPreferencesKey("show_wallpaper")
     val ENABLE_TIMELINE         = booleanPreferencesKey("enable_timeline")
     val HOME_HEADER_MODE        = stringPreferencesKey("home_header_mode")
+    val WEATHER_UNIT            = stringPreferencesKey("weather_unit")
     val TILE_TRANSPARENCY       = floatPreferencesKey("tile_transparency")
     val LAYOUT_STYLE            = stringPreferencesKey("layout_style")
     // Tile overrides stored as individual keys: tile_override_0, tile_override_1, …
@@ -114,6 +132,7 @@ object PrefsKeys {
     val LAST_SPONSORED_SHOW_TIME = longPreferencesKey("last_sponsored_show_time")
     val BATCH_NOTIFICATIONS     = booleanPreferencesKey("batch_notifications")
     val LAST_BATCH_TIME          = longPreferencesKey("last_batch_time")
+    val NOTIFICATION_BATCH_INTERVAL = intPreferencesKey("notification_batch_interval")
     val TILE_ORDER              = stringPreferencesKey("tile_order")
     val ACTIVE_PROFILE_ID       = stringPreferencesKey("active_profile_id")
     val PROFILES_JSON           = stringPreferencesKey("profiles_json")
@@ -121,6 +140,14 @@ object PrefsKeys {
     val ULTRA_FOCUS_APP_PACKAGES = stringPreferencesKey("ultra_focus_app_packages")
     val EMERGENCY_DRAWER_OPENS  = intPreferencesKey("emergency_drawer_opens")
     val FOCUS_SCORE_HISTORY     = stringPreferencesKey("focus_score_history")
+    val EDIT_MODE_ENABLED       = booleanPreferencesKey("edit_mode_enabled")
+    val JOURNAL_ENTRIES         = stringPreferencesKey("journal_entries")
+    val LAST_WEEKLY_REFLECTION  = stringPreferencesKey("last_weekly_reflection")
+    val DAILY_STATS             = stringPreferencesKey("daily_stats")
+    val FONT_ID                 = stringPreferencesKey("font_id")
+    val USE_BIOMETRIC_PAUSE     = booleanPreferencesKey("use_biometric_pause")
+    val CUSTOM_ACCENT_COLOR     = intPreferencesKey("custom_accent_color")
+    val CLOCK_STYLE             = stringPreferencesKey("clock_style")
 }
 
 class DotzPreferencesRepository(private val context: Context) {
@@ -184,6 +211,7 @@ class DotzPreferencesRepository(private val context: Context) {
                 showWallpaper        = prefs[PrefsKeys.SHOW_WALLPAPER]           ?: false,
                 enableTimeline       = prefs[PrefsKeys.ENABLE_TIMELINE]          ?: true,
                 homeHeaderMode       = prefs[PrefsKeys.HOME_HEADER_MODE]         ?: "stats",
+                weatherUnit          = prefs[PrefsKeys.WEATHER_UNIT]              ?: "metric",
                 tileTransparency     = prefs[PrefsKeys.TILE_TRANSPARENCY]        ?: 1.0f,
                 layoutStyle          = prefs[PrefsKeys.LAYOUT_STYLE]             ?: "classic",
                 tileOverrides        = overrides,
@@ -206,13 +234,22 @@ class DotzPreferencesRepository(private val context: Context) {
                 lastSponsoredShowTime = prefs[PrefsKeys.LAST_SPONSORED_SHOW_TIME] ?: 0,
                 batchNotifications = prefs[PrefsKeys.BATCH_NOTIFICATIONS] ?: false,
                 lastBatchTime = prefs[PrefsKeys.LAST_BATCH_TIME] ?: 0,
+                notificationBatchInterval = prefs[PrefsKeys.NOTIFICATION_BATCH_INTERVAL] ?: 4,
                 tileOrder            = order,
                 activeProfileId      = prefs[PrefsKeys.ACTIVE_PROFILE_ID] ?: "default",
                 profiles             = profilesList,
                 ultraFocusEndTime    = prefs[PrefsKeys.ULTRA_FOCUS_END_TIME] ?: 0L,
                 ultraFocusAppPackages = prefs[PrefsKeys.ULTRA_FOCUS_APP_PACKAGES]?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
                 emergencyDrawerOpens = prefs[PrefsKeys.EMERGENCY_DRAWER_OPENS] ?: 0,
-                focusScoreHistory    = historyMap
+                focusScoreHistory    = historyMap,
+                editModeEnabled      = prefs[PrefsKeys.EDIT_MODE_ENABLED] ?: false,
+                journalEntriesJson   = prefs[PrefsKeys.JOURNAL_ENTRIES] ?: "[]",
+                lastWeeklyReflectionDate = prefs[PrefsKeys.LAST_WEEKLY_REFLECTION] ?: "",
+                dailyStatsJson       = prefs[PrefsKeys.DAILY_STATS] ?: "{}",
+                fontId               = prefs[PrefsKeys.FONT_ID] ?: "default",
+                useBiometricPause    = prefs[PrefsKeys.USE_BIOMETRIC_PAUSE] ?: false,
+                customAccentColor    = prefs[PrefsKeys.CUSTOM_ACCENT_COLOR],
+                clockStyle           = prefs[PrefsKeys.CLOCK_STYLE] ?: "classic"
             )
         }
 
@@ -281,6 +318,10 @@ class DotzPreferencesRepository(private val context: Context) {
 
     suspend fun setHomeHeaderMode(value: String) {
         context.dataStore.edit { it[PrefsKeys.HOME_HEADER_MODE] = value }
+    }
+
+    suspend fun setWeatherUnit(value: String) {
+        context.dataStore.edit { it[PrefsKeys.WEATHER_UNIT] = value }
     }
 
     suspend fun setShowMindfulUsage(value: Boolean) {
@@ -360,6 +401,10 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.LAST_BATCH_TIME] = value }
     }
 
+    suspend fun setNotificationBatchInterval(value: Int) {
+        context.dataStore.edit { it[PrefsKeys.NOTIFICATION_BATCH_INTERVAL] = value }
+    }
+
     suspend fun setTileTransparency(value: Float) {
         context.dataStore.edit { it[PrefsKeys.TILE_TRANSPARENCY] = value }
     }
@@ -368,9 +413,60 @@ class DotzPreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[PrefsKeys.LAYOUT_STYLE] = value }
     }
 
-    suspend fun setTileOverride(tileId: Int, packageName: String, label: String) {
+    suspend fun setEditModeEnabled(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.EDIT_MODE_ENABLED] = value }
+    }
+
+    suspend fun setJournalEntries(json: String) {
+        context.dataStore.edit { it[PrefsKeys.JOURNAL_ENTRIES] = json }
+    }
+
+    suspend fun setLastWeeklyReflectionDate(value: String) {
+        context.dataStore.edit { it[PrefsKeys.LAST_WEEKLY_REFLECTION] = value }
+    }
+
+    suspend fun setFontId(value: String) {
+        context.dataStore.edit { it[PrefsKeys.FONT_ID] = value }
+    }
+
+    suspend fun setUseBiometricPause(value: Boolean) {
+        context.dataStore.edit { it[PrefsKeys.USE_BIOMETRIC_PAUSE] = value }
+    }
+
+    suspend fun setCustomAccentColor(value: Int?) {
         context.dataStore.edit { prefs ->
-            prefs[PrefsKeys.tileOverride(tileId)] = packageName
+            if (value == null) prefs.remove(PrefsKeys.CUSTOM_ACCENT_COLOR)
+            else prefs[PrefsKeys.CUSTOM_ACCENT_COLOR] = value
+        }
+    }
+
+    suspend fun setClockStyle(value: String) {
+        context.dataStore.edit { it[PrefsKeys.CLOCK_STYLE] = value }
+    }
+
+    suspend fun updateDailyStats(date: String, stats: DailyStats) {
+        context.dataStore.edit { prefs ->
+            val currentJson = prefs[PrefsKeys.DAILY_STATS]
+            val type = object : com.google.gson.reflect.TypeToken<MutableMap<String, DailyStats>>() {}.type
+            val currentMap: MutableMap<String, DailyStats> = if (currentJson != null) {
+                try { Gson().fromJson(currentJson, type) } catch (e: Exception) { mutableMapOf() }
+            } else mutableMapOf()
+            
+            currentMap[date] = stats
+            
+            // Keep 30 days
+            if (currentMap.size > 30) {
+                val keysToRemove = currentMap.keys.sorted().take(currentMap.size - 30)
+                keysToRemove.forEach { currentMap.remove(it) }
+            }
+            prefs[PrefsKeys.DAILY_STATS] = Gson().toJson(currentMap)
+        }
+    }
+
+    suspend fun setTileOverride(tileId: Int, packageName: String, componentName: String?, label: String) {
+        context.dataStore.edit { prefs ->
+            val value = if (componentName != null) "$packageName|$componentName" else packageName
+            prefs[PrefsKeys.tileOverride(tileId)] = value
             prefs[PrefsKeys.tileLabel(tileId)]    = label
         }
     }
@@ -382,18 +478,18 @@ class DotzPreferencesRepository(private val context: Context) {
     suspend fun createProfile(name: String): String {
         val current = settingsFlow.first()
         val newId = UUID.randomUUID().toString()
-        val newProfile = LauncherProfile(
-            id = newId,
-            name = name,
-            tileOverrides = current.tileOverrides,
-            tileLabels = current.tileLabels,
-            tileOrder = current.tileOrder,
-            grayscaleMode = current.grayscaleMode,
-            notificationFilterEnabled = current.notificationFilterEnabled,
-            layoutStyle = current.layoutStyle,
-            extraTileCount = current.extraTileCount,
-            enableExtraPage = current.enableExtraPage
-        )
+            val newProfile = LauncherProfile(
+                id = newId,
+                name = name,
+                tileOverrides = current.tileOverrides,
+                tileLabels = current.tileLabels,
+                tileOrder = current.tileOrder,
+                grayscaleMode = current.grayscaleMode,
+                notificationFilterEnabled = current.notificationFilterEnabled,
+                layoutStyle = current.layoutStyle,
+                extraTileCount = current.extraTileCount,
+                enableExtraPage = current.enableExtraPage
+            )
         val newList = current.profiles + newProfile
         context.dataStore.edit { prefs ->
             prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(newList)
@@ -554,16 +650,25 @@ class DotzPreferencesRepository(private val context: Context) {
                 prefs[PrefsKeys.SHOW_WALLPAPER] = settings.showWallpaper
                 prefs[PrefsKeys.ENABLE_TIMELINE] = settings.enableTimeline
                 prefs[PrefsKeys.HOME_HEADER_MODE] = settings.homeHeaderMode
+                prefs[PrefsKeys.WEATHER_UNIT] = settings.weatherUnit
                 prefs[PrefsKeys.TILE_TRANSPARENCY] = settings.tileTransparency
                 prefs[PrefsKeys.LAYOUT_STYLE] = settings.layoutStyle
                 prefs[PrefsKeys.USE_CIRCADIAN_THEMING] = settings.useCircadianTheming
                 prefs[PrefsKeys.AUTO_GRAYSCALE] = settings.autoGrayscale
                 prefs[PrefsKeys.USE_LIQUID_GLASS] = settings.useLiquidGlass
                 prefs[PrefsKeys.ENABLE_APP_DRAWER] = settings.enableAppDrawer
+                prefs[PrefsKeys.BATCH_NOTIFICATIONS] = settings.batchNotifications
+                prefs[PrefsKeys.NOTIFICATION_BATCH_INTERVAL] = settings.notificationBatchInterval
                 prefs[PrefsKeys.TILE_ORDER] = settings.tileOrder.joinToString(",")
                 prefs[PrefsKeys.ACTIVE_PROFILE_ID] = settings.activeProfileId
                 prefs[PrefsKeys.PROFILES_JSON] = Gson().toJson(settings.profiles)
                 prefs[PrefsKeys.FOCUS_SCORE_HISTORY] = Gson().toJson(settings.focusScoreHistory)
+                prefs[PrefsKeys.CLOCK_STYLE] = settings.clockStyle
+                if (settings.customAccentColor != null) {
+                    prefs[PrefsKeys.CUSTOM_ACCENT_COLOR] = settings.customAccentColor
+                } else {
+                    prefs.remove(PrefsKeys.CUSTOM_ACCENT_COLOR)
+                }
 
                 // Clear and re-apply overrides
                 (0..17).forEach { id ->

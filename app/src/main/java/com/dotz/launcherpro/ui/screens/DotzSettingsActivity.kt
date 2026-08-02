@@ -40,6 +40,7 @@ import com.dotz.launcherpro.R
 import com.dotz.launcherpro.manager.PermissionManager
 import com.dotz.launcherpro.ui.components.DotzAlertDialog
 import com.dotz.launcherpro.ui.components.PremiumBadge
+import com.dotz.launcherpro.ui.components.*
 import com.dotz.launcherpro.ui.theme.DotzTheme
 import com.dotz.launcherpro.viewmodel.LauncherViewModel
 import com.dotz.launcherpro.viewmodel.LauncherUiState
@@ -77,7 +78,16 @@ data class SettingsActions(
     val onSwitchProfile: (String) -> Unit,
     val onStartUltraFocus: (Int) -> Unit,
     val onBatchNotificationsToggle: (Boolean) -> Unit,
-    val onDeliverBatch: () -> Unit
+    val onNotificationBatchIntervalChange: (Int) -> Unit,
+    val onDeliverBatch: () -> Unit,
+    val onWeatherUnitChange: (String) -> Unit,
+    val onEditModeToggle: (Boolean) -> Unit,
+    val onFontChange: (String) -> Unit,
+    val onBiometricPauseToggle: (Boolean) -> Unit,
+    val onUpdateClick: () -> Unit,
+    val onThemeIdChange: (String) -> Unit,
+    val onCustomColorChange: (Int) -> Unit,
+    val onClockStyleChange: (String) -> Unit
 )
 
 class DotzSettingsActivity : ComponentActivity() {
@@ -88,19 +98,21 @@ class DotzSettingsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // Ensure app draws behind cutouts for true edge-to-edge
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            window.attributes.layoutInDisplayCutoutMode = if (android.os.Build.VERSION.SDK_INT >= 35) {
-                android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= 35) {
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
             } else {
-                android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
         }
 
         enableEdgeToEdge()
         
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
-            val settingsForSettings = uiState.settings.copy(showWallpaper = false, tileTransparency = 1.0f)
+            val theme by viewModel.themeState.collectAsState()
+            val focus by viewModel.focusState.collectAsState()
+            
+            val settingsForSettings = theme.settings.copy(showWallpaper = false, tileTransparency = 1.0f)
             DotzTheme(settings = settingsForSettings) {
                 val scope = rememberCoroutineScope()
                 val context = LocalContext.current
@@ -139,7 +151,8 @@ class DotzSettingsActivity : ComponentActivity() {
                 }
 
                 DotzSettingsScreen(
-                    uiState = uiState,
+                    theme = theme,
+                    focus = focus,
                     snackbarHostState = snackbarHostState,
                     actions = SettingsActions(
                         onBack = { finish() },
@@ -166,41 +179,63 @@ class DotzSettingsActivity : ComponentActivity() {
                         onShowMindfulUsageToggle = viewModel::setShowMindfulUsage,
                         onAboutClick = {
                             startActivity(Intent(this, DotzAboutActivity::class.java))
+                            @Suppress("DEPRECATION")
+                            overridePendingTransition(R.anim.slide_up, R.anim.stay)
                         },
                         onUpgradeClick = {
                             startActivity(Intent(this, DotzUpgradeActivity::class.java))
+                            @Suppress("DEPRECATION")
+                            overridePendingTransition(R.anim.slide_up, R.anim.stay)
                         },
                         onAppSelectionClick = {
                             startActivity(Intent(this, AppSelectionListActivity::class.java))
+                            @Suppress("DEPRECATION")
+                            overridePendingTransition(R.anim.slide_up, R.anim.stay)
                         },
                         onCreateProfile = viewModel::createProfile,
                         onDeleteProfile = viewModel::deleteProfile,
                         onSwitchProfile = viewModel::switchProfile,
-                onStartUltraFocus = viewModel::startUltraFocusSession,
-                onBatchNotificationsToggle = viewModel::setBatchNotifications,
-                onDeliverBatch = viewModel::deliverBatch
-            )
+                        onStartUltraFocus = viewModel::startUltraFocusSession,
+                        onBatchNotificationsToggle = viewModel::setBatchNotifications,
+                        onNotificationBatchIntervalChange = viewModel::setNotificationBatchInterval,
+                        onDeliverBatch = viewModel::deliverBatch,
+                        onWeatherUnitChange = viewModel::setWeatherUnit,
+                        onEditModeToggle = viewModel::setEditModeEnabled,
+                        onFontChange = viewModel::setFontId,
+                        onBiometricPauseToggle = viewModel::setUseBiometricPause,
+                        onUpdateClick = { viewModel.startUpdateFlow(this@DotzSettingsActivity) },
+                        onThemeIdChange = viewModel::setThemeId,
+                        onCustomColorChange = viewModel::setCustomAccentColor,
+                        onClockStyleChange = viewModel::setClockStyle
+                    )
                 )
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(R.anim.stay, R.anim.slide_down)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DotzSettingsScreen(
-    uiState: LauncherUiState,
+    theme: com.dotz.launcherpro.viewmodel.ThemeState,
+    focus: com.dotz.launcherpro.viewmodel.FocusState,
     snackbarHostState: SnackbarHostState,
     actions: SettingsActions
 ) {
-    val settings = uiState.settings
-    val isUpgradeAvailable = uiState.isUpgradeAvailable
-    val isDefaultLauncher = uiState.isDefaultLauncher
-    val isUpdateAvailable = uiState.isUpdateAvailable
-    val isLiteVersion = uiState.isLiteVersion
-    val hasUsageStatsPermission = uiState.hasUsageStatsPermission
-    val iconPacks = uiState.installedIconPacks
-    val currentThemeMode = uiState.currentThemeMode
+    val settings = theme.settings
+    val isUpgradeAvailable = theme.isUpgradeAvailable
+    val isDefaultLauncher = theme.isDefaultLauncher
+    val isUpdateAvailable = theme.isUpdateAvailable
+    val isLiteVersion = theme.isLiteVersion
+    val hasUsageStatsPermission = focus.hasUsageStatsPermission
+    val iconPacks = theme.installedIconPacks
+    val currentThemeMode = theme.currentThemeMode
     val homeHeaderMode = settings.homeHeaderMode
 
     var showIconPackDialog by remember { mutableStateOf(false) }
@@ -344,21 +379,79 @@ private fun DotzSettingsScreen(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item(key = "spacer_top") { Spacer(Modifier.height(16.dp)) }
-            
-            // --- Premium Section ---
+            // --- Premium Promo ---
             if (!settings.isPremium && isUpgradeAvailable) {
-                item(key = "premium_promo") { PremiumPromotionCard(onClick = actions.onUpgradeClick) }
+                item(key = "premium_promo") {
+                    PremiumPromotionCard(onClick = actions.onUpgradeClick)
+                    Spacer(Modifier.height(16.dp))
+                }
             }
 
-            // --- Home Screen Section ---
-            item(key = "group_home") { SettingsGroup(title = stringResource(R.string.settings_group_home)) {
-                SettingsActionRow(label = stringResource(R.string.settings_item_app_selection), icon = Icons.Default.Apps, onClick = actions.onAppSelectionClick)
-                Divider()
-                SettingsActionRow(
+            // --- Customization Section ---
+            item { SettingsSectionHeader(stringResource(R.string.settings_group_home)) }
+            item {
+                SettingsPreviewCard {
+                    val isList = settings.layoutStyle == "list"
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Minimalist Header Mock
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ClockRenderer(
+                                style = settings.clockStyle,
+                                time = "08:18", // Fixed time for preview
+                                date = "SAT, 01 AUG"
+                            )
+                            Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), modifier = Modifier.size(16.dp))
+                        }
+
+                        if (isList) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                repeat(2) {
+                                    MiniAppTile(
+                                        label = "App",
+                                        icon = if (it == 0) Icons.Default.Phone else Icons.AutoMirrored.Filled.Message,
+                                        transparency = settings.tileTransparency,
+                                        isList = true
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                repeat(3) {
+                                    MiniAppTile(
+                                        label = "App",
+                                        icon = when(it) {
+                                            0 -> Icons.Default.Phone
+                                            1 -> Icons.AutoMirrored.Filled.Message
+                                            else -> Icons.Default.CameraAlt
+                                        },
+                                        transparency = settings.tileTransparency,
+                                        isList = false
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                ModernSettingsActionRow(
+                    label = stringResource(R.string.settings_item_app_selection),
+                    icon = Icons.Default.Apps,
+                    onClick = actions.onAppSelectionClick
+                )
+            }
+            item {
+                ModernSettingsActionRow(
                     label = stringResource(R.string.settings_item_wallpaper),
                     icon = Icons.Default.Wallpaper,
                     isPremium = isUpgradeAvailable,
@@ -368,22 +461,26 @@ private fun DotzSettingsScreen(
                         else showPremiumDialog = true
                     }
                 )
-                Divider()
-                SettingsToggleRow(
+            }
+            item {
+                ModernSettingsToggleRow(
                     label = stringResource(R.string.settings_item_vertical_scroll),
                     icon = Icons.Default.SwapVert,
                     checked = settings.verticalScrolling,
                     onToggle = actions.onVerticalScrollToggle
                 )
-                Divider()
-                SettingsToggleRow(
+            }
+            item {
+                ModernSettingsToggleRow(
                     label = stringResource(R.string.settings_item_extra_tiles),
                     icon = Icons.Default.AddBox,
                     checked = settings.enableExtraPage,
                     onToggle = actions.onEnableExtraPageToggle
                 )
-                if (settings.enableExtraPage) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+            }
+            if (settings.enableExtraPage) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(stringResource(R.string.settings_label_extra_tiles_count), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                             Text("${settings.extraTileCount}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
@@ -394,39 +491,75 @@ private fun DotzSettingsScreen(
                             valueRange = 1f..6f,
                             steps = 4,
                             colors = SliderDefaults.colors(
-                                thumbColor = MaterialTheme.colorScheme.onSurface,
-                                activeTrackColor = MaterialTheme.colorScheme.onSurface,
-                                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                thumbColor = MaterialTheme.colorScheme.primary,
+                                activeTrackColor = MaterialTheme.colorScheme.primary,
+                                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             )
                         )
                     }
                 }
-            }}
+            }
 
-            // --- Theme Section ---
-            item(key = "group_appearance") { SettingsGroup(title = stringResource(R.string.settings_group_appearance)) {
-                SettingsActionRow(
+            // --- Appearance Section ---
+            item { SettingsSectionHeader(stringResource(R.string.settings_group_appearance)) }
+            item {
+                ModernSettingsActionRow(
+                    label = "Clock Style",
+                    icon = Icons.Default.AccessTime,
+                    subtitle = settings.clockStyle.replaceFirstChar { it.uppercase() },
+                    onClick = {}
+                )
+            }
+            item {
+                TonalSegmentedControl(
+                    options = listOf(
+                        "classic" to "Classic",
+                        "modern" to "Modern",
+                        "minimalist" to "Minimal",
+                        "analog" to "Analog",
+                        "textual" to "Words"
+                    ),
+                    proOptions = setOf("modern", "minimalist", "analog", "textual"),
+                    selected = settings.clockStyle,
+                    onSelect = { 
+                        if (it == "classic" || settings.isPremium) actions.onClockStyleChange(it)
+                        else showPremiumDialog = true
+                    }
+                )
+            }
+            item {
+                ModernSettingsActionRow(
                     label = stringResource(R.string.settings_item_theme_mode),
                     icon = Icons.Default.Palette,
                     subtitle = currentThemeMode.name.lowercase().replaceFirstChar { it.uppercase() },
                     onClick = {}
                 )
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    ThemeModeSelectionRow(
-                        currentMode = currentThemeMode,
-                        isPremium = settings.isPremium,
-                        isUpgradeAvailable = isUpgradeAvailable,
-                        isLiteVersion = isLiteVersion,
-                        onModeChange = actions.onThemeModeChange,
-                        onShowPremiumDialog = { showPremiumDialog = true }
+            }
+            item {
+                ThemeModeSelectionRow(
+                    currentMode = currentThemeMode,
+                    isPremium = settings.isPremium,
+                    isUpgradeAvailable = isUpgradeAvailable,
+                    isLiteVersion = isLiteVersion,
+                    onModeChange = actions.onThemeModeChange,
+                    onShowPremiumDialog = { showPremiumDialog = true }
+                )
+            }
+            if (currentThemeMode == ThemeMode.CUSTOM) {
+                item {
+                    ColorPaletteRow(
+                        selectedColor = settings.customAccentColor,
+                        onColorSelect = actions.onCustomColorChange
                     )
                 }
-                Divider()
+            }
+            item {
                 TransparencySlider(settings.tileTransparency, settings.isPremium || !isUpgradeAvailable) {
                     if (settings.isPremium || !isUpgradeAvailable) actions.onTransparencyChange(it) else showPremiumDialog = true
                 }
-                Divider()
-                SettingsToggleRow(
+            }
+            item {
+                ModernSettingsToggleRow(
                     label = stringResource(R.string.settings_item_liquid_glass),
                     icon = Icons.Default.BlurOn,
                     checked = settings.useLiquidGlass,
@@ -436,19 +569,51 @@ private fun DotzSettingsScreen(
                     },
                     subtitle = stringResource(R.string.settings_subtitle_liquid_glass)
                 )
-                Divider()
+            }
+            item {
                 TileLayoutSelection(settings.layoutStyle, settings.isPremium || !isUpgradeAvailable) {
                     if (settings.isPremium || !isUpgradeAvailable) actions.onLayoutStyleChange(it) else showPremiumDialog = true
                 }
-                Divider()
-                SettingsActionRow(
+            }
+            item {
+                FontSelectionRow(
+                    currentFontId = settings.fontId,
+                    isPremium = settings.isPremium,
+                    isUpgradeAvailable = isUpgradeAvailable,
+                    onFontChange = actions.onFontChange,
+                    onShowPremiumDialog = { showPremiumDialog = true }
+                )
+            }
+            item {
+                ModernSettingsToggleRow(
+                    label = "Enable Tile Editing",
+                    icon = Icons.Default.Edit,
+                    checked = settings.editModeEnabled,
+                    onToggle = actions.onEditModeToggle,
+                    subtitle = "Long press to move tiles"
+                )
+            }
+            item {
+                ModernSettingsActionRow(
+                    label = stringResource(R.string.settings_item_icon_pack),
+                    icon = Icons.Default.Category,
+                    subtitle = settings.iconPackPackage ?: stringResource(R.string.label_default),
+                    onClick = { showIconPackDialog = true }
+                )
+            }
+
+            // --- Mindfulness Section ---
+            item { SettingsSectionHeader(stringResource(R.string.settings_group_mindfulness)) }
+            item {
+                ModernSettingsActionRow(
                     label = stringResource(R.string.settings_item_ultra_focus),
                     icon = Icons.Default.Psychology,
                     subtitle = stringResource(R.string.settings_subtitle_ultra_focus),
                     onClick = { showUltraFocusDurationDialog = true }
                 )
-                Divider()
-                SettingsActionRow(
+            }
+            item {
+                ModernSettingsActionRow(
                     label = "Select Ultra Focus Apps",
                     icon = Icons.Default.AppRegistration,
                     subtitle = "Pick up to 7 apps for focus sessions",
@@ -456,16 +621,47 @@ private fun DotzSettingsScreen(
                         context.startActivity(Intent(context, UltraFocusAppSelectionActivity::class.java))
                     }
                 )
-                Divider()
-                SettingsToggleRow(
+            }
+            item {
+                ModernSettingsToggleRow(
                     label = stringResource(R.string.settings_item_timeline),
                     icon = Icons.Default.Timeline,
                     checked = settings.enableTimeline,
                     onToggle = actions.onEnableTimelineToggle,
                     subtitle = stringResource(R.string.settings_subtitle_timeline),
                 )
-                Divider()
-                Column(modifier = Modifier.padding(16.dp)) {
+            }
+            item {
+                ModernSettingsToggleRow(
+                    label = stringResource(R.string.settings_item_mindful_usage),
+                    icon = Icons.Default.Psychology,
+                    checked = settings.showMindfulUsage,
+                    onToggle = { enabled ->
+                        if (enabled && !hasUsageStatsPermission) {
+                            showUsageStatsDisclosure = true
+                        } else {
+                            actions.onShowMindfulUsageToggle(enabled)
+                        }
+                    },
+                    subtitle = stringResource(R.string.settings_subtitle_mindful_usage)
+                )
+            }
+            item {
+                ModernSettingsToggleRow(
+                    label = "Biometric Intention Lock",
+                    icon = Icons.Default.Fingerprint,
+                    checked = settings.useBiometricPause,
+                    isPremium = isUpgradeAvailable,
+                    isLocked = !settings.isPremium && isUpgradeAvailable,
+                    onToggle = { 
+                        if (settings.isPremium || !isUpgradeAvailable) actions.onBiometricPauseToggle(it)
+                        else showPremiumDialog = true
+                    },
+                    subtitle = "Require biometric to open distracting apps"
+                )
+            }
+            item {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                     Text(stringResource(R.string.settings_label_header_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     Spacer(Modifier.height(12.dp))
                     TonalSegmentedControl(
@@ -479,78 +675,83 @@ private fun DotzSettingsScreen(
                         onSelect = actions.onHomeHeaderModeChange
                     )
                 }
-            }}
+            }
 
-            // --- Notifications ---
-            item(key = "group_notifications") { SettingsGroup(title = stringResource(R.string.settings_group_notifications)) {
-                SettingsToggleRow(
+            // --- Notifications Section ---
+            item { SettingsSectionHeader(stringResource(R.string.settings_group_notifications)) }
+            item {
+                ModernSettingsToggleRow(
                     label = "Batch Notifications",
                     icon = Icons.Default.Inventory,
                     checked = settings.batchNotifications,
                     onToggle = actions.onBatchNotificationsToggle,
-                    subtitle = "Deliver in batches every 4 hours"
+                    subtitle = "Deliver in scheduled intervals"
                 )
-                if (settings.batchNotifications) {
-                    SettingsActionRow(
+            }
+            if (settings.batchNotifications) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Text("Delivery Interval", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        Spacer(Modifier.height(8.dp))
+                        TonalSegmentedControl(
+                            options = listOf(
+                                "1" to "1h",
+                                "2" to "2h",
+                                "4" to "4h",
+                                "8" to "8h"
+                            ),
+                            selected = settings.notificationBatchInterval.toString(),
+                            onSelect = { actions.onNotificationBatchIntervalChange(it.toInt()) }
+                        )
+                    }
+                }
+                item {
+                    ModernSettingsActionRow(
                         label = "Deliver Batch Now",
                         icon = Icons.Default.MoveToInbox,
                         onClick = actions.onDeliverBatch
                     )
                 }
-                Divider()
-                SettingsToggleRow(label = stringResource(R.string.settings_item_notification_dots), icon = Icons.Default.Circle, checked = settings.showNotificationDots, onToggle = actions.onShowDots)
-                Divider()
-                SettingsToggleRow(label = stringResource(R.string.settings_item_numerical_counts), icon = Icons.Default.Pin, checked = settings.showNumericalCounts, onToggle = actions.onShowCounts)
-                Divider()
-                SettingsToggleRow(
+            }
+            item {
+                ModernSettingsToggleRow(
+                    label = stringResource(R.string.settings_item_notification_dots),
+                    icon = Icons.Default.Circle,
+                    checked = settings.showNotificationDots,
+                    onToggle = actions.onShowDots
+                )
+            }
+            item {
+                ModernSettingsToggleRow(
+                    label = stringResource(R.string.settings_item_numerical_counts),
+                    icon = Icons.Default.Pin,
+                    checked = settings.showNumericalCounts,
+                    onToggle = actions.onShowCounts
+                )
+            }
+            item {
+                ModernSettingsToggleRow(
                     label = stringResource(R.string.settings_item_filter_distractions),
                     icon = Icons.Default.FilterAlt,
                     checked = settings.notificationFilterEnabled,
                     onToggle = actions.onNotificationFilterToggle,
                     subtitle = stringResource(R.string.settings_subtitle_filter_distractions)
                 )
-            }}
+            }
 
-            // --- Profiles ---
-            item(key = "group_profiles") { SettingsGroup(title = stringResource(R.string.settings_group_profiles)) {
-                ProfileManagementCard(
-                    activeId = settings.activeProfileId,
-                    profiles = settings.profiles,
-                    isPremium = settings.isPremium,
-                    isUpgradeAvailable = isUpgradeAvailable,
-                    onSwitch = actions.onSwitchProfile,
-                    onDelete = actions.onDeleteProfile,
-                    onAddClick = { 
-                        if (!isUpgradeAvailable || settings.isPremium) showCreateProfileDialog = true
-                        else showPremiumDialog = true
-                    }
-                )
-            }}
-
-            // --- Mindfulness ---
-            item(key = "group_mindfulness") { SettingsGroup(title = stringResource(R.string.settings_group_mindfulness)) {
-                SettingsToggleRow(
-                    label = stringResource(R.string.settings_item_mindful_usage),
-                    icon = Icons.Default.Psychology,
-                    checked = settings.showMindfulUsage,
-                    onToggle = { enabled ->
-                        if (enabled && !hasUsageStatsPermission) {
-                            showUsageStatsDisclosure = true
-                        } else {
-                            actions.onShowMindfulUsageToggle(enabled)
-                        }
-                    },
-                    subtitle = stringResource(R.string.settings_subtitle_mindful_usage)
-                )
-            }}
-
-            // --- System ---
-            item(key = "group_system") { SettingsGroup(title = stringResource(R.string.settings_group_system)) {
-                if (!isDefaultLauncher) {
-                    SettingsActionRow(label = stringResource(R.string.settings_item_set_default), icon = Icons.Default.Home, onClick = actions.onSetDefault)
-                    Divider()
+            // --- System & Backup Section ---
+            item { SettingsSectionHeader("System & Backup") }
+            if (!isDefaultLauncher) {
+                item {
+                    ModernSettingsActionRow(
+                        label = stringResource(R.string.settings_item_set_default),
+                        icon = Icons.Default.Home,
+                        onClick = actions.onSetDefault
+                    )
                 }
-                SettingsToggleRow(
+            }
+            item {
+                ModernSettingsToggleRow(
                     label = stringResource(R.string.settings_item_weather), 
                     icon = Icons.Default.Cloud, 
                     checked = settings.showWeatherInfo, 
@@ -568,39 +769,90 @@ private fun DotzSettingsScreen(
                         }
                     }
                 )
-                Divider()
-                SettingsActionRow(label = stringResource(R.string.settings_item_icon_pack), icon = Icons.Default.Category, subtitle = settings.iconPackPackage ?: stringResource(R.string.label_default), onClick = { showIconPackDialog = true })
-                Divider()
-                SettingsActionRow(label = stringResource(R.string.settings_item_export), icon = Icons.Default.Download, onClick = actions.onExport)
-                Divider()
-                SettingsActionRow(label = stringResource(R.string.settings_item_import), icon = Icons.Default.Upload, onClick = actions.onImport)
-            }}
-
-            // --- Info ---
-            item(key = "label_about") {
-                Text(
-                    text = stringResource(R.string.settings_label_about),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
-                    letterSpacing = 1.sp
+            }
+            if (settings.showWeatherInfo) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Text("Temperature Unit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        Spacer(Modifier.height(8.dp))
+                        TonalSegmentedControl(
+                            options = listOf(
+                                "metric" to "Celsius",
+                                "imperial" to "Fahrenheit"
+                            ),
+                            selected = settings.weatherUnit,
+                            onSelect = actions.onWeatherUnitChange
+                        )
+                    }
+                }
+            }
+            item {
+                ModernSettingsActionRow(
+                    label = stringResource(R.string.settings_item_export),
+                    icon = Icons.Default.Download,
+                    onClick = actions.onExport
                 )
             }
+            item {
+                ModernSettingsActionRow(
+                    label = stringResource(R.string.settings_item_import),
+                    icon = Icons.Default.Upload,
+                    onClick = actions.onImport
+                )
+            }
+
+            // --- Profiles Section ---
+            item { SettingsSectionHeader(stringResource(R.string.settings_group_profiles)) }
+            item {
+                ProfileManagementCard(
+                    activeId = settings.activeProfileId,
+                    profiles = settings.profiles,
+                    isPremium = settings.isPremium,
+                    isUpgradeAvailable = isUpgradeAvailable,
+                    onSwitch = actions.onSwitchProfile,
+                    onDelete = actions.onDeleteProfile,
+                    onAddClick = { 
+                        if (!isUpgradeAvailable || settings.isPremium) showCreateProfileDialog = true
+                        else showPremiumDialog = true
+                    }
+                )
+            }
+
+            // --- Info Section ---
+            item { SettingsSectionHeader(stringResource(R.string.settings_label_about)) }
             item(key = "card_about") {
-                Card(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                    onClick = {
+                        if (isUpdateAvailable) {
+                            actions.onUpdateClick()
+                        } else {
+                            actions.onAboutClick()
+                        }
+                    }
                 ) {
-                    SettingsActionRow(
-                        label = if (isUpdateAvailable) stringResource(R.string.settings_item_update_available) else stringResource(R.string.settings_item_about_dotz),
-                        icon = Icons.Default.Info,
-                        onClick = actions.onAboutClick
-                    )
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            if (isUpdateAvailable) Icons.Default.Update else Icons.Default.Info,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            text = if (isUpdateAvailable) stringResource(R.string.settings_item_update_available) else stringResource(R.string.settings_item_about_dotz),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 
-            item { Spacer(Modifier.height(32.dp)) }
+            item { Spacer(Modifier.height(48.dp)) }
         }
     }
 
@@ -647,421 +899,32 @@ private fun DotzSettingsScreen(
 }
 
 @Composable
-private fun SettingsGroup(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    var expanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp)
-            .animateContentSize(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.05f))
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = title.uppercase(),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        letterSpacing = 2.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    ),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-            }
-            
-            if (expanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    content = content
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsToggleRow(
-    label: String,
-    icon: ImageVector,
-    checked: Boolean,
-    subtitle: String? = null,
-    isPremium: Boolean = false,
-    isLocked: Boolean = false,
-    onToggle: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isLocked) { onToggle(!checked) }
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = CircleShape,
-            color = if (checked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    icon, 
-                    null, 
-                    tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isLocked) 0.3f else 0.8f), 
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    label, 
-                    color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, 
-                    style = MaterialTheme.typography.titleMedium, 
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (isPremium && isLocked) {
-                    Spacer(Modifier.width(8.dp))
-                    PremiumBadge()
-                }
-            }
-            if (subtitle != null) {
-                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onToggle,
-            enabled = !isLocked,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        )
-    }
-}
-
-@Composable
-private fun SettingsActionRow(
-    label: String,
-    icon: ImageVector,
-    subtitle: String? = null,
-    isPremium: Boolean = false,
-    isLocked: Boolean = false,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isLocked) { onClick() }
-            .padding(horizontal = 24.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    icon, 
-                    null, 
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isLocked) 0.3f else 0.8f), 
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    label, 
-                    color = if (isLocked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface, 
-                    style = MaterialTheme.typography.titleMedium, 
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (isPremium && isLocked) {
-                    Spacer(Modifier.width(8.dp))
-                    PremiumBadge()
-                }
-            }
-            if (subtitle != null) {
-                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        Icon(
-            imageVector = if (isLocked) Icons.Default.Lock else Icons.AutoMirrored.Filled.ArrowForwardIos,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-            modifier = Modifier.size(16.dp)
-        )
-    }
-}
-
-@Composable
-private fun TonalSegmentedControl(
-    options: List<Pair<String, String>>, 
-    selected: String, 
-    proOptions: Set<String> = emptySet(),
-    onSelect: (String) -> Unit
-) {
-    val scrollState = rememberScrollState()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState)
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        options.forEach { (mode, label) ->
-            val isSelected = selected == mode
-            val isPro = proOptions.contains(mode)
-            
-            Surface(
-                modifier = Modifier
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { onSelect(mode) },
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(16.dp),
-                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        label, 
-                        style = MaterialTheme.typography.labelLarge, 
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, 
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                    )
-                    if (isPro) {
-                        Spacer(Modifier.width(6.dp))
-                        PremiumBadge()
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeModeSelectionRow(currentMode: ThemeMode, isPremium: Boolean, isUpgradeAvailable: Boolean, isLiteVersion: Boolean, onModeChange: (ThemeMode) -> Unit, onShowPremiumDialog: () -> Unit) {
-    val modes = if (isLiteVersion) listOf(ThemeMode.LIGHT, ThemeMode.DARK) else ThemeMode.entries
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        modes.forEach { mode ->
-            val isSelected = currentMode == mode
-            val isPro = mode == ThemeMode.CIRCADIAN || mode == ThemeMode.TRANSPARENT
-            val locked = isPro && isUpgradeAvailable && !isPremium
-
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(72.dp)
-                    .clickable { if (locked) onShowPremiumDialog() else onModeChange(mode) },
-                shape = RoundedCornerShape(20.dp),
-                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(4.dp)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = when(mode) {
-                                ThemeMode.LIGHT -> Icons.Default.LightMode
-                                ThemeMode.DARK -> Icons.Default.DarkMode
-                                ThemeMode.CIRCADIAN -> Icons.Default.Schedule
-                                ThemeMode.TRANSPARENT -> Icons.Default.Wallpaper
-                            },
-                            contentDescription = null,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            mode.name, 
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant, 
-                            style = MaterialTheme.typography.labelSmall, 
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
-                        )
-                        if (locked) {
-                            PremiumBadge(Modifier.padding(top = 2.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransparencySlider(value: Float, isPremium: Boolean, onChange: (Float) -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Opacity, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.label_tile_transparency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                if (!isPremium) {
-                    Spacer(Modifier.width(8.dp))
-                    PremiumBadge()
-                }
-            }
-            Text("${(value * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(8.dp))
-        Slider(
-            value = value,
-            onValueChange = onChange,
-            valueRange = 0.1f..1.0f,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
-        )
-    }
-}
-
-@Composable
-private fun TileLayoutSelection(current: String, isPremium: Boolean, onChange: (String) -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.GridView, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(stringResource(R.string.label_tile_layout), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-            if (!isPremium) {
-                Spacer(Modifier.width(8.dp))
-                PremiumBadge()
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf("classic" to stringResource(R.string.layout_grid), "list" to stringResource(R.string.layout_list)).forEach { (style, label) ->
-                val selected = current == style
-                Surface(
-                    modifier = Modifier.weight(1f).height(48.dp).clickable { onChange(style) }, 
-                    shape = RoundedCornerShape(16.dp), 
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            label, 
-                            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, 
-                            style = MaterialTheme.typography.labelLarge, 
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileManagementCard(activeId: String, profiles: List<com.dotz.launcherpro.data.LauncherProfile>, isPremium: Boolean, isUpgradeAvailable: Boolean, onSwitch: (String) -> Unit, onDelete: (String) -> Unit, onAddClick: () -> Unit) {
-    Column(modifier = Modifier.padding(8.dp)) {
-        ProfileItem(stringResource(R.string.label_default), activeId == "default", false, { onSwitch("default") }, null)
-        profiles.filter { it.id != "default" }.forEach { profile ->
-            ProfileItem(
-                name = profile.name,
-                active = activeId == profile.id,
-                locked = isUpgradeAvailable && !isPremium,
-                onClick = { if (!isUpgradeAvailable || isPremium) onSwitch(profile.id) },
-                onDelete = { onDelete(profile.id) }
-            )
-        }
-        TextButton(onClick = onAddClick, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.settings_item_add_profile))
-            if (isUpgradeAvailable && !isPremium) {
-                Spacer(Modifier.width(8.dp))
-                PremiumBadge()
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileItem(name: String, active: Boolean, locked: Boolean, onClick: () -> Unit, onDelete: (() -> Unit)?) {
-    Row(modifier = Modifier.fillMaxWidth().padding(4.dp).clip(RoundedCornerShape(12.dp)).background(if (active) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) else Color.Transparent).clickable { onClick() }.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(selected = active, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSurface))
-            Spacer(Modifier.width(8.dp))
-            Text(name, color = if (locked) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurface)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (locked) {
-                Icon(Icons.Default.Lock, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-            } else if (onDelete != null && !active) {
-                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PremiumPromotionCard(onClick: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.onSurface) {
-        Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.premium_promo_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.premium_promo_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-            }
-            Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(32.dp))
-        }
-    }
-}
-
-@Composable
-private fun IconPackDialog(currentIconPack: String?, iconPacks: List<Pair<String, String>>, onSelect: (String?) -> Unit, onDismiss: () -> Unit) {
-    DotzAlertDialog(
-        onDismissRequest = onDismiss,
-        title = stringResource(R.string.dialog_select_icon_pack),
-        content = {
-            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
-                item {
-                    Text(stringResource(R.string.label_default), color = if (currentIconPack == null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth().clickable { onSelect(null) }.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge)
-                }
-                items(iconPacks.size) { index ->
-                    val (pkg, name) = iconPacks[index]
-                    Text(name, color = if (currentIconPack == pkg) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.fillMaxWidth().clickable { onSelect(pkg) }.padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-        },
-        confirmButtonText = stringResource(R.string.btn_cancel),
-        onConfirm = onDismiss
+private fun FontSelectionRow(currentFontId: String, isPremium: Boolean, isUpgradeAvailable: Boolean, onFontChange: (String) -> Unit, onShowPremiumDialog: () -> Unit) {
+    val fonts = listOf(
+        "default" to "Default",
+        "serif" to "Serif",
+        "monospace" to "Mono",
+        "sans-serif" to "Sans"
     )
-}
-
-@Composable
-private fun Divider() {
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+    Column(modifier = Modifier.padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.FontDownload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("Typography", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            if (!isPremium && isUpgradeAvailable) {
+                Spacer(Modifier.width(8.dp))
+                PremiumBadge()
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        TonalSegmentedControl(
+            options = fonts,
+            selected = currentFontId,
+            proOptions = if (!isPremium && isUpgradeAvailable) fonts.map { it.first }.filter { it != "default" }.toSet() else emptySet(),
+            onSelect = { 
+                if (it == "default" || isPremium || !isUpgradeAvailable) onFontChange(it)
+                else onShowPremiumDialog()
+            }
+        )
+    }
 }

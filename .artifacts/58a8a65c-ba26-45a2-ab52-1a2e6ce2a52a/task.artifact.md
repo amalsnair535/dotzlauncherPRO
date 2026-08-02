@@ -1,0 +1,5 @@
+- `[x]` Refactor `LauncherViewModel.kt` to split `LauncherUiState` into atomic flows
+- `[x]` Update `LauncherViewModel.kt` to defer non-critical background tasks
+- `[x]` Refactor `DotzHomeScreen.kt` to consume atomic state flows
+- `[x]` Add accessibility labels and content descriptions to UI components
+- `[x]` Verify build stability and performance improvements

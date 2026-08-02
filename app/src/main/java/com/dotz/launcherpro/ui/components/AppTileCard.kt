@@ -167,8 +167,9 @@ fun AppTileCard(
                         when (iconAny) {
                             is android.graphics.Bitmap -> iconAny.asImageBitmap()
                             is Drawable -> {
-                                val width = if (iconAny.intrinsicWidth > 0) iconAny.intrinsicWidth else 512
-                                val height = if (iconAny.intrinsicHeight > 0) iconAny.intrinsicHeight else 512
+                                val target = 192
+                                val width = if (iconAny.intrinsicWidth > 0) iconAny.intrinsicWidth.coerceAtMost(target) else target
+                                val height = if (iconAny.intrinsicHeight > 0) iconAny.intrinsicHeight.coerceAtMost(target) else target
                                 iconAny.toBitmap(width, height).asImageBitmap()
                             }
                             else -> null

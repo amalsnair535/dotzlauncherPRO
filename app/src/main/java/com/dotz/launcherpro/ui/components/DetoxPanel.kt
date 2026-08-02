@@ -2,6 +2,7 @@
 package com.dotz.launcherpro.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -54,8 +55,10 @@ fun DetoxPanel(
 ) {
     val isGlass = DotzTheme.colors.isGlass
     val glassColor = DotzTheme.colors.text
+    val isTransparentTheme = DotzTheme.colors.background == Color.Transparent
     val panelBackground = when {
         isGlass -> glassColor.copy(alpha = 0.05f)
+        isTransparentTheme -> DotzTheme.colors.tile.copy(alpha = 0.10f)
         else -> DotzTheme.colors.tile.copy(alpha = transparency.coerceAtLeast(0.3f))
     }
 
@@ -185,11 +188,20 @@ private fun DetoxIcon(
     onLongClick: () -> Unit = {}
 ) {
     val contentColor = DotzTheme.colors.text
+    val accentColor = DotzTheme.colors.accent
+    
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(if (isActive) contentColor.copy(alpha = 0.25f * transparency) else contentColor.copy(alpha = 0.1f * transparency))
+            .background(
+                if (isActive) accentColor.copy(alpha = 0.2f * transparency) 
+                else contentColor.copy(alpha = 0.08f * transparency)
+            )
+            .then(
+                if (isActive) Modifier.border(1.dp, accentColor.copy(alpha = 0.3f), CircleShape)
+                else Modifier
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -201,7 +213,7 @@ private fun DetoxIcon(
             Icon(
                 painter = it,
                 contentDescription = label,
-                tint = contentColor,
+                tint = if (isActive) accentColor else contentColor.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp)
             )
         }

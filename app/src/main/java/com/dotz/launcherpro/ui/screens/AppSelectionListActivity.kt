@@ -40,11 +40,12 @@ class AppSelectionListActivity : ComponentActivity() {
         controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
 
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
+            val theme by viewModel.themeState.collectAsState()
+            val tiles by viewModel.tilesState.collectAsState()
             
             // Force solid background to prevent transparency glitching
-            val selectionSettings = remember(uiState.settings) {
-                uiState.settings.copy(showWallpaper = false)
+            val selectionSettings = remember(theme.settings) {
+                theme.settings.copy(showWallpaper = false)
             }
             
             DotzTheme(settings = selectionSettings) {
@@ -53,9 +54,9 @@ class AppSelectionListActivity : ComponentActivity() {
                     color = DotzTheme.colors.background
                 ) {
                     AppSelectionListScreen(
-                        page0 = uiState.page0Tiles,
-                        page1 = uiState.page1Tiles,
-                        page2 = uiState.page2Tiles,
+                        page0 = tiles.page0Tiles,
+                        page1 = tiles.page1Tiles,
+                        page2 = tiles.page2Tiles,
                         onBack = { finish() },
                     ) { tile ->
                         startActivity(
@@ -63,10 +64,18 @@ class AppSelectionListActivity : ComponentActivity() {
                                 .putExtra("tileId", tile.tileId)
                                 .putExtra("tileLabel", tile.label),
                         )
+                        @Suppress("DEPRECATION")
+                        overridePendingTransition(com.dotz.launcherpro.R.anim.slide_up, com.dotz.launcherpro.R.anim.stay)
                     }
                 }
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.dotz.launcherpro.R.anim.stay, com.dotz.launcherpro.R.anim.slide_down)
     }
 }
 

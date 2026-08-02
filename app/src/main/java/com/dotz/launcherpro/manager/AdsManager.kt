@@ -20,7 +20,7 @@ class AdsManager(private val app: Application) {
     private val _nativeAdFlow = MutableStateFlow<NativeAd?>(null)
     val nativeAdFlow = _nativeAdFlow.asStateFlow()
 
-    private val _isAdLoading = MutableStateFlow(false)
+    private val _isAdLoading = MutableStateFlow(value = false)
     val isAdLoading = _isAdLoading.asStateFlow()
 
     fun init() {
@@ -41,18 +41,23 @@ class AdsManager(private val app: Application) {
             return
         }
         _isAdLoading.value = true
-        RewardedAd.load(app, "ca-app-pub-9236556912103771/9239680860", createPrivacyRequest(), object : RewardedAdLoadCallback() {
-            override fun onAdFailedToLoad(adError: LoadAdError) {
-                rewardedAd = null
-                _isAdLoading.value = false
-            }
+        RewardedAd.load(
+            app,
+            "ca-app-pub-9236556912103771/9239680860",
+            createPrivacyRequest(),
+            object : RewardedAdLoadCallback() {
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    rewardedAd = null
+                    _isAdLoading.value = false
+                }
 
-            override fun onAdLoaded(ad: RewardedAd) {
-                rewardedAd = ad
-                _isAdLoading.value = false
-                onAdLoaded()
-            }
-        })
+                override fun onAdLoaded(ad: RewardedAd) {
+                    rewardedAd = ad
+                    _isAdLoading.value = false
+                    onAdLoaded()
+                }
+            },
+        )
     }
 
     fun showRewardedAd(activity: Activity, onRewardEarned: () -> Unit) {

@@ -137,8 +137,11 @@ class IconCacheManager(private val context: Context) {
     fun saveIcon(packageName: String, iconPackPackage: String?, grayscale: Boolean, drawable: Drawable) {
         val file = getCacheFile(packageName, iconPackPackage, grayscale)
         try {
-            val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 512
-            val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 512
+            // Cap icon size to 192x192 to save memory and disk space
+            val targetSize = 192
+            val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth.coerceAtMost(targetSize) else targetSize
+            val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight.coerceAtMost(targetSize) else targetSize
+            
             var bitmap = drawable.toBitmap(width, height)
 
             if (grayscale) {

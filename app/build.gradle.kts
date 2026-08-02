@@ -13,8 +13,8 @@ android {
         applicationId = "com.dotz.launcherpro"
         minSdk = 24
         targetSdk = 36
-        versionCode = 48
-        versionName = "7.0.0"
+        versionCode = 53
+        versionName = "7.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -107,6 +107,9 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.google.billing)
     implementation(libs.google.ads)
+    implementation(libs.play.app.update)
+    implementation(libs.androidx.biometric)
+    implementation(libs.play.services.coroutines)
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.gson)
     implementation(libs.okhttp)

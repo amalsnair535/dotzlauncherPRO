@@ -14,6 +14,9 @@ okhttp = "4.12.0"
 splashscreen = "1.0.1"
 billing = "8.0.0"
 playServicesAds = "23.6.0"
+biometric = "1.2.0-alpha05"
+playServicesCoroutines = "1.8.1"
+playAppUpdate = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,6 +40,9 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 google-billing = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 google-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+play-app-update = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+play-services-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "playServicesCoroutines" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

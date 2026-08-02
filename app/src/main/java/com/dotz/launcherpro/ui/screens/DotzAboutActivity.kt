@@ -44,14 +44,20 @@ class DotzAboutActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val uiState by viewModel.uiState.collectAsState()
-            DotzTheme(settings = uiState.settings) {
+            val theme by viewModel.themeState.collectAsState()
+            DotzTheme(settings = theme.settings) {
                 AboutScreen(
                     onBack = { finish() },
-                    isUpdateAvailable = uiState.isUpdateAvailable
+                    isUpdateAvailable = theme.isUpdateAvailable
                 )
             }
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(com.dotz.launcherpro.R.anim.stay, com.dotz.launcherpro.R.anim.slide_down)
     }
 }
 

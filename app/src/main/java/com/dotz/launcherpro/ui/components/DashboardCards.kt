@@ -42,7 +42,8 @@ data class MindfulnessInfo(
     val pkg: String,
     val label: String,
     val usageTime: String?,
-    val launchCount: Int
+    val launchCount: Int,
+    val comp: String? = null
 )
 
 @Composable
@@ -232,11 +233,13 @@ fun MindfulnessDialog(
 @Composable
 fun TimelineCard(
     item: TimelineItem, 
-    onItemClick: (String?) -> Unit,
+    onItemClick: (String?, String?) -> Unit,
     onPlayPause: () -> Unit = {},
     onSkipNext: () -> Unit = {},
     onSkipPrevious: () -> Unit = {},
     onReply: (String, String) -> Unit = { _, _ -> },
+    onDeleteJournal: (String) -> Unit = {},
+    onEditJournal: (String, String) -> Unit = { _, _ -> },
     isPlaying: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -282,7 +285,7 @@ fun TimelineCard(
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(DotzTheme.colors.text.copy(alpha = 0.03f))
-                        .clickable { onItemClick(item.packageName) },
+                        .clickable { onItemClick(item.packageName, item.componentName) },
                     contentAlignment = Alignment.Center
                 ) {
                     AppIconOrGeneric(item)
@@ -293,7 +296,7 @@ fun TimelineCard(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { onItemClick(item.packageName) }
+                        .clickable { onItemClick(item.packageName, item.componentName) }
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -322,13 +325,40 @@ fun TimelineCard(
                     
                     if (item.subtitle.isNotBlank()) {
                         Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = item.subtitle,
-                            color = DotzTheme.colors.text.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = item.subtitle,
+                                color = DotzTheme.colors.text.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                                maxLines = if (item.type == TimelineType.JOURNAL) 10 else 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .then(
+                                        if (item.type == TimelineType.JOURNAL) {
+                                            Modifier.clickable { onEditJournal(item.id, item.subtitle) }
+                                        } else Modifier
+                                    )
+                            )
+                            
+                            if (item.type == TimelineType.JOURNAL) {
+                                IconButton(
+                                    onClick = { onDeleteJournal(item.id) },
+                                    modifier = Modifier.size(32.dp).padding(start = 8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DeleteOutline,
+                                        contentDescription = "Delete Note",
+                                        tint = DotzTheme.colors.text.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -419,7 +449,10 @@ fun AppIconOrGeneric(item: TimelineItem) {
         try {
             if (item.packageName != null) {
                 val icon = context.packageManager.getApplicationIcon(item.packageName)
-                BitmapPainter(icon.toBitmap().asImageBitmap())
+                val target = 128
+                val width = if (icon.intrinsicWidth > 0) icon.intrinsicWidth.coerceAtMost(target) else target
+                val height = if (icon.intrinsicHeight > 0) icon.intrinsicHeight.coerceAtMost(target) else target
+                BitmapPainter(icon.toBitmap(width, height).asImageBitmap())
             } else {
                 null
             }
@@ -470,5 +503,6 @@ fun getTimelineIcon(type: TimelineType): ImageVector {
         TimelineType.APP_LAUNCH -> Icons.Default.RocketLaunch
         TimelineType.CALENDAR -> Icons.Default.CalendarToday
         TimelineType.SPONSORED -> Icons.Default.Campaign
+        TimelineType.JOURNAL -> Icons.Default.EditNote
     }
 }

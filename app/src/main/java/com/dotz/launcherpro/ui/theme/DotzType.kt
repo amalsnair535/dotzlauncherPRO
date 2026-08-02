@@ -10,6 +10,15 @@ import androidx.compose.ui.unit.sp
 
 object DotzType {
 
+    fun resolveFontFamily(fontId: String): FontFamily {
+        return when (fontId) {
+            "serif" -> FontFamily.Serif
+            "monospace" -> FontFamily.Monospace
+            "sans-serif" -> FontFamily.SansSerif
+            else -> FontFamily.Default
+        }
+    }
+
     fun getTimeStyle(fontFamily: FontFamily) = TextStyle(
         fontFamily = fontFamily,
         fontSize = 48.sp,

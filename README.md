@@ -27,61 +27,60 @@ The development of Dotz Launcher is driven by a vision of reclaiming our focus i
 *   [The Vision - Part 1](https://youtu.be/m39ZGAem1B8)
 *   [The Vision - Part 2](https://youtu.be/FFMwIhez3xw)
 
-## ✨ Key Features
+## ✨ Comprehensive Features
 
-### 0. Website & Community
-* **Official Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
-* **Google Play:** [Get it on Google Play](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
-* **GitHub Repository:** [amalsnair535/DotzLauncherPRO](https://github.com/amalsnair535/DotzLauncherPRO)
+### 1. Intentional Navigation
+*   **Paged Home Screen:** A clean, tile-based 2x3 grid designed to reduce visual noise and prevent mindless tapping.
+*   **Timeline View:** A searchable chronological "diary" of your digital day, including notification history, calls, messages, photo captures, and media playback.
+*   **Component-Based Launching:** (v7.0.3) Precise targeting of specific app activities (e.g., opening the Dialer directly instead of the generic Contacts app).
+*   **App Drawer with Friction:** Discourages mindless scrolling by tracking "Emergency Opens" and requiring confirmation before entering the full app list.
+*   **A-Z Drawer:** An alphabetically grouped list for fast, muscle-memory access when you truly need an app.
 
-### 1. The "Detox" Control Panel (Fixed Header)
-A permanent command center at the top of your home screen providing quick access to system utilities:
-* **Minimalist Awareness:** Large digital clock, date, and real-time battery/network status.
-* **Smart Toggles:** Fast actions for WiFi, Bluetooth, Silent, Torch, and Dark Mode. Tap for direct toggle, long-press for full system settings.
-* **Open-Meteo Weather:** Reliable, zero-tracking live temperature and condition display.
-* **Connectivity Panel:** One-tap access to modern system network controls on Android 12+.
+### 2. Digital Wellness & Mindfulness
+*   **Ultra-Focus Mode:** A timed session (15m to 2h) that locks you into a single-page layout with only 7 essential apps. It silences ringtones and shows a live countdown timer.
+*   **Focus Score:** A real-time score (0–100) calculated based on unlocks, screen time, and emergency drawer usage.
+*   **Weekly Reflection:** (v7.0.2) A Monday morning proactive summary showing usage trends, focus deltas, and wellness ratings (e.g., "EXCELLENT").
+*   **Intention Pause:** An optional 3-second delay when opening distracting apps (like social media) to ask if you really need to open them.
+*   **Notification Filter & Batching:** Automatically filters "distracting" notifications and allows you to batch them to be delivered at set intervals (e.g., every 4 hours).
+*   **Mindful Usage Tracking:** Displays real-time usage time and launch counts directly on home screen tiles.
 
-### 2. Digital Balance & Mindfulness
-Designed to neutralize triggers and build intentional habits:
-* **Real-Time Usage Tracking:** See exactly how much time you’ve spent in each app today directly on home screen tiles and in the app drawer.
-* **Selective Mindfulness Prompt:** A "Mindful Check" appears when opening social media apps for the 11th time in a day, showing usage stats before proceeding.
-* **Accurate Screen Time:** Recalculated usage engine that matches system Digital Wellbeing metrics exactly.
-* **Digital Wellbeing Link:** Quick access to your phone’s official wellbeing dashboard directly from the app usage card.
+### 3. Appearance & Personalization
+*   **Liquid Glass Theme:** A high-fidelity GPU-accelerated glassmorphism effect that can be applied globally.
+*   **Circadian Theming (PRO):** UI colors that dynamically shift based on the time of day (cool tones in the morning, warm amber in the evening).
+*   **Theme Modes:** Supports Light, Dark, Circadian, and Transparent (which allows your wallpaper to show through).
+*   **Tile Customization:** Control over tile transparency and the ability to rearrange tiles via long-press.
+*   **Layout Styles:** Choose between the "Classic Grid" or a "Modern List" layout for your home screen.
+*   **Dynamic Profiles:** Create different launcher setups for "Work," "Home," or "Focused" modes, each with its own app assignments and themes.
+*   **Icon Pack Support:** Full integration with third-party icon packs.
 
-### 3. Pro Dashboard (Swipe Right - Optional)
-A dedicated minimalist workspace featuring essential mindful insights:
-* **Digital Balance Card:** Breakdown of your **Top 5** most-used apps and total daily screen time.
-* **Now Playing:** Full media controls with metadata, sleek progress bar, and transport buttons.
+### 4. Utility & Integration
+*   **Smart Contextual Header:** Intelligently switches between Focus Stats, Media Controls (when music is playing), and System Toggles.
+*   **Detailed Weather:** Real-time insights including "Feels Like" temperature, daily highs/lows, and live Air Quality Index (AQI).
+*   **Quick Capture:** A dedicated header in the Timeline to quickly save text notes and journals.
+*   **Upcoming Section:** A real-time peek at your next 24 hours of calendar events and alarms.
+*   **Integrated Media Controller:** A professional "Matte" finished controller with progress bars and transport controls.
+*   **App Shortcuts:** Long-press any tile to access system-level app shortcuts (Android N+).
 
-### 4. Dynamic Tile System (Expandable)
-* **Customizable Grid:** Up to **18 tiles** across three pages for your daily workflows.
-* **Movable Tiles:** Rearrange your home screen by long-pressing to "lift" and swapping positions.
-* **Universal Remapping:** Every slot can be assigned to any app with intelligent categorized suggestions.
-* **Layout Modes:** Choose between a high-impact **Grid Layout** or a focused **List Layout** (Premium).
-
-### 5. Visual & Aesthetic Customization
-* **Hardware Aesthetic:** Geometric, monochrome design language inspired by minimalist industrial design.
-* **Grayscale Mode:** Force all app icons into beautiful black-and-white to neutralize eye-catching branding.
-* **Circadian Theme (Premium):** Dynamic UI that shifts tones from cool morning blues to warm evening ambers.
-* **Tile Transparency:** Premium control over tile opacity to showcase your wallpaper.
-* **Icon Pack Support:** Full compatibility with professional third-party icon packs.
-
-### 6. Performance & Privacy
-* **Privacy First:** 100% local processing. No data collection, no trackers, and no hidden algorithms.
-* **Zero-Lag Optimization:** Heavy data computations run on background threads for a fluid, stutter-free experience.
-* **Navigation Dead Zone:** Intelligent gesture zone to prevent conflicts with system Home/Recents gestures.
-* **JSON Portability:** One-click Export/Import for your entire configuration.
+### 5. Technical Foundations
+*   **Android 16 Ready:** Targeted at API 36 with full support for predictive back navigation.
+*   **Pure Compose Navigation:** Built entirely on Jetpack Compose for buttery-smooth page transitions and animations.
+*   **Performance Engine:** State memoization and background thread processing ensure zero-lag interactions and low battery impact.
+*   **R8 Optimized:** Uses R8 Full Mode and class repackaging to ensure a minimal APK footprint.
+*   **Privacy-First:** No data collection; weather and location data are handled locally or via privacy-respecting APIs.
 
 ## 🛠️ Technical Identity
 * **Package Name:** `com.dotz.launcherpro`
-* **Version:** `6.0.2`
+* **Version:** `7.0.3`
 * **Architecture:** Pure Jetpack Compose Navigation
 * **Language:** 100% Kotlin
 * **Minimum Android:** API 24 (Android 7.0)
-* **Target Android:** API 35 (Android 15)
+* **Target Android:** API 36 (Android 16)
 
 ## ☕ Support the Project
 If Dotz Launcher has helped you reclaim your focus, consider supporting its development!
+
+**Official Website:** [amalsnair535.github.io/dotzlauncherPRO](https://amalsnair535.github.io/dotzlauncherPRO/)
+**Google Play:** [Get it on Google Play](https://play.google.com/store/apps/details?id=com.dotz.launcherpro)
 
 **Buy Me a Coffee via UPI:**
 `amalsnair535-1@okhdfcbank`

@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.4.0] - 2026-08-02
+
+### Added
+- **Premium Clock Styles (PRO)**: Unlock 5 unique minimalist clock faces including Modern, Minimalist, Analog, and Words.
+- **Atmospheric Custom Themes (PRO)**: A new theme engine that "soaks" your custom accent color into the background (15% tint) and tiles (25% tint) for a cohesive look.
+- **Monthly Subscription**: Introduced a flexible Monthly Access plan with a **3-Day Free Trial**.
+- **Performance Architecture**: Completely refactored the UI state engine into atomic flows. This dramatically reduces CPU usage and improves battery life by isolating UI updates.
+- **In-App Updates**: Stay up to date with official Google Play integration; update banners now appear directly on your Timeline.
+- **Accessibility Inclusivity**: Added full TalkBack support for the new Custom Color palette and Clock styles.
+
+### Improved
+- **Minimalist Weather**: Redesigned the weather widget to remove redundant time and summary text, focusing on essential data.
+- **Universal Header Gestures**: Centralized gesture handling allows for reliable long-press and swipe actions across all header modes (Toggles, Stats, Weather, and Music).
+- **Hybrid Media Sync**: Upgraded `MediaManager` with token-based tracking and a background sync loop to ensure 100% reliable metadata updates.
+- **Robust System Toggles**: Implemented "Optimistic Updates" for the Flashlight and Ringer toggles for instant visual feedback. Added DND permission handling for Silent mode.
+- **Fluid Navigation**: Added premium slide animations for settings navigation and resolved the "wallpaper flash" flickering.
+
+### Fixed
+- **Startup Crash**: Resolved a critical `SecurityException` caused by accessing media sessions before the "Notification Listener" permission was granted.
+- **Settings Clarity**: Redesigned the Settings menu into a faster, sectioned list with a **Live Preview** card for instant feedback.
+
+## [7.0.3] - 2026-07-28
+
+### Added
+- **Component-Based Launching**: Support for targeting specific activities within an app. This allows for precise discovery and targeted launching, especially for apps that bundle multiple tools (like a Dialer and Contacts) into a single package.
+- **Enhanced App Discovery**: The launcher now scans for all available launcher activities, allowing distinct entries for different tools in the same package.
+
+### Fixed
+- **Oppo Dialer Discovery**: Fixed an issue where the "CALL" tile would erroneously open the Contacts activity instead of the Dialer on certain devices (Oppo, etc.).
+- **Prioritized Intents**: Explicitly prioritized `ACTION_DIAL` intent matches for the "CALL" tile to ensure the best user experience.
+
+## [7.0.2] - 2026-07-26
+
+### Added
+- **Weekly Reflection**: A new proactive digital wellness feature that appears every Monday morning.
+    - **Proactive Insights**: Automatically triggers on the first unlock of the week to summarize your previous week's performance.
+    - **Smart Metrics**: Tracks Focus Score trends, Unlock analytics (with percentage changes), and Notification noise (Received vs. Ignored).
+    - **Achievements**: Highlights your "Longest Focus Session" and "Most Productive Day."
+    - **Historical Tracking**: Implemented a rolling 30-day window for daily snapshots of unlocks, notifications, and screen time to power future comparisons.
+
 ## [7.0.0] - 2026-07-25
 
 ### Added

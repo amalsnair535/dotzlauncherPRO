@@ -21,6 +21,7 @@ class DotzApp : Application() {
     lateinit var weatherManager: WeatherManager
     lateinit var mediaManager: MediaManager
     lateinit var adsManager: AdsManager
+    lateinit var okHttpClient: okhttp3.OkHttpClient
 
     companion object {
         lateinit var instance: DotzApp
@@ -33,10 +34,14 @@ class DotzApp : Application() {
         android.util.Log.d("DotzApp", "onCreate: Initializing app...")
         
         prefsRepository = DotzPreferencesRepository(this)
+        okHttpClient = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
         
         locationManager = LocationManager(this)
         systemStateManager = SystemStateManager(this)
-        weatherManager = WeatherManager(prefsRepository, locationManager)
+        weatherManager = WeatherManager(this, prefsRepository, locationManager, okHttpClient)
         mediaManager = MediaManager(this)
         adsManager = AdsManager(this)
         

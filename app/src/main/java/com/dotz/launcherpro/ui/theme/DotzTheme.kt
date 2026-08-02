@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.dotz.launcherpro.data.DotzSettings
+import com.dotz.launcherpro.data.DotzThemePreset
 import com.dotz.launcherpro.data.ThemePresets
 import java.util.Calendar
 
@@ -107,6 +108,22 @@ fun DotzTheme(
         }
     }
 
+    // 4. Apply Custom Color Tint if in Custom Mode
+    if (settings.themeId == "custom" && settings.customAccentColor != null) {
+        val customColor = Color(settings.customAccentColor)
+        // Background Tint (subtle 15%)
+        if (background != Color.Transparent) {
+            background = background.blend(customColor, 0.15f)
+        }
+        currentSolidBackground = currentSolidBackground.blend(customColor, 0.15f)
+        
+        // Tile Tint (distinct 25%)
+        tile = tile.blend(customColor, 0.25f)
+        
+        // Use custom color as primary accent
+        accent = customColor
+    }
+
     val dotzColors = DotzColorSystem(
         background = background,
         solidBackground = currentSolidBackground,
@@ -120,7 +137,8 @@ fun DotzTheme(
     )
 
     // Font Handling
-    val materialTypography = DotzType.getTypography(androidx.compose.ui.text.font.FontFamily.Default)
+    val fontFamily = DotzType.resolveFontFamily(settings.fontId)
+    val materialTypography = DotzType.getTypography(fontFamily)
 
     val materialColorScheme = if (darkTheme) {
         darkColorScheme(
